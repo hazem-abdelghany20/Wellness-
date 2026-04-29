@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Wellness+ · HR Portal</title>
+<meta name="viewport" content="width=1440"/>
+<link rel="icon" type="image/png" href="/wellness-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0B1F1C; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-feature-settings: "cv11","ss01"; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.25); border-radius: 8px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  button, input, select { font-family: inherit; }
+  [data-rtl="true"] { direction: rtl; font-family: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', sans-serif; }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-feature-settings: "tnum"; }
+  .display { font-family: 'Instrument Serif', serif; }
+  @keyframes dashIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes drawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/src/main-hr.jsx"></script>
+</body>
+</html>

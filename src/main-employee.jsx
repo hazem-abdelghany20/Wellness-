@@ -1,0 +1,2957 @@
+import React from 'react';
+import * as ReactDOM from 'react-dom/client';
+// --- ios-frame.jsx ---
+
+// iOS.jsx — Simplified iOS 26 (Liquid Glass) device frame
+// Based on the iOS 26 UI Kit + Figma status bar spec. No assets, no deps.
+// Exports: IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard
+
+// ─────────────────────────────────────────────────────────────
+// Status bar
+// ─────────────────────────────────────────────────────────────
+function IOSStatusBar({ dark = false, time = '9:41' }) {
+  const c = dark ? '#fff' : '#000';
+  return (
+    <div style={{
+      display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center',
+      padding: '21px 24px 19px', boxSizing: 'border-box',
+      position: 'relative', zIndex: 20, width: '100%',
+    }}>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
+        <span style={{
+          fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590,
+          fontSize: 17, lineHeight: '22px', color: c,
+        }}>{time}</span>
+      </div>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
+        <svg width="19" height="12" viewBox="0 0 19 12">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/>
+          <rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/>
+          <rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/>
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/>
+        </svg>
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/>
+          <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill={c}/>
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13">
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/>
+          <rect x="2" y="2" width="20" height="9" rx="2" fill={c}/>
+          <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Liquid glass pill — blur + tint + shine
+// ─────────────────────────────────────────────────────────────
+function IOSGlassPill({ children, dark = false, style = {} }) {
+  return (
+    <div style={{
+      height: 44, minWidth: 44, borderRadius: 9999,
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: dark
+        ? '0 2px 6px rgba(0,0,0,0.35), 0 6px 16px rgba(0,0,0,0.2)'
+        : '0 1px 3px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.06)',
+      ...style,
+    }}>
+      {/* blur + tint */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.28)' : 'rgba(255,255,255,0.5)',
+      }} />
+      {/* shine */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(255,255,255,0.08)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+      }} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', padding: '0 4px' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Navigation bar — glass pills + large title
+// ─────────────────────────────────────────────────────────────
+function IOSNavBar({ title = 'Title', dark = false, trailingIcon = true }) {
+  const muted = dark ? 'rgba(255,255,255,0.6)' : '#404040';
+  const text = dark ? '#fff' : '#000';
+  const pillIcon = (content) => (
+    <IOSGlassPill dark={dark}>
+      <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {content}
+      </div>
+    </IOSGlassPill>
+  );
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 10,
+      paddingTop: 62, paddingBottom: 10, position: 'relative', zIndex: 5,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
+      }}>
+        {/* back chevron */}
+        {pillIcon(
+          <svg width="12" height="20" viewBox="0 0 12 20" fill="none" style={{ marginLeft: -1 }}>
+            <path d="M10 2L2 10l8 8" stroke={muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        {/* trailing ellipsis */}
+        {trailingIcon && pillIcon(
+          <svg width="22" height="6" viewBox="0 0 22 6">
+            <circle cx="3" cy="3" r="2.5" fill={muted}/>
+            <circle cx="11" cy="3" r="2.5" fill={muted}/>
+            <circle cx="19" cy="3" r="2.5" fill={muted}/>
+          </svg>
+        )}
+      </div>
+      {/* large title */}
+      <div style={{
+        padding: '0 16px',
+        fontFamily: '-apple-system, system-ui',
+        fontSize: 34, fontWeight: 700, lineHeight: '41px',
+        color: text, letterSpacing: 0.4,
+      }}>{title}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Grouped list (inset card, r:26) + row (52px)
+// ─────────────────────────────────────────────────────────────
+function IOSListRow({ title, detail, icon, chevron = true, isLast = false, dark = false }) {
+  const text = dark ? '#fff' : '#000';
+  const sec = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const ter = dark ? 'rgba(235,235,245,0.3)' : 'rgba(60,60,67,0.3)';
+  const sep = dark ? 'rgba(84,84,88,0.65)' : 'rgba(60,60,67,0.12)';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', minHeight: 52,
+      padding: '0 16px', position: 'relative',
+      fontFamily: '-apple-system, system-ui', fontSize: 17,
+      letterSpacing: -0.43,
+    }}>
+      {icon && (
+        <div style={{
+          width: 30, height: 30, borderRadius: 7, background: icon,
+          marginRight: 12, flexShrink: 0,
+        }} />
+      )}
+      <div style={{ flex: 1, color: text }}>{title}</div>
+      {detail && <span style={{ color: sec, marginRight: 6 }}>{detail}</span>}
+      {chevron && (
+        <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }}>
+          <path d="M1 1l6 6-6 6" stroke={ter} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+      {!isLast && (
+        <div style={{
+          position: 'absolute', bottom: 0, right: 0,
+          left: icon ? 58 : 16, height: 0.5, background: sep,
+        }} />
+      )}
+    </div>
+  );
+}
+
+function IOSList({ header, children, dark = false }) {
+  const hc = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const bg = dark ? '#1C1C1E' : '#fff';
+  return (
+    <div>
+      {header && (
+        <div style={{
+          fontFamily: '-apple-system, system-ui', fontSize: 13,
+          color: hc, textTransform: 'uppercase',
+          padding: '8px 36px 6px', letterSpacing: -0.08,
+        }}>{header}</div>
+      )}
+      <div style={{
+        background: bg, borderRadius: 26,
+        margin: '0 16px', overflow: 'hidden',
+      }}>{children}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Device frame
+// ─────────────────────────────────────────────────────────────
+function IOSDevice({
+  children, width = 402, height = 874, dark = false,
+  title, keyboard = false,
+}) {
+  return (
+    <div style={{
+      width, height, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: dark ? '#000' : '#F2F2F7',
+      boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      {/* status bar (absolute) */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <IOSStatusBar dark={dark} />
+      </div>
+      {/* nav + content */}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {title !== undefined && <IOSNavBar title={title} dark={dark} />}
+        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+        {keyboard && <IOSKeyboard dark={dark} />}
+      </div>
+      {/* home indicator — always on top */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: 139, height: 5, borderRadius: 100,
+          background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.25)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keyboard — iOS 26 liquid glass
+// ─────────────────────────────────────────────────────────────
+function IOSKeyboard({ dark = false }) {
+  const glyph = dark ? 'rgba(255,255,255,0.7)' : '#595959';
+  const sugg = dark ? 'rgba(255,255,255,0.6)' : '#333';
+  const keyBg = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
+
+  // special-key icons
+  const icons = {
+    shift: <svg width="19" height="17" viewBox="0 0 19 17"><path d="M9.5 1L1 9.5h4.5V16h8V9.5H18L9.5 1z" fill={glyph}/></svg>,
+    del: <svg width="23" height="17" viewBox="0 0 23 17"><path d="M7 1h13a2 2 0 012 2v11a2 2 0 01-2 2H7l-6-7.5L7 1z" fill="none" stroke={glyph} strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 5l7 7M17 5l-7 7" stroke={glyph} strokeWidth="1.6" strokeLinecap="round"/></svg>,
+    ret: <svg width="20" height="14" viewBox="0 0 20 14"><path d="M18 1v6H4m0 0l4-4M4 7l4 4" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  };
+
+  const key = (content, { w, flex, ret, fs = 25, k } = {}) => (
+    <div key={k} style={{
+      height: 42, borderRadius: 8.5,
+      flex: flex ? 1 : undefined, width: w, minWidth: 0,
+      background: ret ? '#08f' : keyBg,
+      boxShadow: '0 1px 0 rgba(0,0,0,0.075)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: '-apple-system, "SF Compact", system-ui',
+      fontSize: fs, fontWeight: 458, color: ret ? '#fff' : glyph,
+    }}>{content}</div>
+  );
+
+  const row = (keys, pad = 0) => (
+    <div style={{ display: 'flex', gap: 6.5, justifyContent: 'center', padding: `0 ${pad}px` }}>
+      {keys.map(l => key(l, { flex: true, k: l }))}
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'relative', zIndex: 15, borderRadius: 27, overflow: 'hidden',
+      padding: '11px 0 2px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      boxShadow: dark
+        ? '0 -2px 20px rgba(0,0,0,0.09)'
+        : '0 -1px 6px rgba(0,0,0,0.018), 0 -3px 20px rgba(0,0,0,0.012)',
+    }}>
+      {/* liquid glass bg — same recipe as nav pills */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.14)' : 'rgba(255,255,255,0.25)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* autocorrect bar */}
+      <div style={{
+        display: 'flex', gap: 20, alignItems: 'center',
+        padding: '8px 22px 13px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {['"The"', 'the', 'to'].map((w, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{ width: 1, height: 25, background: '#ccc', opacity: 0.3 }} />}
+            <div style={{
+              flex: 1, textAlign: 'center',
+              fontFamily: '-apple-system, system-ui', fontSize: 17,
+              color: sugg, letterSpacing: -0.43, lineHeight: '22px',
+            }}>{w}</div>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* key layout */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 13,
+        padding: '0 6.5px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {row(['q','w','e','r','t','y','u','i','o','p'])}
+        {row(['a','s','d','f','g','h','j','k','l'], 20)}
+        <div style={{ display: 'flex', gap: 14.25, alignItems: 'center' }}>
+          {key(icons.shift, { w: 45, k: 'shift' })}
+          <div style={{ display: 'flex', gap: 6.5, flex: 1 }}>
+            {['z','x','c','v','b','n','m'].map(l => key(l, { flex: true, k: l }))}
+          </div>
+          {key(icons.del, { w: 45, k: 'del' })}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {key('ABC', { w: 92.25, fs: 18, k: 'abc' })}
+          {key('', { flex: true, k: 'space' })}
+          {key(icons.ret, { w: 92.25, ret: true, k: 'ret' })}
+        </div>
+      </div>
+
+      {/* bottom spacer (emoji+mic area, icons omitted) */}
+      <div style={{ height: 56, width: '100%', position: 'relative' }} />
+    </div>
+  );
+}
+
+Object.assign(window, {
+  IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard,
+});
+// --- design-system.jsx ---
+// Design System — Wellness+
+// Two themes: 'brand' (deep green + amber, default/dark) and 'light' (calm)
+// Type: Inter + Fraunces alternative — use Plus Jakarta Sans + Instrument Serif via Google Fonts
+
+const THEMES = {
+  brand: {
+    name: 'Brand',
+    bg: '#0E2A26',
+    bgElev: '#143531',
+    surface: '#18413C',
+    surfaceAlt: '#1E4D47',
+    border: 'rgba(255,255,255,0.08)',
+    borderStrong: 'rgba(255,255,255,0.14)',
+    text: '#F5F1E8',
+    textMuted: 'rgba(245,241,232,0.68)',
+    textFaint: 'rgba(245,241,232,0.42)',
+    accent: '#F5B544',       // amber
+    accentInk: '#1A1206',
+    accentSoft: 'rgba(245,181,68,0.14)',
+    positive: '#6FC79B',
+    negative: '#E27F6A',
+    info: '#8FB3C9',
+    sheet: '#18413C',
+    track: 'rgba(255,255,255,0.10)',
+    chipBg: 'rgba(255,255,255,0.06)',
+    overlay: 'rgba(8,22,20,0.55)',
+    isDark: true,
+  },
+  light: {
+    name: 'Light',
+    bg: '#F6F3EC',            // warm off-white
+    bgElev: '#FBF8F1',
+    surface: '#FFFFFF',
+    surfaceAlt: '#F1EDE3',
+    border: 'rgba(25,40,38,0.08)',
+    borderStrong: 'rgba(25,40,38,0.14)',
+    text: '#121F1D',
+    textMuted: 'rgba(18,31,29,0.62)',
+    textFaint: 'rgba(18,31,29,0.38)',
+    accent: '#1F5A4E',        // deep green accent
+    accentInk: '#FFFFFF',
+    accentSoft: 'rgba(31,90,78,0.10)',
+    positive: '#2E7D5E',
+    negative: '#B25541',
+    info: '#3F6B83',
+    sheet: '#FFFFFF',
+    track: 'rgba(18,31,29,0.08)',
+    chipBg: 'rgba(18,31,29,0.04)',
+    overlay: 'rgba(18,31,29,0.32)',
+    isDark: false,
+  },
+};
+
+// ── Typography ────────────────────────────────────────────
+const typeStyles = (t) => ({
+  displayFont: `'Instrument Serif', 'Fraunces', Georgia, serif`,
+  sansFont: `'Plus Jakarta Sans', -apple-system, system-ui, sans-serif`,
+  monoFont: `'JetBrains Mono', ui-monospace, Menlo, monospace`,
+});
+
+// ── Icons (24px, stroke 1.6) ──────────────────────────────
+function Icon({ name, size = 22, stroke, fill = 'none', style = {} }) {
+  const s = { width: size, height: size, display: 'inline-block', flexShrink: 0, ...style };
+  const sw = 1.6;
+  const paths = {
+    home: <><path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-8.5z"/></>,
+    check: <><path d="M20 6L9 17l-5-5"/></>,
+    flame: <><path d="M12 3c1 3.5 4 4.5 4 8.5a4 4 0 1 1-8 0c0-1.2.4-2 1.2-2.8C8.5 7.5 9 5.5 9 4c1 1 2 2 3 2s0-2 0-3z"/></>,
+    heart: <><path d="M12 20s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 5.65-7 10-7 10z"/></>,
+    bell: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 18a2 2 0 0 0 4 0"/></>,
+    user: <><circle cx="12" cy="8" r="3.5"/><path d="M5 21c.8-4 4-6 7-6s6.2 2 7 6"/></>,
+    chart: <><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></>,
+    sparkle: <><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></>,
+    moon: <><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></>,
+    bolt: <><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></>,
+    wind: <><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h9"/></>,
+    smile: <><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="10" r=".8" fill="currentColor"/><circle cx="15" cy="10" r=".8" fill="currentColor"/></>,
+    play: <><path d="M7 5v14l12-7-12-7z" fill="currentColor"/></>,
+    pause: <><rect x="7" y="5" width="3.5" height="14" fill="currentColor"/><rect x="13.5" y="5" width="3.5" height="14" fill="currentColor"/></>,
+    trophy: <><path d="M8 4h8v4a4 4 0 0 1-8 0V4z"/><path d="M5 5H3v2a3 3 0 0 0 3 3M19 5h2v2a3 3 0 0 1-3 3"/><path d="M10 13v3h4v-3M8 21h8M12 16v5"/></>,
+    lock: <><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
+    chev: <><path d="M9 6l6 6-6 6"/></>,
+    chevDown: <><path d="M6 9l6 6 6-6"/></>,
+    chevUp: <><path d="M6 15l6-6 6 6"/></>,
+    close: <><path d="M6 6l12 12M18 6L6 18"/></>,
+    plus: <><path d="M12 5v14M5 12h14"/></>,
+    arrow: <><path d="M5 12h14M13 5l7 7-7 7"/></>,
+    arrowL: <><path d="M19 12H5M11 5l-7 7 7 7"/></>,
+    qr: <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M20 14v3M14 20h3M20 20v1"/></>,
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></>,
+    shield: <><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6l8-3z"/></>,
+    users: <><circle cx="9" cy="8" r="3"/><path d="M3 20c.8-3.5 3.2-5 6-5s5.2 1.5 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M21 17c-.5-2-2-3-4-3"/></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></>,
+    dot: <><circle cx="12" cy="12" r="3" fill="currentColor"/></>,
+    info: <><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M12 11v5"/></>,
+    leaf: <><path d="M4 20c0-8 6-14 16-14 0 10-6 16-14 16 0 0-1-1-2-2z"/><path d="M4 20L14 10"/></>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.5-4.5"/></>,
+    book: <><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></>,
+    activity: <><path d="M3 12h4l3-8 4 16 3-8h4"/></>,
+    target: <><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></>,
+    camera: <><path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"/><circle cx="12" cy="13" r="3.5"/></>,
+    headphones: <><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M3 18a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2v2zM21 18a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2v2z"/></>,
+    library: <><rect x="4" y="4" width="5" height="16" rx="1"/><rect x="11" y="4" width="5" height="16" rx="1"/><path d="M18 5l3 1-2.5 14-3-1z"/></>,
+    phone: <><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/></>,
+    video: <><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></>,
+    chat: <><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4V5z"/></>,
+    star: <><path d="M12 3l2.7 6 6.3.6-4.8 4.3 1.4 6.4L12 17l-5.6 3.3L7.8 14 3 9.6l6.3-.6L12 3z" fill="currentColor" stroke="none"/></>,
+    chevR: <><path d="M9 6l6 6-6 6"/></>,
+    chevL: <><path d="M15 6l-6 6 6 6"/></>,
+  };
+  return (
+    <svg viewBox="0 0 24 24" style={s} fill={fill} stroke={stroke || 'currentColor'} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+      {paths[name] || null}
+    </svg>
+  );
+}
+
+// ── Avatar ────────────────────────────────────────────────
+const AVATAR_OPTIONS = ['monogram', 'orbit', 'wave', 'bloom', 'stone', 'ember'];
+
+function AvatarDisplay({ theme, kind = 'monogram', name = '?', size = 64 }) {
+  const t = theme;
+  const initial = (name || '?').trim().charAt(0).toUpperCase();
+  const palettes = {
+    monogram: { bg: t.accentSoft, fg: t.accent, ring: t.border },
+    orbit:    { bg: '#2B4B8C',    fg: '#C9D9FF', ring: 'transparent' },
+    wave:     { bg: '#1C6B5B',    fg: '#B5F0DC', ring: 'transparent' },
+    bloom:    { bg: '#C17A52',    fg: '#FFE6CC', ring: 'transparent' },
+    stone:    { bg: '#4A4A42',    fg: '#E8E5D9', ring: 'transparent' },
+    ember:    { bg: '#8A3B2A',    fg: '#F3CDB8', ring: 'transparent' },
+  };
+  const p = palettes[kind] || palettes.monogram;
+  const inner = (() => {
+    if (kind === 'monogram') {
+      return (
+        <div style={{ fontFamily: typeStyles(t).displayFont, fontSize: size * 0.42, color: p.fg, letterSpacing: -0.5 }}>
+          {initial}
+        </div>
+      );
+    }
+    if (kind === 'orbit') {
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill={p.bg}/>
+          <circle cx="32" cy="32" r="20" fill="none" stroke={p.fg} strokeWidth="1.5" opacity="0.5"/>
+          <circle cx="32" cy="12" r="5" fill={p.fg}/>
+          <circle cx="46" cy="38" r="3" fill={p.fg} opacity="0.7"/>
+        </svg>
+      );
+    }
+    if (kind === 'wave') {
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill={p.bg}/>
+          <path d="M6 36 Q16 28 26 36 T46 36 T66 36" stroke={p.fg} strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+          <path d="M6 46 Q16 38 26 46 T46 46 T66 46" stroke={p.fg} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.5"/>
+        </svg>
+      );
+    }
+    if (kind === 'bloom') {
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill={p.bg}/>
+          {[0,60,120,180,240,300].map(a => (
+            <ellipse key={a} cx="32" cy="20" rx="4" ry="10" fill={p.fg} opacity="0.8" transform={`rotate(${a} 32 32)`}/>
+          ))}
+          <circle cx="32" cy="32" r="4" fill={p.fg}/>
+        </svg>
+      );
+    }
+    if (kind === 'stone') {
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill={p.bg}/>
+          <ellipse cx="32" cy="36" rx="18" ry="10" fill={p.fg} opacity="0.6"/>
+          <ellipse cx="32" cy="28" rx="14" ry="7" fill={p.fg} opacity="0.8"/>
+          <ellipse cx="32" cy="22" rx="9" ry="4.5" fill={p.fg}/>
+        </svg>
+      );
+    }
+    if (kind === 'ember') {
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill={p.bg}/>
+          <path d="M32 14 C22 22 22 32 27 38 C22 40 20 46 24 50 C28 54 38 54 42 50 C46 46 44 40 39 38 C44 32 44 22 32 14z" fill={p.fg}/>
+        </svg>
+      );
+    }
+  })();
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 999, overflow: 'hidden',
+      background: p.bg, border: `1px solid ${p.ring}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    }}>{inner}</div>
+  );
+}
+function Button({ children, onClick, variant = 'primary', size = 'lg', theme, style = {}, disabled = false, icon, iconR }) {
+  const t = theme;
+  const sizes = {
+    lg: { h: 54, px: 22, fs: 16, r: 16 },
+    md: { h: 44, px: 18, fs: 15, r: 14 },
+    sm: { h: 34, px: 14, fs: 13, r: 10 },
+  };
+  const s = sizes[size];
+  const variants = {
+    primary: { bg: t.accent, color: t.accentInk, border: 'none' },
+    secondary: { bg: 'transparent', color: t.text, border: `1px solid ${t.borderStrong}` },
+    ghost: { bg: 'transparent', color: t.text, border: 'none' },
+    soft: { bg: t.accentSoft, color: t.accent, border: 'none' },
+    surface: { bg: t.surface, color: t.text, border: `1px solid ${t.border}` },
+  };
+  const v = variants[variant];
+  return (
+    <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{
+      height: s.h, padding: `0 ${s.px}px`, borderRadius: s.r,
+      background: v.bg, color: v.color, border: v.border,
+      fontFamily: typeStyles(t).sansFont, fontSize: s.fs, fontWeight: 600,
+      letterSpacing: -0.1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      gap: 8, cursor: disabled ? 'default' : 'pointer',
+      opacity: disabled ? 0.5 : 1,
+      transition: 'transform .15s ease, background .2s ease',
+      ...style,
+    }} onMouseDown={(e)=>{e.currentTarget.style.transform='scale(0.98)';}}
+       onMouseUp={(e)=>{e.currentTarget.style.transform='';}}
+       onMouseLeave={(e)=>{e.currentTarget.style.transform='';}}>
+      {icon && <Icon name={icon} size={18} />}
+      <span>{children}</span>
+      {iconR && <Icon name={iconR} size={18} />}
+    </button>
+  );
+}
+
+// ── Surface / Card ────────────────────────────────────────
+function Card({ theme, children, style = {}, onClick, pad = 16, radius = 20, alt = false }) {
+  const t = theme;
+  return (
+    <div onClick={onClick} style={{
+      background: alt ? t.surfaceAlt : t.surface,
+      border: `1px solid ${t.border}`,
+      borderRadius: radius, padding: pad,
+      cursor: onClick ? 'pointer' : 'default',
+      ...style,
+    }}>{children}</div>
+  );
+}
+
+// ── Tag / Chip ────────────────────────────────────────────
+function Chip({ theme, children, active = false, onClick, icon, style = {} }) {
+  const t = theme;
+  return (
+    <button onClick={onClick} style={{
+      height: 34, padding: '0 12px', borderRadius: 999,
+      background: active ? t.accent : t.chipBg,
+      color: active ? t.accentInk : t.text,
+      border: `1px solid ${active ? 'transparent' : t.border}`,
+      fontFamily: typeStyles(t).sansFont, fontSize: 13, fontWeight: 500,
+      letterSpacing: -0.1, display: 'inline-flex', alignItems: 'center', gap: 6,
+      cursor: 'pointer', whiteSpace: 'nowrap',
+      ...style,
+    }}>
+      {icon && <Icon name={icon} size={14} />}
+      {children}
+    </button>
+  );
+}
+
+// ── Section Label ─────────────────────────────────────────
+function SectionLabel({ theme, children, right, style = {} }) {
+  const t = theme;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+      padding: '0 20px', margin: '4px 0 10px', ...style,
+    }}>
+      <div style={{
+        fontFamily: typeStyles(t).sansFont, fontSize: 12,
+        fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase',
+        color: t.textMuted,
+      }}>{children}</div>
+      {right && <div style={{ color: t.textMuted, fontSize: 12 }}>{right}</div>}
+    </div>
+  );
+}
+
+// ── Brand lockup (placeholder until real mark lands) ──────
+function WellnessMark({ theme, size = 22, showText = true }) {
+  const t = theme;
+  const h = size;
+  const w = h * (551 / 274);
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+      <img src="assets/wellness-mark.png" alt="Wellness+" style={{ height: h, width: w, display: 'block' }}/>
+      {showText && (
+        <span style={{
+          fontFamily: typeStyles(t).displayFont, fontSize: Math.round(size * 0.9), fontWeight: 500,
+          color: t.text, letterSpacing: -0.3,
+        }}>
+          Wellness<span style={{ color: t.accent }}>+</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Tiny sparkline / bar viz ──────────────────────────────
+function Sparkline({ theme, values, height = 40, stroke, width = '100%' }) {
+  const t = theme;
+  const c = stroke || t.accent;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = Math.max(1, max - min);
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * 100;
+    const y = 100 - ((v - min) / range) * 100;
+    return [x, y];
+  });
+  const d = pts.map(([x,y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ');
+  const darea = `${d} L100,100 L0,100 Z`;
+  return (
+    <svg width={width} height={height} viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id="sparkg" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={c} stopOpacity="0.25"/>
+          <stop offset="100%" stopColor={c} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d={darea} fill="url(#sparkg)"/>
+      <path d={d} fill="none" stroke={c} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+// ── Ring progress ─────────────────────────────────────────
+function Ring({ theme, value = 0, size = 64, stroke = 6, color, bg, children }) {
+  const t = theme;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - Math.min(1, Math.max(0, value)));
+  return (
+    <div style={{ width: size, height: size, position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width={size} height={size}>
+        <circle cx={size/2} cy={size/2} r={r} stroke={bg || t.track} strokeWidth={stroke} fill="none"/>
+        <circle cx={size/2} cy={size/2} r={r} stroke={color || t.accent} strokeWidth={stroke} fill="none"
+                strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
+                transform={`rotate(-90 ${size/2} ${size/2})`}
+                style={{ transition: 'stroke-dashoffset .6s ease' }}/>
+      </svg>
+      {children && <div style={{ position: 'absolute' }}>{children}</div>}
+    </div>
+  );
+}
+
+// ── Slider (controlled) ───────────────────────────────────
+function Slider({ theme, value, onChange, min = 0, max = 10, step = 1, labels, accent }) {
+  const t = theme;
+  const pct = ((value - min) / (max - min)) * 100;
+  const c = accent || t.accent;
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{ position: 'relative', height: 44, display: 'flex', alignItems: 'center' }}>
+        <div style={{
+          position: 'absolute', left: 0, right: 0, height: 8, borderRadius: 999,
+          background: t.track,
+        }}/>
+        <div style={{
+          position: 'absolute', left: 0, width: `${pct}%`, height: 8, borderRadius: 999,
+          background: c, transition: 'width .15s ease',
+        }}/>
+        <div style={{
+          position: 'absolute', left: `calc(${pct}% - 14px)`,
+          width: 28, height: 28, borderRadius: 999, background: t.surface,
+          border: `2px solid ${c}`, boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
+          transition: 'left .15s ease',
+        }}/>
+        <input type="range" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            opacity: 0, cursor: 'pointer',
+          }}/>
+      </div>
+      {labels && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between',
+          fontSize: 11, color: t.textMuted, marginTop: 2,
+          fontFamily: typeStyles(t).sansFont, letterSpacing: 0.3,
+        }}>
+          <span>{labels[0]}</span>
+          <span>{labels[1]}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, {
+  THEMES, typeStyles, Icon, Button, Card, Chip, SectionLabel,
+  WellnessMark, Sparkline, Ring, Slider,
+});
+// --- i18n.jsx ---
+// EN / AR strings
+const STRINGS = {
+  en: {
+    // Onboarding
+    joinTitle: 'Your workplace wellbeing companion',
+    joinSubtitle: 'Enter the 6-digit code from your HR invite or scan the QR.',
+    companyCode: 'Company code',
+    continue: 'Continue',
+    scanQR: 'Scan QR instead',
+    verifyTitle: 'Verify it\'s you',
+    verifySub: 'We sent a 6-digit code to {dest}. Your employer never sees this.',
+    resend: 'Resend code',
+    consentTitle: 'Your data, your rules',
+    consentBullet1: 'Your employer only sees aggregated, anonymised data.',
+    consentBullet2: 'You can delete your account any time from Settings.',
+    consentBullet3: 'Personal check-ins never leave your account.',
+    iAgree: 'I understand',
+    baselineTitle: 'A quick baseline',
+    baselineSub: 'Five short questions. We\'ll tune your plan from here.',
+    goalsTitle: 'What would you like to work on?',
+    goalsSub: 'Pick up to three. You can change this later.',
+    finish: 'Finish setup',
+    welcome: 'Welcome, Amira',
+    welcomeSub: 'Your plan is ready.',
+    startApp: 'Start using Wellness+',
+
+    // Tabs
+    tabToday: 'Today',
+    tabCheckIn: 'Check-in',
+    tabChallenges: 'Challenges',
+    tabProgress: 'Progress',
+    tabProfile: 'Profile',
+
+    // Home
+    goodMorning: 'Good morning, Amira',
+    dayStreak: 'day streak',
+    todaysPlan: 'Today\'s plan',
+    planSub: '3 small actions, tuned to how you\'ve been.',
+    recForYou: 'Because your sleep dipped',
+    tryNow: 'Try now',
+    startBreathing: 'Start breathing',
+    minutes: 'min',
+    featuredToday: 'Featured today',
+    yourWeek: 'Your week at a glance',
+
+    // Check-in
+    checkInTitle: 'How are you today?',
+    checkInSub: '30 seconds. Private to you.',
+    stress: 'Stress',
+    stressSub: 'Calm → Overwhelmed',
+    sleep: 'Sleep',
+    sleepSub: 'Hours last night',
+    energy: 'Energy',
+    energySub: 'Flat → Energised',
+    mood: 'Mood',
+    moodSub: 'Low → Bright',
+    note: 'Add a note (optional)',
+    saveCheckIn: 'Save check-in',
+    checkInDone: 'Saved. Thanks for checking in.',
+    checkInDoneSub: 'We\'ve adjusted today\'s plan based on how you\'re feeling.',
+    backToPlan: 'Back to today',
+
+    // Breathing
+    breathingTitle: 'Box breathing',
+    breathingSub: '4-4-4-4. Two minutes.',
+    inhale: 'Inhale',
+    hold: 'Hold',
+    exhale: 'Exhale',
+    done: 'Done',
+
+    // Challenges
+    challengesTitle: 'Challenges',
+    activeChallenge: 'This month',
+    joinNow: 'Join',
+    joined: 'Joined',
+    leaderboard: 'Leaderboard',
+    team: 'Team',
+    individual: 'Individual',
+    joinedConfetti: 'You\'re in.',
+    confettiSub: 'Complete today\'s tasks to climb the board.',
+
+    // Progress
+    progressTitle: 'Progress',
+    last30: 'Last 30 days',
+    improved: 'improved',
+    declined: 'declined',
+    steady: 'steady',
+    insights: 'Insights',
+
+    // Profile
+    profileTitle: 'Profile',
+    privacy: 'Privacy',
+    anonymous: 'Anonymous on leaderboards',
+    anonymousSub: 'Show as "A.M." to teammates',
+    shareAgg: 'Aggregated outcomes to HR',
+    shareAggSub: 'Required by your plan',
+    notifs: 'Notifications',
+    language: 'Language',
+    signOut: 'Sign out',
+
+    // Misc
+    next: 'Next',
+    skip: 'Skip',
+    back: 'Back',
+    cancel: 'Cancel',
+    ok: 'OK',
+  },
+  ar: {
+    joinTitle: 'رفيقك للعافية في العمل',
+    joinSubtitle: 'أدخل الرمز المكوَّن من 6 أرقام من دعوة HR أو امسح رمز QR.',
+    companyCode: 'رمز الشركة',
+    continue: 'متابعة',
+    scanQR: 'مسح رمز QR بدلاً من ذلك',
+    verifyTitle: 'تحقق من هويتك',
+    verifySub: 'أرسلنا رمزاً مكوَّناً من 6 أرقام إلى {dest}. لا يطَّلع عليه صاحب العمل.',
+    resend: 'إعادة إرسال الرمز',
+    consentTitle: 'بياناتك، قواعدك',
+    consentBullet1: 'يطَّلع صاحب العمل على بيانات مجمَّعة ومجهولة الهوية فقط.',
+    consentBullet2: 'يمكنك حذف حسابك في أي وقت من الإعدادات.',
+    consentBullet3: 'لا تغادر تسجيلاتك الشخصية حسابك أبداً.',
+    iAgree: 'موافق',
+    baselineTitle: 'تقييم سريع',
+    baselineSub: 'خمسة أسئلة قصيرة. سنضبط خطتك من هنا.',
+    goalsTitle: 'على ماذا تود العمل؟',
+    goalsSub: 'اختر حتى ثلاثة. يمكنك التغيير لاحقاً.',
+    finish: 'إنهاء الإعداد',
+    welcome: 'أهلاً بكِ، أميرة',
+    welcomeSub: 'خطتك جاهزة.',
+    startApp: 'ابدأ استخدام Wellness+',
+
+    tabToday: 'اليوم',
+    tabCheckIn: 'تسجيل',
+    tabChallenges: 'التحديات',
+    tabProgress: 'التقدم',
+    tabProfile: 'الملف',
+
+    goodMorning: 'صباح الخير، أميرة',
+    dayStreak: 'يوماً متتالياً',
+    todaysPlan: 'خطة اليوم',
+    planSub: '3 خطوات صغيرة، مُعدَّة لحالتك.',
+    recForYou: 'لأن نومك انخفض',
+    tryNow: 'ابدأ الآن',
+    startBreathing: 'ابدأ التنفس',
+    minutes: 'د',
+    featuredToday: 'مختارات اليوم',
+    yourWeek: 'أسبوعك لمحة',
+
+    checkInTitle: 'كيف حالك اليوم؟',
+    checkInSub: '30 ثانية. خاص بك وحدك.',
+    stress: 'التوتر',
+    stressSub: 'هادئ ← مرهق',
+    sleep: 'النوم',
+    sleepSub: 'ساعات الليلة الماضية',
+    energy: 'الطاقة',
+    energySub: 'خامدة ← نشيطة',
+    mood: 'المزاج',
+    moodSub: 'منخفض ← مشرق',
+    note: 'أضف ملاحظة (اختياري)',
+    saveCheckIn: 'حفظ التسجيل',
+    checkInDone: 'تم الحفظ. شكراً لتسجيلك.',
+    checkInDoneSub: 'عدَّلنا خطة اليوم بناءً على شعورك.',
+    backToPlan: 'العودة إلى اليوم',
+
+    breathingTitle: 'التنفس المربع',
+    breathingSub: '4-4-4-4. دقيقتان.',
+    inhale: 'استنشق',
+    hold: 'احبس',
+    exhale: 'ازفر',
+    done: 'تم',
+
+    challengesTitle: 'التحديات',
+    activeChallenge: 'هذا الشهر',
+    joinNow: 'انضم',
+    joined: 'انضممت',
+    leaderboard: 'لوحة الصدارة',
+    team: 'الفريق',
+    individual: 'فردي',
+    joinedConfetti: 'تم الانضمام.',
+    confettiSub: 'أكمل مهام اليوم للصعود في اللوحة.',
+
+    progressTitle: 'التقدم',
+    last30: 'آخر 30 يوماً',
+    improved: 'تحسَّن',
+    declined: 'انخفض',
+    steady: 'مستقر',
+    insights: 'ملاحظات',
+
+    profileTitle: 'الملف',
+    privacy: 'الخصوصية',
+    anonymous: 'مجهول في اللوحات',
+    anonymousSub: 'اظهر كـ "أ. م." لزملائك',
+    shareAgg: 'نتائج مجمَّعة لـ HR',
+    shareAggSub: 'مطلوب لخطتك',
+    notifs: 'الإشعارات',
+    language: 'اللغة',
+    signOut: 'تسجيل الخروج',
+
+    next: 'التالي',
+    skip: 'تخطي',
+    back: 'رجوع',
+    cancel: 'إلغاء',
+    ok: 'حسناً',
+  },
+};
+
+function useT(lang) {
+  const s = STRINGS[lang] || STRINGS.en;
+  return (key, vars) => {
+    let str = s[key] || key;
+    if (vars) Object.keys(vars).forEach(k => { str = str.replace(`{${k}}`, vars[k]); });
+    return str;
+  };
+}
+
+Object.assign(window, { STRINGS, useT });
+// --- confetti.jsx ---
+// Confetti — SVG particle burst
+function Confetti({ theme, run }) {
+  const [particles, setParticles] = React.useState([]);
+  React.useEffect(() => {
+    if (!run) return;
+    const colors = [theme.accent, theme.positive, theme.info, theme.text];
+    const n = 36;
+    const p = Array.from({ length: n }, (_, i) => ({
+      id: i + '-' + Date.now(),
+      x: 50 + (Math.random() - 0.5) * 20,
+      y: 50 + (Math.random() - 0.5) * 8,
+      vx: (Math.random() - 0.5) * 140,
+      vy: -80 - Math.random() * 120,
+      rot: Math.random() * 360,
+      vr: (Math.random() - 0.5) * 360,
+      color: colors[i % colors.length],
+      shape: i % 3,
+      size: 5 + Math.random() * 7,
+    }));
+    setParticles(p);
+    const t = setTimeout(() => setParticles([]), 2200);
+    return () => clearTimeout(t);
+  }, [run]);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {particles.map(p => (
+        <div key={p.id} style={{
+          position: 'absolute', left: `${p.x}%`, top: `${p.y}%`,
+          width: p.size, height: p.shape === 1 ? p.size * 0.5 : p.size,
+          background: p.color, borderRadius: p.shape === 2 ? '50%' : 2,
+          animation: `confetti-${p.id} 1.8s cubic-bezier(.2,.6,.4,1) forwards`,
+          transform: `translate(-50%,-50%) rotate(${p.rot}deg)`,
+        }}>
+          <style>{`
+            @keyframes confetti-${p.id} {
+              0% { transform: translate(-50%, -50%) rotate(${p.rot}deg); opacity: 1; }
+              100% { transform: translate(calc(-50% + ${p.vx * 2}px), calc(-50% + ${p.vy * 3}px + 220px)) rotate(${p.rot + p.vr}deg); opacity: 0; }
+            }
+          `}</style>
+        </div>
+      ))}
+    </div>
+  );
+}
+window.Confetti = Confetti;
+// --- screens-onboarding.jsx ---
+// Onboarding flow: code → OTP → consent → baseline → goals → welcome
+
+function ScreenJoin({ theme, t, onNext, dir }) {
+  const [code, setCode] = React.useState('WH-4782');
+  const T = theme;
+  return (
+    <ScreenFrame theme={T}>
+      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <WellnessMark theme={T} size={26} />
+        <div style={{ flex: 1 }} />
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 38, lineHeight: 1.05,
+          color: T.text, fontWeight: 400, letterSpacing: -0.8, marginBottom: 14,
+        }}>{t('joinTitle')}</div>
+        <div style={{
+          fontFamily: typeStyles(T).sansFont, fontSize: 15, lineHeight: 1.45,
+          color: T.textMuted, marginBottom: 30,
+        }}>{t('joinSubtitle')}</div>
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{t('companyCode')}</div>
+          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())}
+            style={{
+              width: '100%', height: 58, padding: '0 18px',
+              background: T.surface, border: `1px solid ${T.borderStrong}`,
+              borderRadius: 14, color: T.text, fontSize: 22, fontWeight: 600,
+              letterSpacing: 2, fontFamily: typeStyles(T).monoFont, boxSizing: 'border-box',
+              textAlign: dir === 'rtl' ? 'right' : 'left',
+            }}/>
+        </div>
+
+        <Button theme={T} onClick={onNext} iconR="arrow">{t('continue')}</Button>
+        <button onClick={onNext} style={{
+          marginTop: 14, background: 'transparent', border: 'none',
+          color: T.textMuted, fontFamily: typeStyles(T).sansFont, fontSize: 14,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          height: 44, cursor: 'pointer',
+        }}>
+          <Icon name="qr" size={18}/>{t('scanQR')}
+        </button>
+        <div style={{ flex: 0.6 }} />
+      </div>
+    </ScreenFrame>
+  );
+}
+
+function ScreenOTP({ theme, t, onNext, onBack, dir }) {
+  const T = theme;
+  const [digits, setDigits] = React.useState(['4','7','2','0','','']);
+  const refs = React.useRef([]);
+  const allFilled = digits.every(d => d !== '');
+  const setDigit = (i, v) => {
+    if (!/^\d?$/.test(v)) return;
+    const nd = [...digits]; nd[i] = v; setDigits(nd);
+    if (v && i < 5) refs.current[i+1]?.focus();
+  };
+  React.useEffect(() => {
+    if (allFilled) { const tm = setTimeout(onNext, 400); return () => clearTimeout(tm); }
+  }, [allFilled]);
+  return (
+    <ScreenFrame theme={T}>
+      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <TopBack theme={T} onBack={onBack} dir={dir} />
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 34, lineHeight: 1.1,
+          color: T.text, fontWeight: 400, letterSpacing: -0.6, marginTop: 28, marginBottom: 12,
+        }}>{t('verifyTitle')}</div>
+        <div style={{ color: T.textMuted, fontSize: 15, lineHeight: 1.45, marginBottom: 30 }}>
+          {t('verifySub', { dest: 'a.mostafa@nilegroup.eg' })}
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 26, direction: 'ltr' }}>
+          {digits.map((d, i) => (
+            <input key={i} ref={el => refs.current[i] = el}
+              value={d} onChange={e => setDigit(i, e.target.value)}
+              inputMode="numeric" maxLength={1}
+              style={{
+                flex: 1, height: 62, background: T.surface, border: `1px solid ${d ? T.accent : T.borderStrong}`,
+                borderRadius: 14, color: T.text, fontSize: 26, fontWeight: 600,
+                textAlign: 'center', fontFamily: typeStyles(T).sansFont,
+                outline: 'none', transition: 'border .2s',
+              }}/>
+          ))}
+        </div>
+        <button style={{
+          alignSelf: dir === 'rtl' ? 'flex-end' : 'flex-start',
+          background: 'transparent', border: 'none', color: T.accent,
+          fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0,
+          fontFamily: typeStyles(T).sansFont,
+        }}>{t('resend')}</button>
+        <div style={{ flex: 1 }}/>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+function ScreenConsent({ theme, t, onNext, onBack, dir }) {
+  const T = theme;
+  const items = [
+    { icon: 'shield', text: t('consentBullet1') },
+    { icon: 'lock',   text: t('consentBullet2') },
+    { icon: 'user',   text: t('consentBullet3') },
+  ];
+  return (
+    <ScreenFrame theme={T}>
+      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <TopBack theme={T} onBack={onBack} dir={dir} />
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 34, lineHeight: 1.1,
+          color: T.text, fontWeight: 400, letterSpacing: -0.6, marginTop: 28, marginBottom: 20,
+        }}>{t('consentTitle')}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+          {items.map((it, i) => (
+            <Card key={i} theme={T} pad={16} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: T.accentSoft, color: T.accent,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><Icon name={it.icon} size={20}/></div>
+              <div style={{ color: T.text, fontSize: 15, lineHeight: 1.5, flex: 1 }}>{it.text}</div>
+            </Card>
+          ))}
+        </div>
+        <div style={{ flex: 1 }}/>
+        <Button theme={T} onClick={onNext}>{t('iAgree')}</Button>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+function ScreenBaseline({ theme, t, onNext, onBack, dir }) {
+  const T = theme;
+  const questions = [
+    { id: 'stress',  label: t('stress'),  labels: [t('stressSub').split('→')[0].trim(), t('stressSub').split('→')[1].trim()] },
+    { id: 'sleep',   label: t('sleep'),   labels: [t('sleepSub'), ''] , min: 3, max: 10, step: 0.5, fmt: (v)=>`${v}h` },
+    { id: 'energy',  label: t('energy'),  labels: [t('energySub').split('→')[0].trim(), t('energySub').split('→')[1].trim()] },
+    { id: 'mood',    label: t('mood'),    labels: [t('moodSub').split('→')[0].trim(), t('moodSub').split('→')[1].trim()] },
+  ];
+  const [idx, setIdx] = React.useState(0);
+  const [vals, setVals] = React.useState({ stress: 5, sleep: 6.5, energy: 5, mood: 6 });
+  const q = questions[idx];
+  const v = vals[q.id];
+  return (
+    <ScreenFrame theme={T}>
+      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <TopBack theme={T} onBack={idx === 0 ? onBack : () => setIdx(idx - 1)} dir={dir} />
+        <div style={{ marginTop: 22, display: 'flex', gap: 5 }}>
+          {questions.map((_, i) => (
+            <div key={i} style={{
+              flex: 1, height: 4, borderRadius: 2,
+              background: i <= idx ? T.accent : T.track,
+              transition: 'background .3s',
+            }}/>
+          ))}
+        </div>
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 32, lineHeight: 1.1,
+          color: T.text, fontWeight: 400, letterSpacing: -0.5, marginTop: 30, marginBottom: 8,
+        }}>{t('baselineTitle')}</div>
+        <div style={{ color: T.textMuted, fontSize: 14, marginBottom: 36 }}>{t('baselineSub')}</div>
+
+        <Card theme={T} pad={22} radius={22}>
+          <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.8, color: T.textMuted, fontWeight: 600, marginBottom: 6 }}>
+            {q.label}
+          </div>
+          <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 56, lineHeight: 1, color: T.text, marginBottom: 26, letterSpacing: -1 }}>
+            {q.fmt ? q.fmt(v) : v}<span style={{ color: T.textFaint, fontSize: 22 }}>{q.fmt ? '' : ` / ${q.max || 10}`}</span>
+          </div>
+          <Slider theme={T} value={v}
+            onChange={(nv) => setVals({ ...vals, [q.id]: nv })}
+            min={q.min || 0} max={q.max || 10} step={q.step || 1}
+            labels={q.labels}/>
+        </Card>
+
+        <div style={{ flex: 1 }}/>
+        <Button theme={T} onClick={() => idx < questions.length - 1 ? setIdx(idx + 1) : onNext()} iconR="arrow">
+          {idx < questions.length - 1 ? t('next') : t('continue')}
+        </Button>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+function ScreenGoals({ theme, t, onNext, onBack, dir }) {
+  const T = theme;
+  const goals = [
+    { id: 'sleep',     icon: 'moon',     label: { en: 'Better sleep', ar: 'نوم أفضل' } },
+    { id: 'stress',    icon: 'leaf',     label: { en: 'Manage stress', ar: 'إدارة التوتر' } },
+    { id: 'energy',    icon: 'bolt',     label: { en: 'More energy', ar: 'طاقة أكثر' } },
+    { id: 'pain',      icon: 'activity', label: { en: 'Reduce pain', ar: 'تقليل الألم' } },
+    { id: 'focus',     icon: 'target',   label: { en: 'Focus', ar: 'التركيز' } },
+    { id: 'move',      icon: 'wind',     label: { en: 'Move more', ar: 'الحركة أكثر' } },
+  ];
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [sel, setSel] = React.useState(new Set(['stress', 'sleep']));
+  const toggle = (id) => {
+    const n = new Set(sel);
+    if (n.has(id)) n.delete(id);
+    else if (n.size < 3) n.add(id);
+    setSel(n);
+  };
+  return (
+    <ScreenFrame theme={T}>
+      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <TopBack theme={T} onBack={onBack} dir={dir} />
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 32, lineHeight: 1.1,
+          color: T.text, fontWeight: 400, letterSpacing: -0.5, marginTop: 28, marginBottom: 8,
+        }}>{t('goalsTitle')}</div>
+        <div style={{ color: T.textMuted, fontSize: 14, marginBottom: 22 }}>{t('goalsSub')}</div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {goals.map(g => {
+            const active = sel.has(g.id);
+            return (
+              <button key={g.id} onClick={() => toggle(g.id)} style={{
+                padding: '18px 14px', background: active ? T.accent : T.surface,
+                border: `1px solid ${active ? 'transparent' : T.border}`,
+                borderRadius: 18, textAlign: dir === 'rtl' ? 'right' : 'left',
+                color: active ? T.accentInk : T.text, cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', gap: 10, minHeight: 96,
+                transition: 'all .2s',
+              }}>
+                <Icon name={g.icon} size={22}/>
+                <div style={{ fontSize: 15, fontWeight: 600, fontFamily: typeStyles(T).sansFont }}>{g.label[lang]}</div>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 14, color: T.textMuted, fontSize: 12 }}>
+          {sel.size} / 3
+        </div>
+        <div style={{ flex: 1 }}/>
+        <Button theme={T} onClick={onNext} disabled={sel.size === 0}>{t('finish')}</Button>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+function ScreenWelcome({ theme, t, state, onNext, dir }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const name = state && state.name ? state.name.split(' ')[0] : '';
+  return (
+    <ScreenFrame theme={T}>
+      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <Ring theme={T} value={1} size={100} stroke={6}>
+          <Icon name="check" size={44} stroke={T.accent}/>
+        </Ring>
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 38, lineHeight: 1.05,
+          color: T.text, fontWeight: 400, letterSpacing: -0.8, marginTop: 30, marginBottom: 12,
+        }}>{name ? (lang==='ar'?`أهلاً، ${name}`:`Welcome, ${name}`) : t('welcome')}</div>
+        <div style={{ color: T.textMuted, fontSize: 16, marginBottom: 40, maxWidth: 280 }}>{t('welcomeSub')}</div>
+        <Button theme={T} onClick={onNext} iconR="arrow">{t('startApp')}</Button>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+// Shared
+function ScreenFrame({ theme, children }) {
+  return (
+    <div style={{
+      width: '100%', height: '100%', background: theme.bg,
+      display: 'flex', flexDirection: 'column',
+      paddingTop: 54, // status bar space
+      boxSizing: 'border-box',
+    }}>{children}</div>
+  );
+}
+function TopBack({ theme, onBack, dir }) {
+  return (
+    <button onClick={onBack} style={{
+      width: 40, height: 40, borderRadius: 999,
+      background: theme.chipBg, border: `1px solid ${theme.border}`,
+      color: theme.text, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      cursor: 'pointer', marginTop: 6,
+      transform: dir === 'rtl' ? 'scaleX(-1)' : 'none',
+    }}>
+      <Icon name="arrowL" size={20}/>
+    </button>
+  );
+}
+
+Object.assign(window, {
+  ScreenJoin, ScreenOTP, ScreenConsent, ScreenName, ScreenBaseline, ScreenGoals, ScreenWelcome,
+  ScreenFrame, TopBack,
+});
+
+function ScreenName({ theme, t, dir, state, onNext, onBack }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [val, setVal] = React.useState(state.name || '');
+  const [avatar, setAvatar] = React.useState(state.avatar || 'monogram');
+  const options = AVATAR_OPTIONS;
+  const canContinue = val.trim().length >= 2;
+  const submit = () => {
+    state.setName(val.trim());
+    state.setAvatar(avatar);
+    onNext();
+  };
+  return (
+    <ScreenFrame theme={T}>
+      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <TopBack theme={T} onBack={onBack} dir={dir} />
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 34, lineHeight: 1.1,
+          color: T.text, fontWeight: 400, letterSpacing: -0.6, marginTop: 28, marginBottom: 10,
+        }}>{lang==='ar'?'كيف ننادي عليك؟':"What should we call you?"}</div>
+        <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5, marginBottom: 26 }}>
+          {lang==='ar'?'اسمك يظهر فقط لك. فريقك يراك كـ "عضو مجهول" في لوحة المتصدرين.':'Your name is only visible to you. On leaderboards, your team sees "Anonymous member".'}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <AvatarDisplay theme={T} kind={avatar} name={val || '?'} size={96}/>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{lang==='ar'?'الاسم':'Name'}</div>
+          <input value={val} onChange={e => setVal(e.target.value)} placeholder={lang==='ar'?'اكتب اسمك':'Your name'}
+            style={{
+              width: '100%', height: 54, padding: '0 16px',
+              background: T.surface, border: `1px solid ${T.borderStrong}`,
+              borderRadius: 14, color: T.text, fontSize: 17, fontWeight: 500,
+              fontFamily: typeStyles(T).sansFont, boxSizing: 'border-box', outline: 'none',
+              textAlign: dir === 'rtl' ? 'right' : 'left',
+            }}/>
+        </div>
+
+        <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 10, fontWeight: 600 }}>{lang==='ar'?'الصورة الرمزية':'Avatar'}</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+          {options.map(opt => (
+            <button key={opt} onClick={() => setAvatar(opt)} style={{
+              padding: 0, border: `2px solid ${avatar === opt ? T.accent : 'transparent'}`,
+              borderRadius: 999, background: 'transparent', cursor: 'pointer',
+            }}>
+              <AvatarDisplay theme={T} kind={opt} name={val || '?'} size={48}/>
+            </button>
+          ))}
+        </div>
+
+        <div style={{ flex: 1 }}/>
+        <Button theme={T} onClick={submit} disabled={!canContinue} iconR="arrow">{t('continue')}</Button>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+Object.assign(window, { ScreenName });
+// --- screens-home.jsx ---
+// Home / Today feed — 3 layout variants: 'list', 'stack', 'agenda'
+
+function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const greeting = t('goodMorning');
+  const streak = state.streak;
+
+  const actions = [
+    { id: 'breathe', icon: 'wind', kind: 'Reset', label: { en: '2-minute box breathing', ar: 'تنفس مربع دقيقتان' }, minutes: 2, done: state.doneActions.has('breathe') },
+    { id: 'stretch', icon: 'activity', kind: 'Move', label: { en: 'Desk mobility flow', ar: 'حركات مكتبية' }, minutes: 4, done: state.doneActions.has('stretch') },
+    { id: 'journal', icon: 'book', kind: 'Reflect', label: { en: 'Evening wind-down journal', ar: 'يوميات نهاية اليوم' }, minutes: 3, done: state.doneActions.has('journal') },
+  ];
+
+  const featured = {
+    tag: { en: 'AUDIO · 6 MIN', ar: 'صوت · 6 د' },
+    title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' },
+    sub: { en: 'Based on your last three check-ins', ar: 'استناداً إلى آخر ثلاث تسجيلات' },
+  };
+
+  return (
+    <div style={{
+      height: '100%', background: T.bg, overflow: 'auto',
+      paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box',
+    }}>
+      {/* Header */}
+      <div style={{ padding: '18px 22px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <WellnessMark theme={T} size={22} showText={false}/>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <IconBtn theme={T} icon="bell" onClick={() => go('notifs')}/>
+          <button onClick={() => go('profile')} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+            <AvatarDisplay theme={T} kind={state.avatar || 'monogram'} name={state.name || '?'} size={38}/>
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding: '8px 22px 22px' }}>
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 32, lineHeight: 1.1,
+          color: T.text, letterSpacing: -0.5, fontWeight: 400, marginBottom: 12,
+        }}>{greeting}</div>
+
+        {/* Streak + quick stat row */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Card theme={T} pad={14} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10, background: T.accentSoft,
+              color: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}><Icon name="flame" size={20}/></div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: T.text, lineHeight: 1 }}>{streak}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t('dayStreak')}</div>
+            </div>
+          </Card>
+          <Card theme={T} pad={14} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Ring theme={T} value={state.doneActions.size / 3} size={38} stroke={4}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{state.doneActions.size}/3</div>
+            </Ring>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{lang==='ar'?'خطة اليوم':'Today'}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{lang==='ar'?'مهام مكتملة':'actions complete'}</div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Today's plan */}
+      <SectionLabel theme={T}>{t('todaysPlan')}</SectionLabel>
+      <div style={{ padding: '0 16px' }}>
+        {variant === 'list' && <LayoutList theme={T} t={t} lang={lang} actions={actions} go={go} state={state}/>}
+        {variant === 'stack' && <LayoutStack theme={T} t={t} lang={lang} actions={actions} go={go} state={state}/>}
+        {variant === 'agenda' && <LayoutAgenda theme={T} t={t} lang={lang} actions={actions} go={go} state={state}/>}
+      </div>
+
+      {/* Featured / recommendation */}
+      <div style={{ padding: '24px 16px 0' }}>
+        <SectionLabel theme={T} style={{ padding: '0 4px' }} right={
+          <button onClick={() => go('library')} style={{ background:'transparent', border:'none', color:T.accent, fontSize:12, fontWeight:600, cursor:'pointer' }}>
+            {lang==='ar'?'المكتبة ←':'Library →'}
+          </button>
+        }>{t('recForYou')}</SectionLabel>
+        <Card theme={T} pad={0} radius={22} onClick={() => go('player', { id: 'sleep-onset' })} style={{ overflow: 'hidden', cursor: 'pointer' }}>
+          <div style={{
+            height: 140, position: 'relative',
+            background: `linear-gradient(135deg, ${T.accentSoft}, ${T.surfaceAlt})`,
+            display: 'flex', alignItems: 'flex-end', padding: 18,
+          }}>
+            {/* placeholder moon motif */}
+            <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.5 }}>
+              <defs>
+                <pattern id="dots" width="14" height="14" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1" fill={T.textFaint}/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#dots)"/>
+            </svg>
+            <div style={{
+              position: 'absolute', top: 18, right: 18,
+              width: 54, height: 54, borderRadius: 999,
+              background: T.accent, color: T.accentInk,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transform: dir === 'rtl' ? 'scale(-1,1)' : 'none',
+            }}>
+              <Icon name="play" size={22}/>
+            </div>
+            <div style={{ position: 'relative', fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 600 }}>
+              {featured.tag[lang]}
+            </div>
+          </div>
+          <div style={{ padding: '16px 18px 18px' }}>
+            <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, letterSpacing: -0.3, color: T.text, lineHeight: 1.2 }}>
+              {featured.title[lang]}
+            </div>
+            <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6 }}>{featured.sub[lang]}</div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Week glance */}
+      <div style={{ padding: '24px 16px 0' }}>
+        <SectionLabel theme={T} style={{ padding: '0 4px' }}>{t('yourWeek')}</SectionLabel>
+        <Card theme={T} pad={16}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: T.textMuted }}>{lang==='ar'?'النوم':'Sleep'}</div>
+            <div style={{ fontSize: 12, color: T.positive, fontWeight: 600 }}>+0.8h</div>
+          </div>
+          <Sparkline theme={T} values={[6.2, 6.8, 6.1, 7.2, 6.9, 7.4, 7.1]} height={46}/>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: T.textFaint, letterSpacing: 0.5 }}>
+            {(lang==='ar'?['س','أ','ث','أر','خ','ج','س']:['M','T','W','T','F','S','S']).map((d,i)=><span key={i}>{d}</span>)}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function IconBtn({ theme, icon, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      width: 40, height: 40, borderRadius: 999,
+      background: theme.chipBg, border: `1px solid ${theme.border}`,
+      color: theme.text, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      cursor: 'pointer',
+    }}><Icon name={icon} size={18}/></button>
+  );
+}
+
+// LAYOUT A — list with left icon, inline check
+function LayoutList({ theme, t, lang, actions, go, state }) {
+  const T = theme;
+  return (
+    <Card theme={T} pad={0} radius={22}>
+      {actions.map((a, i) => (
+        <div key={a.id} onClick={() => a.id === 'breathe' ? go('breathe') : state.toggleAction(a.id)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
+            borderBottom: i < actions.length - 1 ? `1px solid ${T.border}` : 'none',
+            cursor: 'pointer',
+          }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+            background: a.done ? T.accent : T.accentSoft, color: a.done ? T.accentInk : T.accent,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{a.done ? <Icon name="check" size={20}/> : <Icon name={a.icon} size={20}/>}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: T.textMuted, fontWeight: 600, marginBottom: 2 }}>{a.kind}</div>
+            <div style={{
+              fontSize: 15, color: T.text, fontWeight: 500,
+              textDecoration: a.done ? 'line-through' : 'none',
+              textDecorationColor: T.textFaint,
+            }}>{a.label[lang]}</div>
+          </div>
+          <div style={{ fontSize: 12, color: T.textMuted, whiteSpace: 'nowrap' }}>{a.minutes} {t('minutes')}</div>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+// LAYOUT B — stacked cards with big numerals
+function LayoutStack({ theme, t, lang, actions, go, state }) {
+  const T = theme;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {actions.map((a, i) => (
+        <Card key={a.id} theme={T} pad={18} radius={20}
+          onClick={() => a.id === 'breathe' ? go('breathe') : state.toggleAction(a.id)}
+          style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: a.done ? 0.6 : 1 }}>
+          <div style={{
+            fontFamily: typeStyles(T).displayFont, fontSize: 38, color: T.accent,
+            width: 36, lineHeight: 1, letterSpacing: -1,
+          }}>{String(i+1).padStart(2,'0')}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Icon name={a.icon} size={14} stroke={T.textMuted}/>
+              <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>{a.kind} · {a.minutes} {t('minutes')}</div>
+            </div>
+            <div style={{ fontSize: 16, color: T.text, fontWeight: 500, lineHeight: 1.3 }}>{a.label[lang]}</div>
+          </div>
+          <div style={{
+            width: 28, height: 28, borderRadius: 999,
+            border: `1.5px solid ${a.done ? T.accent : T.borderStrong}`,
+            background: a.done ? T.accent : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{a.done && <Icon name="check" size={14} stroke={T.accentInk}/>}</div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// LAYOUT C — agenda with time rail
+function LayoutAgenda({ theme, t, lang, actions, go, state }) {
+  const T = theme;
+  const times = ['09:00', '13:30', '21:00'];
+  return (
+    <div style={{ paddingLeft: 4, paddingRight: 4 }}>
+      {actions.map((a, i) => (
+        <div key={a.id} style={{ display: 'flex', gap: 14, paddingBottom: i < actions.length - 1 ? 16 : 0 }}>
+          <div style={{ width: 56, flexShrink: 0, paddingTop: 4 }}>
+            <div style={{ fontFamily: typeStyles(T).monoFont, fontSize: 13, color: T.textMuted, fontWeight: 600 }}>{times[i]}</div>
+            <div style={{ fontSize: 10, color: T.textFaint, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              {lang==='ar' ? ['صباحاً','ظهراً','مساءً'][i] : ['morning','midday','evening'][i]}
+            </div>
+          </div>
+          <div style={{ width: 2, background: T.border, borderRadius: 2, position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 6, left: -4, width: 10, height: 10, borderRadius: 999, background: a.done ? T.accent : T.bg, border: `2px solid ${T.accent}` }}/>
+          </div>
+          <Card theme={T} pad={14} radius={16}
+            onClick={() => a.id === 'breathe' ? go('breathe') : state.toggleAction(a.id)}
+            style={{ flex: 1, cursor: 'pointer' }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600, marginBottom: 4 }}>
+              {a.kind} · {a.minutes} {t('minutes')}
+            </div>
+            <div style={{ fontSize: 15, color: T.text, fontWeight: 500, lineHeight: 1.3, marginBottom: 10 }}>
+              {a.label[lang]}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name={a.icon} size={14} stroke={T.accent}/>
+              <div style={{ fontSize: 12, color: a.done ? T.positive : T.accent, fontWeight: 600 }}>
+                {a.done ? t('done') : t('tryNow')}
+              </div>
+            </div>
+          </Card>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenHome, IconBtn });
+// --- screens-checkin.jsx ---
+// Check-in — 3 input-style variants: 'sliders', 'emoji', 'cards'
+
+function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [step, setStep] = React.useState(0);
+  const [vals, setVals] = React.useState({ stress: 5, sleep: 6.5, energy: 5, mood: 6 });
+  const [saved, setSaved] = React.useState(false);
+
+  const questions = [
+    { id: 'stress', label: t('stress'), sub: t('stressSub'), min: 0, max: 10 },
+    { id: 'sleep', label: t('sleep'), sub: t('sleepSub'), min: 3, max: 10, step: 0.5, fmt: v => `${v}h` },
+    { id: 'energy', label: t('energy'), sub: t('energySub'), min: 0, max: 10 },
+    { id: 'mood', label: t('mood'), sub: t('moodSub'), min: 0, max: 10 },
+  ];
+
+  const q = questions[step];
+  const v = vals[q.id];
+  const set = (nv) => setVals({ ...vals, [q.id]: nv });
+
+  const handleNext = () => {
+    if (step < questions.length - 1) setStep(step + 1);
+    else {
+      setSaved(true);
+      state.setStreak(state.streak + (state.streak % 1 === 0 ? 0 : 1));
+      setTimeout(() => { go('home'); setSaved(false); setStep(0); }, 1800);
+    }
+  };
+
+  if (saved) {
+    return (
+      <div style={{ height: '100%', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28, textAlign: 'center' }}>
+        <Ring theme={T} value={1} size={96} stroke={6}>
+          <Icon name="check" size={40} stroke={T.accent}/>
+        </Ring>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, color: T.text, marginTop: 26, letterSpacing: -0.5 }}>{t('checkInDone')}</div>
+        <div style={{ color: T.textMuted, fontSize: 15, marginTop: 10, maxWidth: 280 }}>{t('checkInDoneSub')}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', background: T.bg, paddingTop: 54, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+      <div style={{ padding: '14px 22px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <TopBack theme={T} onBack={() => step > 0 ? setStep(step - 1) : go('home')} dir={dir}/>
+        <div style={{ flex: 1, display: 'flex', gap: 4 }}>
+          {questions.map((_, i) => (
+            <div key={i} style={{
+              flex: 1, height: 3, borderRadius: 2,
+              background: i <= step ? T.accent : T.track, transition: 'background .3s',
+            }}/>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '32px 22px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>
+          {t('checkInTitle')}
+        </div>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 36, color: T.text, marginTop: 6, marginBottom: 4, letterSpacing: -0.5, lineHeight: 1.1 }}>
+          {q.label}
+        </div>
+        <div style={{ color: T.textMuted, fontSize: 14, marginBottom: 30 }}>{q.sub}</div>
+
+        {variant === 'sliders' && <VarSliders theme={T} q={q} v={v} set={set}/>}
+        {variant === 'emoji' && <VarEmoji theme={T} q={q} v={v} set={set} lang={lang}/>}
+        {variant === 'cards' && <VarCards theme={T} q={q} v={v} set={set} lang={lang}/>}
+
+        <div style={{ flex: 1 }}/>
+        <div style={{ paddingBottom: 22 }}>
+          <Button theme={T} onClick={handleNext} iconR="arrow" style={{ width: '100%' }}>
+            {step < questions.length - 1 ? t('next') : t('saveCheckIn')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VarSliders({ theme, q, v, set }) {
+  const T = theme;
+  return (
+    <>
+      <div style={{ textAlign: 'center', padding: '30px 0 10px' }}>
+        <div style={{
+          fontFamily: typeStyles(T).displayFont, fontSize: 96, color: T.text,
+          lineHeight: 1, letterSpacing: -3, fontWeight: 400,
+        }}>
+          {q.fmt ? q.fmt(v) : v}
+          {!q.fmt && <span style={{ color: T.textFaint, fontSize: 32 }}> / {q.max}</span>}
+        </div>
+      </div>
+      <div style={{ padding: '30px 0 0' }}>
+        <Slider theme={T} value={v} onChange={set} min={q.min} max={q.max} step={q.step || 1}
+          labels={(q.sub.includes('→') ? q.sub.split('→').map(s=>s.trim()) : null)}/>
+      </div>
+    </>
+  );
+}
+
+function VarEmoji({ theme, q, v, set, lang }) {
+  const T = theme;
+  // 5-point emoji scale mapped to q.min..q.max
+  const emojis = q.id === 'stress'
+    ? ['😌','🙂','😐','😟','😣']
+    : q.id === 'sleep'
+    ? ['😴','🙂','😐','😑','🥱']
+    : q.id === 'energy'
+    ? ['🥱','😐','🙂','😊','⚡️']
+    : ['😞','😐','🙂','😊','😁'];
+  const mapIn = (val) => Math.round(((val - q.min) / (q.max - q.min)) * 4);
+  const mapOut = (i) => q.min + (i / 4) * (q.max - q.min);
+  const active = mapIn(v);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 0' }}>
+      <div style={{
+        width: 180, height: 180, borderRadius: 999, background: T.surface,
+        border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 92, marginBottom: 28, boxShadow: `0 0 0 8px ${T.accentSoft}`,
+      }}>{emojis[active]}</div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+        {emojis.map((e, i) => (
+          <button key={i} onClick={() => set(mapOut(i))} style={{
+            width: 54, height: 54, borderRadius: 16,
+            background: i === active ? T.accent : T.surface,
+            border: `1px solid ${i === active ? 'transparent' : T.border}`,
+            fontSize: 28, cursor: 'pointer',
+            transition: 'all .15s',
+          }}>{e}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VarCards({ theme, q, v, set, lang }) {
+  const T = theme;
+  // 4-level card scale
+  const scales = {
+    stress: [
+      { label: { en: 'Calm', ar: 'هادئ' }, val: 2, icon: 'leaf' },
+      { label: { en: 'Mild', ar: 'خفيف' }, val: 4, icon: 'wind' },
+      { label: { en: 'Tense', ar: 'متوتر' }, val: 7, icon: 'bolt' },
+      { label: { en: 'Overwhelmed', ar: 'مرهق' }, val: 9, icon: 'flame' },
+    ],
+    sleep: [
+      { label: { en: '< 5 h', ar: '< 5 س' }, val: 4.5, icon: 'moon' },
+      { label: { en: '5–6 h', ar: '5–6 س' }, val: 5.5, icon: 'moon' },
+      { label: { en: '7–8 h', ar: '7–8 س' }, val: 7.5, icon: 'moon' },
+      { label: { en: '> 8 h', ar: '> 8 س' }, val: 9, icon: 'moon' },
+    ],
+    energy: [
+      { label: { en: 'Flat', ar: 'خامل' }, val: 1, icon: 'moon' },
+      { label: { en: 'Okay', ar: 'مقبول' }, val: 4, icon: 'smile' },
+      { label: { en: 'Good', ar: 'جيد' }, val: 7, icon: 'sparkle' },
+      { label: { en: 'Energised', ar: 'نشيط' }, val: 9, icon: 'bolt' },
+    ],
+    mood: [
+      { label: { en: 'Low', ar: 'منخفض' }, val: 1, icon: 'moon' },
+      { label: { en: 'Meh', ar: 'متوسط' }, val: 4, icon: 'smile' },
+      { label: { en: 'Good', ar: 'جيد' }, val: 7, icon: 'smile' },
+      { label: { en: 'Bright', ar: 'مشرق' }, val: 9, icon: 'sparkle' },
+    ],
+  };
+  const opts = scales[q.id];
+  const activeIdx = opts.reduce((best, o, i) => Math.abs(o.val - v) < Math.abs(opts[best].val - v) ? i : best, 0);
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, paddingTop: 10 }}>
+      {opts.map((o, i) => {
+        const active = i === activeIdx;
+        return (
+          <button key={i} onClick={() => set(o.val)} style={{
+            padding: 20, background: active ? T.accent : T.surface,
+            border: `1px solid ${active ? 'transparent' : T.border}`,
+            color: active ? T.accentInk : T.text,
+            borderRadius: 18, cursor: 'pointer', textAlign: 'left',
+            display: 'flex', flexDirection: 'column', gap: 14, minHeight: 110,
+            transition: 'all .2s',
+          }}>
+            <Icon name={o.icon} size={22}/>
+            <div style={{ fontSize: 16, fontWeight: 600, fontFamily: typeStyles(T).sansFont }}>{o.label[lang]}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenCheckIn });
+// --- screens-breathe.jsx ---
+// Animated box-breathing exercise
+
+function ScreenBreathe({ theme, t, dir, go }) {
+  const T = theme;
+  const [running, setRunning] = React.useState(false);
+  const [phase, setPhase] = React.useState(0); // 0 inhale, 1 hold, 2 exhale, 3 hold
+  const [elapsed, setElapsed] = React.useState(0);
+  const PHASE_DUR = 4; // seconds
+  const TOTAL = 120;  // 2 min
+
+  React.useEffect(() => {
+    if (!running) return;
+    const start = Date.now() - elapsed * 1000;
+    const id = setInterval(() => {
+      const e = (Date.now() - start) / 1000;
+      if (e >= TOTAL) { setRunning(false); setElapsed(TOTAL); clearInterval(id); return; }
+      setElapsed(e);
+      setPhase(Math.floor(e / PHASE_DUR) % 4);
+    }, 80);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const phaseLabel = [t('inhale'), t('hold'), t('exhale'), t('hold')][phase];
+  const phaseSecLeft = PHASE_DUR - (elapsed % PHASE_DUR);
+  // circle size breathes — inhale 1→1.6, hold 1.6, exhale 1.6→1, hold 1
+  const t01 = (elapsed % PHASE_DUR) / PHASE_DUR;
+  const scale = phase === 0 ? 1 + t01 * 0.6
+             : phase === 1 ? 1.6
+             : phase === 2 ? 1.6 - t01 * 0.6
+             : 1;
+
+  const timeLeft = Math.max(0, TOTAL - elapsed);
+  const mm = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const ss = String(Math.floor(timeLeft % 60)).padStart(2, '0');
+
+  return (
+    <div style={{ height: '100%', background: T.bg, paddingTop: 54, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '14px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <TopBack theme={T} onBack={() => go('home')} dir={dir}/>
+        <div style={{
+          fontFamily: typeStyles(T).monoFont, fontSize: 14, color: T.textMuted,
+          background: T.chipBg, padding: '6px 12px', borderRadius: 999, letterSpacing: 1,
+        }}>{mm}:{ss}</div>
+      </div>
+
+      <div style={{ padding: '10px 22px 0', textAlign: 'center' }}>
+        <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>
+          {t('breathingTitle')}
+        </div>
+        <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{t('breathingSub')}</div>
+      </div>
+
+      {/* Breathing visual */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        {/* outer rings */}
+        <div style={{
+          position: 'absolute', width: 280, height: 280, borderRadius: 999,
+          border: `1px solid ${T.border}`,
+        }}/>
+        <div style={{
+          position: 'absolute', width: 220, height: 220, borderRadius: 999,
+          border: `1px dashed ${T.border}`,
+        }}/>
+        {/* breathing orb */}
+        <div style={{
+          width: 160, height: 160, borderRadius: 999,
+          background: `radial-gradient(circle at 30% 30%, ${T.accent}, ${T.accentSoft})`,
+          transform: `scale(${scale})`,
+          transition: 'transform .8s cubic-bezier(.4,0,.2,1)',
+          boxShadow: `0 0 80px ${T.accentSoft}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{ textAlign: 'center', color: T.accentInk, transform: `scale(${1/scale})`, transition: 'transform .8s' }}>
+            <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 28, letterSpacing: -0.4 }}>{running ? phaseLabel : t('startBreathing')}</div>
+            {running && <div style={{ fontFamily: typeStyles(T).monoFont, fontSize: 14, opacity: 0.7, marginTop: 2 }}>{Math.ceil(phaseSecLeft)}</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* phase dots */}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', padding: '12px 0' }}>
+        {[t('inhale'), t('hold'), t('exhale'), t('hold')].map((p, i) => (
+          <div key={i} style={{
+            padding: '6px 12px', borderRadius: 999,
+            background: running && phase === i ? T.accent : T.chipBg,
+            color: running && phase === i ? T.accentInk : T.textMuted,
+            fontSize: 11, fontWeight: 600, letterSpacing: 0.4,
+          }}>{p}</div>
+        ))}
+      </div>
+
+      <div style={{ padding: '14px 22px 26px' }}>
+        <Button theme={T} onClick={() => setRunning(!running)} icon={running ? 'pause' : 'play'} style={{ width: '100%' }}>
+          {running ? (t('done')) : t('startBreathing')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenBreathe });
+// --- screens-challenge.jsx ---
+// Challenges + leaderboard (2 styles) + join confetti
+
+function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [tab, setTab] = React.useState('team'); // team | individual
+  const [joined, setJoined] = React.useState(state.joined);
+  const [confetti, setConfetti] = React.useState(false);
+
+  const joinChallenge = () => {
+    if (joined) return;
+    setJoined(true); state.setJoined(true);
+    setConfetti(true);
+    setTimeout(() => setConfetti(false), 2400);
+  };
+
+  const challenge = {
+    title: { en: 'Move April', ar: 'تحرك أبريل' },
+    sub: { en: '30 minutes of movement, any way you like. 21 days.', ar: '30 دقيقة من الحركة بأي طريقة. 21 يوماً.' },
+    progress: 0.42,
+    daysLeft: 12,
+  };
+
+  const teams = [
+    { rank: 1, name: { en: 'People Ops', ar: 'الموارد البشرية' }, pts: 4820, delta: '+12%', members: 14 },
+    { rank: 2, name: { en: 'Commercial', ar: 'المبيعات' },        pts: 4510, delta: '+8%',  members: 22 },
+    { rank: 3, name: { en: 'Finance',    ar: 'المالية' },          pts: 4260, delta: '+3%',  members: 11, you: true },
+    { rank: 4, name: { en: 'Engineering',ar: 'الهندسة' },          pts: 3980, delta: '-2%',  members: 18 },
+    { rank: 5, name: { en: 'Marketing',  ar: 'التسويق' },          pts: 3510, delta: '+1%',  members: 9 },
+  ];
+  const people = [
+    { rank: 1, name: 'Y.R.', pts: 612, streak: 18 },
+    { rank: 2, name: 'A.M.', pts: 584, streak: 14, you: true },
+    { rank: 3, name: 'L.S.', pts: 512, streak: 9 },
+    { rank: 4, name: 'F.K.', pts: 488, streak: 7 },
+    { rank: 5, name: 'N.H.', pts: 441, streak: 12 },
+    { rank: 6, name: 'M.O.', pts: 402, streak: 5 },
+  ];
+
+  return (
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box', position: 'relative' }}>
+      <Confetti theme={T} run={confetti}/>
+      <div style={{ padding: '16px 22px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>{t('challengesTitle')}</div>
+        <div style={{ color: T.textMuted, fontSize: 12 }}>{lang==='ar'?'أبريل ٢٠٢٦':'April 2026'}</div>
+      </div>
+
+      {/* Active challenge card */}
+      <div style={{ padding: '6px 16px' }}>
+        <Card theme={T} pad={0} radius={24} style={{ overflow: 'hidden' }}>
+          <div style={{
+            padding: 20, background: `linear-gradient(135deg, ${T.accent}, ${T.accent}dd)`,
+            color: T.accentInk, position: 'relative',
+          }}>
+            <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: 700, opacity: 0.7 }}>
+              {t('activeChallenge')}
+            </div>
+            <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, lineHeight: 1.1, marginTop: 6, letterSpacing: -0.5 }}>{challenge.title[lang]}</div>
+            <div style={{ fontSize: 13, marginTop: 8, opacity: 0.85, lineHeight: 1.4 }}>{challenge.sub[lang]}</div>
+
+            {/* progress bar */}
+            <div style={{ marginTop: 18, height: 6, borderRadius: 6, background: 'rgba(0,0,0,0.15)', overflow: 'hidden' }}>
+              <div style={{ width: `${challenge.progress * 100}%`, height: '100%', background: T.accentInk, borderRadius: 6 }}/>
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, opacity: 0.8 }}>
+              <span>{Math.round(challenge.progress * 100)}%</span>
+              <span>{challenge.daysLeft} {lang==='ar'?'يوماً متبقياً':'days left'}</span>
+            </div>
+          </div>
+          <div style={{ padding: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', gap: 16, fontSize: 12, color: T.textMuted }}>
+              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>584</span> <span>pts</span></div>
+              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>14</span> <span>{lang==='ar'?'يوماً':'days'}</span></div>
+              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>3</span> <span>{lang==='ar'?'شارات':'badges'}</span></div>
+            </div>
+            <Button theme={T} size="md" variant={joined ? 'secondary' : 'primary'} onClick={joinChallenge}>
+              {joined ? t('joined') : t('joinNow')}
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* Leaderboard */}
+      <div style={{ padding: '22px 16px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>
+            {t('leaderboard')}
+          </div>
+          <div style={{ display: 'flex', background: T.chipBg, borderRadius: 999, padding: 3, border: `1px solid ${T.border}` }}>
+            {[['team', t('team')], ['individual', t('individual')]].map(([k, l]) => (
+              <button key={k} onClick={() => setTab(k)} style={{
+                padding: '6px 14px', fontSize: 12, fontWeight: 600,
+                background: tab === k ? T.accent : 'transparent',
+                color: tab === k ? T.accentInk : T.text,
+                border: 'none', borderRadius: 999, cursor: 'pointer',
+              }}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        {variant === 'podium'
+          ? <LBPodium theme={T} rows={tab === 'team' ? teams : people} lang={lang} kind={tab}/>
+          : <LBList theme={T} rows={tab === 'team' ? teams : people} lang={lang} kind={tab}/>}
+      </div>
+
+      {/* Confetti toast */}
+      {confetti && (
+        <div style={{
+          position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
+          background: T.surface, border: `1px solid ${T.border}`,
+          borderRadius: 16, padding: '14px 20px', textAlign: 'center',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)', animation: 'toast 2.4s ease forwards',
+          zIndex: 5, minWidth: 240,
+        }}>
+          <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, letterSpacing: -0.3 }}>{t('joinedConfetti')}</div>
+          <div style={{ fontSize: 13, color: T.textMuted, marginTop: 2 }}>{t('confettiSub')}</div>
+          <style>{`@keyframes toast { 0%{opacity:0;transform:translate(-50%,-10px);} 15%{opacity:1;transform:translate(-50%,0);} 85%{opacity:1;} 100%{opacity:0;} }`}</style>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Style A — podium top-3 + list rest
+function LBPodium({ theme, rows, lang, kind }) {
+  const T = theme;
+  const top = rows.slice(0, 3);
+  const rest = rows.slice(3);
+  const order = [1, 0, 2]; // 2nd, 1st, 3rd
+  const heights = [92, 118, 76];
+  return (
+    <Card theme={T} pad={0} radius={22} style={{ overflow: 'hidden' }}>
+      <div style={{ padding: '20px 16px 12px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
+        {order.map((idx, i) => {
+          const row = top[idx];
+          if (!row) return <div key={i} style={{ flex: 1 }}/>;
+          const label = kind === 'team' ? row.name[lang] : row.name;
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: idx === 0 ? 56 : 44, height: idx === 0 ? 56 : 44,
+                borderRadius: 999, background: T.surfaceAlt,
+                border: `2px solid ${idx === 0 ? T.accent : T.border}`,
+                color: T.text, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: typeStyles(T).displayFont, fontSize: idx === 0 ? 20 : 16,
+                position: 'relative',
+              }}>
+                {kind === 'team' ? <Icon name="users" size={20}/> : label}
+                {idx === 0 && <div style={{ position: 'absolute', top: -6, background: T.accent, color: T.accentInk, borderRadius: 999, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>1</div>}
+              </div>
+              <div style={{ fontSize: 11, color: T.text, fontWeight: 600, textAlign: 'center', maxWidth: 90, lineHeight: 1.2 }}>{label}</div>
+              <div style={{
+                width: '70%', height: heights[i], background: idx === 0 ? T.accent : T.accentSoft,
+                borderRadius: '8px 8px 0 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+                paddingTop: 8, color: idx === 0 ? T.accentInk : T.accent, fontSize: 13, fontWeight: 700,
+              }}>{row.pts}</div>
+            </div>
+          );
+        })}
+      </div>
+      {rest.length > 0 && (
+        <div style={{ borderTop: `1px solid ${T.border}` }}>
+          {rest.map((row, i) => (
+            <LBRow key={i} row={row} kind={kind} lang={lang} theme={T} last={i === rest.length - 1}/>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// Style B — dense list with bars
+function LBList({ theme, rows, lang, kind }) {
+  const T = theme;
+  const max = rows[0].pts;
+  return (
+    <Card theme={T} pad={0} radius={22}>
+      {rows.map((row, i) => {
+        const w = (row.pts / max) * 100;
+        const label = kind === 'team' ? row.name[lang] : row.name;
+        return (
+          <div key={i} style={{
+            padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+            borderBottom: i < rows.length - 1 ? `1px solid ${T.border}` : 'none',
+            background: row.you ? T.accentSoft : 'transparent',
+          }}>
+            <div style={{
+              width: 22, fontFamily: typeStyles(T).monoFont, fontSize: 13,
+              color: row.rank <= 3 ? T.accent : T.textMuted, fontWeight: 700, textAlign: 'center',
+            }}>{String(row.rank).padStart(2,'0')}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>
+                  {label}{row.you && <span style={{ marginLeft: 6, fontSize: 10, color: T.accent, fontWeight: 700 }}>YOU</span>}
+                </div>
+                <div style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>{row.pts}</div>
+              </div>
+              <div style={{ height: 4, background: T.track, borderRadius: 3 }}>
+                <div style={{ width: `${w}%`, height: '100%', background: row.you ? T.accent : T.textMuted, borderRadius: 3, opacity: row.you ? 1 : 0.4 }}/>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </Card>
+  );
+}
+
+function LBRow({ theme, row, kind, lang, last }) {
+  const T = theme;
+  const label = kind === 'team' ? row.name[lang] : row.name;
+  return (
+    <div style={{
+      padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
+      borderBottom: last ? 'none' : `1px solid ${T.border}`,
+      background: row.you ? T.accentSoft : 'transparent',
+    }}>
+      <div style={{ width: 22, fontFamily: typeStyles(T).monoFont, fontSize: 12, color: T.textMuted, fontWeight: 700, textAlign: 'center' }}>{row.rank}</div>
+      <div style={{ flex: 1, fontSize: 14, color: T.text, fontWeight: 500 }}>
+        {label}{row.you && <span style={{ marginLeft: 6, fontSize: 10, color: T.accent, fontWeight: 700 }}>YOU</span>}
+      </div>
+      <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{row.pts}</div>
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenChallenges });
+// --- screens-progress-profile.jsx ---
+// Progress / insights screen + Profile
+
+function ScreenProgress({ theme, t, dir, go }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [metric, setMetric] = React.useState('sleep');
+  const metrics = [
+    { id: 'sleep', label: t('sleep'), icon: 'moon', values: [6.2,6.8,6.1,7.2,6.9,7.4,7.1,7.0,6.8,7.3,7.5,7.2,7.4,7.6], current: '7.3h', delta: '+0.8h', dir: 'up' },
+    { id: 'stress', label: t('stress'), icon: 'leaf', values: [6,7,6,5,6,4,5,4,5,4,3,4,3,3], current: '3.4', delta: '-2.1', dir: 'down' },
+    { id: 'energy', label: t('energy'), icon: 'bolt', values: [4,5,4,5,6,6,7,6,7,7,8,7,8,7], current: '7.1', delta: '+2.3', dir: 'up' },
+    { id: 'mood', label: t('mood'), icon: 'smile', values: [5,6,5,6,6,7,6,7,7,8,7,8,8,8], current: '7.8', delta: '+1.6', dir: 'up' },
+  ];
+  const m = metrics.find(x => x.id === metric);
+
+  return (
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
+      <div style={{ padding: '16px 22px 10px' }}>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>{t('progressTitle')}</div>
+        <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t('last30')}</div>
+      </div>
+
+      {/* Metric chips */}
+      <div style={{ padding: '6px 22px 14px', display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {metrics.map(mm => (
+          <Chip key={mm.id} theme={T} active={metric === mm.id} onClick={() => setMetric(mm.id)} icon={mm.icon}>
+            {mm.label}
+          </Chip>
+        ))}
+      </div>
+
+      {/* Big chart */}
+      <div style={{ padding: '0 16px' }}>
+        <Card theme={T} pad={20} radius={24}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+            <div>
+              <div style={{ fontSize: 12, color: T.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', fontWeight: 600 }}>
+                {m.label}
+              </div>
+              <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 46, color: T.text, lineHeight: 1, marginTop: 6, letterSpacing: -1 }}>
+                {m.current}
+              </div>
+            </div>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              background: T.positive + '22', color: T.positive, padding: '6px 10px', borderRadius: 999,
+              fontSize: 12, fontWeight: 600,
+            }}>
+              <Icon name={m.dir === 'up' ? 'chevUp' : 'chevDown'} size={12}/>
+              {m.delta}
+            </div>
+          </div>
+          <Sparkline theme={T} values={m.values} height={120} stroke={T.accent}/>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 10, color: T.textFaint, letterSpacing: 0.5 }}>
+            <span>30d</span><span>21d</span><span>14d</span><span>7d</span><span>{lang==='ar'?'اليوم':'today'}</span>
+          </div>
+        </Card>
+      </div>
+
+      {/* Insights */}
+      <div style={{ padding: '22px 16px 0' }}>
+        <SectionLabel theme={T} style={{ padding: '0 4px' }}>{t('insights')}</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <InsightCard theme={T} icon="moon" tone="positive"
+            title={lang==='ar' ? 'النوم تحسَّن ٠٫٨ ساعة' : 'Sleep improved 0.8h'}
+            body={lang==='ar' ? 'الاتجاه بدأ بعد إضافة تنفس المساء قبل أسبوعين.' : 'The trend started after you added evening breathing 2 weeks ago.'} />
+          <InsightCard theme={T} icon="leaf" tone="info"
+            title={lang==='ar' ? 'التوتر أقل أيام الخميس' : 'Stress lowest on Thursdays'}
+            body={lang==='ar' ? 'أعلى ارتفاع في التوتر يوم الأحد.' : 'Your highest stress spikes consistently land on Sundays.'} />
+          <InsightCard theme={T} icon="activity" tone="neutral"
+            title={lang==='ar' ? '١٤ تسجيلاً في ١٤ يوماً' : '14 check-ins in 14 days'}
+            body={lang==='ar' ? 'العادة استقرت. جرّب أضف ملاحظة هذا الأسبوع.' : 'Your streak is stable. Try adding a note this week.'} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InsightCard({ theme, icon, tone, title, body }) {
+  const T = theme;
+  const colorMap = { positive: T.positive, info: T.info, neutral: T.textMuted };
+  const c = colorMap[tone];
+  return (
+    <Card theme={T} pad={16}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          background: c + '22', color: c,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}><Icon name={icon} size={18}/></div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: T.text, marginBottom: 4 }}>{title}</div>
+          <div style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.5 }}>{body}</div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey, state }) {
+  const T = theme;
+  const [anon, setAnon] = React.useState(true);
+  const [share, setShare] = React.useState(true);
+  const [notifs, setNotifs] = React.useState(true);
+  const [picker, setPicker] = React.useState(false);
+  const name = (state && state.name) || 'Amira Mostafa';
+  const avatar = (state && state.avatar) || 'monogram';
+
+  return (
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
+      <div style={{ padding: '16px 22px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <button onClick={() => setPicker(true)} style={{
+          background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+          position: 'relative',
+        }}>
+          <AvatarDisplay theme={T} kind={avatar} name={name} size={72}/>
+          <div style={{
+            position: 'absolute', bottom: -2, right: -2,
+            width: 26, height: 26, borderRadius: 999, background: T.accent, color: T.accentInk,
+            border: `2px solid ${T.bg}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><Icon name="camera" size={13}/></div>
+        </button>
+        <div>
+          <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text, letterSpacing: -0.4, lineHeight: 1 }}>
+            {name}
+          </div>
+          <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{lang==='ar' ? 'مجموعة النيل · المالية' : 'Nile Group · Finance'}</div>
+        </div>
+      </div>
+
+      <SectionLabel theme={T}>{t('privacy')}</SectionLabel>
+      <div style={{ padding: '0 16px' }}>
+        <Card theme={T} pad={0} radius={20}>
+          <ToggleRow theme={T} icon="shield" title={t('anonymous')} sub={t('anonymousSub')} value={anon} onChange={setAnon}/>
+          <div style={{ height: 1, background: T.border, marginLeft: 62 }}/>
+          <ToggleRow theme={T} icon="chart" title={t('shareAgg')} sub={t('shareAggSub')} value={share} onChange={setShare} disabled/>
+        </Card>
+      </div>
+
+      <div style={{ height: 16 }}/>
+      <SectionLabel theme={T}>{t('notifs')}</SectionLabel>
+      <div style={{ padding: '0 16px' }}>
+        <Card theme={T} pad={0} radius={20}>
+          <ToggleRow theme={T} icon="bell" title={lang==='ar'?'تذكير التسجيل اليومي':'Daily check-in reminder'} sub="09:00" value={notifs} onChange={setNotifs}/>
+        </Card>
+      </div>
+
+      <div style={{ height: 16 }}/>
+      <SectionLabel theme={T}>{t('language')} · {lang==='ar'?'المظهر':'Appearance'}</SectionLabel>
+      <div style={{ padding: '0 16px' }}>
+        <Card theme={T} pad={16} radius={20} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 8 }}>{t('language')}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[['en','English'],['ar','العربية']].map(([k,l]) => (
+                <button key={k} onClick={() => setLang(k)} style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: lang === k ? T.accent : T.chipBg,
+                  color: lang === k ? T.accentInk : T.text,
+                  border: `1px solid ${lang === k ? 'transparent' : T.border}`,
+                  fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                }}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 8 }}>{lang==='ar'?'المظهر':'Theme'}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[['brand','Brand'],['light','Light']].map(([k,l]) => (
+                <button key={k} onClick={() => setThemeKey(k)} style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: themeKey === k ? T.accent : T.chipBg,
+                  color: themeKey === k ? T.accentInk : T.text,
+                  border: `1px solid ${themeKey === k ? 'transparent' : T.border}`,
+                  fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                }}>{l}</button>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div style={{ padding: '22px 16px 20px' }}>
+        <Button theme={T} variant="secondary" style={{ width: '100%' }}>{t('signOut')}</Button>
+      </div>
+
+      {picker && (
+        <div onClick={() => setPicker(false)} style={{
+          position: 'absolute', inset: 0, background: T.overlay, zIndex: 50,
+          display: 'flex', alignItems: 'flex-end',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', background: T.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+            padding: '20px 20px 28px', border: `1px solid ${T.border}`,
+            animation: 'sheetUp .25s ease both',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: T.border, margin: '0 auto 18px' }}/>
+            <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, letterSpacing: -0.3, marginBottom: 6 }}>
+              {lang==='ar'?'اختر صورة رمزية':'Choose your avatar'}
+            </div>
+            <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 18 }}>
+              {lang==='ar'?'رموز مجردة تحمي خصوصيتك.':'Abstract marks that keep your identity private.'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
+              {AVATAR_OPTIONS.map(opt => (
+                <button key={opt} onClick={() => { state.setAvatar(opt); setPicker(false); }}
+                  style={{
+                    padding: 14, background: avatar === opt ? T.accentSoft : T.surfaceAlt,
+                    border: `1.5px solid ${avatar === opt ? T.accent : 'transparent'}`,
+                    borderRadius: 16, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                  }}>
+                  <AvatarDisplay theme={T} kind={opt} name={name} size={52}/>
+                  <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'capitalize' }}>{opt}</div>
+                </button>
+              ))}
+            </div>
+            <Button theme={T} variant="secondary" style={{ width: '100%' }} onClick={() => setPicker(false)}>
+              {lang==='ar'?'تم':'Done'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ToggleRow({ theme, icon, title, sub, value, onChange, disabled }) {
+  const T = theme;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: T.accentSoft, color: T.accent,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}><Icon name={icon} size={18}/></div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 15, color: T.text, fontWeight: 500 }}>{title}</div>
+        {sub && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{sub}</div>}
+      </div>
+      <button onClick={() => !disabled && onChange(!value)} disabled={disabled}
+        style={{
+          width: 48, height: 28, borderRadius: 999,
+          background: value ? T.accent : T.track,
+          border: 'none', padding: 0, cursor: disabled ? 'default' : 'pointer',
+          position: 'relative', opacity: disabled ? 0.6 : 1,
+          transition: 'background .2s',
+        }}>
+        <div style={{
+          position: 'absolute', top: 3, left: value ? 23 : 3,
+          width: 22, height: 22, borderRadius: 999, background: '#fff',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+          transition: 'left .2s',
+        }}/>
+      </button>
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenProgress, ScreenProfile });
+// --- screens-content.jsx ---
+// Content library + audio/video/article player + Notifications
+
+function ScreenLibrary({ theme, t, dir, go }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [cat, setCat] = React.useState('all');
+  const cats = [
+    { id: 'all', label: { en: 'All', ar: 'الكل' }, icon: 'sparkle' },
+    { id: 'sleep', label: { en: 'Sleep', ar: 'النوم' }, icon: 'moon' },
+    { id: 'stress', label: { en: 'Stress', ar: 'التوتر' }, icon: 'leaf' },
+    { id: 'move', label: { en: 'Move', ar: 'حركة' }, icon: 'activity' },
+    { id: 'focus', label: { en: 'Focus', ar: 'تركيز' }, icon: 'target' },
+  ];
+  const items = [
+    { id: 'sleep-onset', kind: 'audio', mins: 6, cat: 'sleep', title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' }, tag: { en: 'Recommended', ar: 'موصى به' } },
+    { id: 'box-breath', kind: 'audio', mins: 2, cat: 'stress', title: { en: 'Box breathing, guided', ar: 'تنفس مربع، موجَّه' } },
+    { id: 'desk-mob', kind: 'video', mins: 4, cat: 'move', title: { en: 'Desk mobility flow', ar: 'حركات مكتبية' } },
+    { id: 'reset', kind: 'audio', mins: 3, cat: 'focus', title: { en: 'A 3-minute reset between meetings', ar: 'استراحة 3 دقائق بين الاجتماعات' } },
+    { id: 'wind-down', kind: 'article', mins: 5, cat: 'sleep', title: { en: 'Build an evening wind-down', ar: 'بناء روتين استرخاء مسائي' } },
+    { id: 'caffeine', kind: 'article', mins: 4, cat: 'sleep', title: { en: 'Caffeine cut-off, in plain terms', ar: 'الكافيين بلغة واضحة' } },
+  ];
+  const filtered = cat === 'all' ? items : items.filter(i => i.cat === cat);
+
+  return (
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
+      <div style={{ padding: '16px 22px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>
+          {lang==='ar' ? 'المكتبة' : 'Library'}
+        </div>
+        <IconBtn theme={T} icon="search" onClick={()=>{}}/>
+      </div>
+
+      <div style={{ padding: '4px 22px 14px', display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {cats.map(c => (
+          <Chip key={c.id} theme={T} active={cat === c.id} onClick={() => setCat(c.id)} icon={c.icon}>
+            {c.label[lang]}
+          </Chip>
+        ))}
+      </div>
+
+      {/* Featured hero */}
+      {cat === 'all' && (
+        <div style={{ padding: '0 16px 18px' }}>
+          <Card theme={T} pad={0} radius={24} style={{ overflow: 'hidden', cursor: 'pointer' }}
+                onClick={() => go('player', { id: 'sleep-onset' })}>
+            <div style={{
+              height: 180, position: 'relative',
+              background: `linear-gradient(135deg, ${T.accent}, ${T.accentSoft})`,
+            }}>
+              <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.5 }}>
+                <defs>
+                  <pattern id="wave" width="24" height="24" patternUnits="userSpaceOnUse">
+                    <path d="M0 12 Q6 6 12 12 T24 12" stroke={T.accentInk} strokeWidth="1" fill="none" opacity="0.25"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#wave)"/>
+              </svg>
+              <div style={{
+                position: 'absolute', bottom: 16, right: 16,
+                width: 56, height: 56, borderRadius: 999,
+                background: T.accentInk, color: T.accent,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><Icon name="play" size={22}/></div>
+            </div>
+            <div style={{ padding: '16px 18px 18px' }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
+                {lang==='ar'?'صوت · 6 د · موصى به':'AUDIO · 6 MIN · FOR YOU'}
+              </div>
+              <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, marginTop: 6, letterSpacing: -0.3, lineHeight: 1.2 }}>
+                {lang==='ar'?'بداية النوم — إشارة لهذه الليلة':'Sleep onset — a cue for tonight'}
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      <SectionLabel theme={T}>{lang==='ar'?'استكشف':'Explore'}</SectionLabel>
+      <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {filtered.map(it => (
+          <Card key={it.id} theme={T} pad={0} radius={18} onClick={() => go('player', { id: it.id })}
+                style={{ overflow: 'hidden', cursor: 'pointer' }}>
+            <div style={{
+              height: 100, position: 'relative',
+              background: it.kind === 'video'
+                ? `linear-gradient(135deg, ${T.accent}44, ${T.surfaceAlt})`
+                : it.kind === 'article'
+                ? `linear-gradient(135deg, ${T.surfaceAlt}, ${T.surface})`
+                : `linear-gradient(135deg, ${T.accentSoft}, ${T.surfaceAlt})`,
+            }}>
+              <div style={{
+                position: 'absolute', top: 10, left: 10,
+                padding: '3px 8px', borderRadius: 999,
+                background: T.bg + 'cc', color: T.text,
+                fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
+              }}>{it.kind}</div>
+              <div style={{
+                position: 'absolute', bottom: 10, right: 10,
+                width: 32, height: 32, borderRadius: 999,
+                background: T.accent, color: T.accentInk,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon name={it.kind === 'article' ? 'book' : 'play'} size={14}/>
+              </div>
+            </div>
+            <div style={{ padding: '10px 12px 14px' }}>
+              <div style={{ fontSize: 13, color: T.text, fontWeight: 500, lineHeight: 1.3, minHeight: 34 }}>
+                {it.title[lang]}
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 6 }}>{it.mins} {t('minutes')}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ScreenPlayer({ theme, t, dir, go, state }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const item = state.playerItem || { id: 'sleep-onset', kind: 'audio', mins: 6, title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' } };
+  const [playing, setPlaying] = React.useState(true);
+  const [pos, setPos] = React.useState(0);
+  const dur = item.mins * 60;
+
+  React.useEffect(() => {
+    if (!playing) return;
+    const id = setInterval(() => {
+      setPos(p => {
+        if (p + 1 >= dur) { setPlaying(false); return dur; }
+        return p + 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [playing, dur]);
+
+  const fmt = (s) => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const isVideo = item.kind === 'video';
+  const isArticle = item.kind === 'article';
+
+  if (isArticle) {
+    return (
+      <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 40, boxSizing: 'border-box' }}>
+        <div style={{ padding: '14px 22px 0' }}>
+          <TopBack theme={T} onBack={() => go('library')} dir={dir}/>
+        </div>
+        <div style={{ padding: '20px 24px 0' }}>
+          <div style={{ fontSize: 11, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
+            {lang==='ar'?'مقال · ':'ARTICLE · '}{item.mins} {t('minutes')}
+          </div>
+          <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 34, color: T.text, marginTop: 10, letterSpacing: -0.5, lineHeight: 1.1 }}>
+            {item.title[lang]}
+          </div>
+          <div style={{ marginTop: 24, color: T.text, fontSize: 16, lineHeight: 1.6, fontFamily: typeStyles(T).sansFont }}>
+            {lang==='ar'
+              ? 'روتين الاسترخاء المسائي ليس مجرد طقس. إنه إشارة لدماغك بأن اليوم انتهى. ابدأ بخطوات صغيرة: خفّت الأضواء قبل النوم بساعة، ضع الهاتف خارج الغرفة، ودوّن ثلاثة أشياء سارت بشكل جيد.'
+              : "An evening wind-down isn't ritual for ritual's sake. It's a signal to your brain that the day is done. Start small: dim the lights an hour before bed, put the phone outside the bedroom, and jot down three things that went well."}
+          </div>
+          <div style={{ marginTop: 28, padding: '20px 22px', background: T.surface, borderRadius: 18, border: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 11, letterSpacing: 1, color: T.accent, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>
+              {lang==='ar'?'جربه الليلة':'Try tonight'}
+            </div>
+            <div style={{ fontSize: 16, color: T.text, lineHeight: 1.5 }}>
+              {lang==='ar'?'خفّت الأضواء عند الساعة 9:30، وتنفس مربع لدقيقتين قبل النوم.':'Dim lights at 9:30pm and do 2 minutes of box breathing before bed.'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', background: T.bg, paddingTop: 54, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '14px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <TopBack theme={T} onBack={() => go('library')} dir={dir}/>
+        <IconBtn theme={T} icon="plus"/>
+      </div>
+
+      {/* Artwork */}
+      <div style={{ padding: '20px 30px 10px' }}>
+        <div style={{
+          aspectRatio: '1/1', width: '100%', borderRadius: 28,
+          background: isVideo
+            ? `linear-gradient(135deg, ${T.surfaceAlt}, ${T.bg})`
+            : `linear-gradient(135deg, ${T.accent}, ${T.accentSoft})`,
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {isVideo ? (
+            <>
+              <svg width="80%" height="80%" viewBox="0 0 100 100" style={{ opacity: 0.4 }}>
+                <path d="M20 60 Q30 40 50 50 T80 40" stroke={T.accent} strokeWidth="2" fill="none"/>
+                <path d="M20 70 Q30 50 50 60 T80 50" stroke={T.accent} strokeWidth="2" fill="none" opacity="0.6"/>
+              </svg>
+              <div style={{
+                position: 'absolute', width: 80, height: 80, borderRadius: 999,
+                background: T.accent, color: T.accentInk,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><Icon name={playing ? 'pause' : 'play'} size={32}/></div>
+            </>
+          ) : (
+            <svg width="70%" height="70%" viewBox="0 0 100 100" style={{ opacity: 0.7 }}>
+              {[20,35,50,65,80].map((x,i) => {
+                const h = 20 + Math.abs(Math.sin((pos + i*3)/4)) * 40;
+                return <rect key={i} x={x-4} y={50-h/2} width="8" height={h} rx="4" fill={T.accentInk}/>;
+              })}
+            </svg>
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: '22px 30px 0', textAlign: 'center' }}>
+        <div style={{ fontSize: 11, letterSpacing: 1.2, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
+          {(isVideo ? (lang==='ar'?'فيديو':'VIDEO') : (lang==='ar'?'صوت':'AUDIO'))} · {item.mins} {t('minutes')}
+        </div>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text, marginTop: 8, letterSpacing: -0.4, lineHeight: 1.15 }}>
+          {item.title[lang]}
+        </div>
+      </div>
+
+      {/* Scrubber */}
+      <div style={{ padding: '24px 30px 0' }}>
+        <div style={{ height: 4, borderRadius: 4, background: T.track, position: 'relative' }}>
+          <div style={{ width: `${(pos/dur)*100}%`, height: '100%', background: T.accent, borderRadius: 4 }}/>
+          <div style={{
+            position: 'absolute', left: `calc(${(pos/dur)*100}% - 6px)`, top: -4,
+            width: 12, height: 12, borderRadius: 999, background: T.accent,
+          }}/>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: typeStyles(T).monoFont, fontSize: 11, color: T.textMuted }}>
+          <span>{fmt(pos)}</span><span>-{fmt(dur - pos)}</span>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div style={{ padding: '18px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
+        <button onClick={() => setPos(Math.max(0, pos - 15))} style={{
+          background: 'transparent', border: 'none', color: T.text, cursor: 'pointer', padding: 0,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+        }}>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>
+          </svg>
+          <div style={{ fontSize: 9, color: T.textMuted, marginTop: 2 }}>15s</div>
+        </button>
+        <button onClick={() => setPlaying(!playing)} style={{
+          width: 72, height: 72, borderRadius: 999, background: T.accent, color: T.accentInk,
+          border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: `0 10px 30px ${T.accent}55`,
+        }}>
+          <Icon name={playing ? 'pause' : 'play'} size={30}/>
+        </button>
+        <button onClick={() => setPos(Math.min(dur, pos + 30))} style={{
+          background: 'transparent', border: 'none', color: T.text, cursor: 'pointer', padding: 0,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+        }}>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>
+          </svg>
+          <div style={{ fontSize: 9, color: T.textMuted, marginTop: 2 }}>30s</div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScreenNotifs({ theme, t, dir, go }) {
+  const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const sections = [
+    {
+      label: lang==='ar'?'اليوم':'Today',
+      items: [
+        { icon: 'flame', color: T.accent, title: { en: '21 day streak! Keep it going', ar: '21 يوماً متتالياً! حافظ عليها' }, time: '08:30', unread: true },
+        { icon: 'trophy', color: T.positive, title: { en: 'You climbed to #2 on your team', ar: 'صعدت إلى المركز الثاني في فريقك' }, time: '07:10', unread: true },
+      ],
+    },
+    {
+      label: lang==='ar'?'هذا الأسبوع':'This week',
+      items: [
+        { icon: 'moon', color: T.info, title: { en: 'Sleep improved 0.8h this week', ar: 'النوم تحسَّن 0.8 ساعة هذا الأسبوع' }, time: 'Mon', unread: false },
+        { icon: 'sparkle', color: T.accent, title: { en: 'New content: "Caffeine cut-off, in plain terms"', ar: 'محتوى جديد: "الكافيين بلغة واضحة"' }, time: 'Sun', unread: false },
+        { icon: 'users', color: T.info, title: { en: 'Finance team just joined Move April', ar: 'فريق المالية انضم لتحدي تحرَّك أبريل' }, time: 'Sat', unread: false },
+      ],
+    },
+  ];
+  return (
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 40, boxSizing: 'border-box' }}>
+      <div style={{ padding: '14px 22px 6px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <TopBack theme={T} onBack={() => go('home')} dir={dir}/>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, letterSpacing: -0.4, color: T.text, flex: 1 }}>
+          {lang==='ar'?'الإشعارات':'Notifications'}
+        </div>
+        <button style={{ background:'transparent', border:'none', color:T.accent, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+          {lang==='ar'?'تعليم الكل':'Mark all read'}
+        </button>
+      </div>
+
+      {sections.map((sec, si) => (
+        <div key={si}>
+          <SectionLabel theme={T} style={{ marginTop: 14 }}>{sec.label}</SectionLabel>
+          <div style={{ padding: '0 16px' }}>
+            <Card theme={T} pad={0} radius={20}>
+              {sec.items.map((it, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: 12, padding: '14px 16px', alignItems: 'flex-start',
+                  borderBottom: i < sec.items.length - 1 ? `1px solid ${T.border}` : 'none',
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                    background: it.color + '22', color: it.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}><Icon name={it.icon} size={18}/></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: T.text, lineHeight: 1.4, fontWeight: it.unread ? 600 : 500 }}>
+                      {it.title[lang]}
+                    </div>
+                    <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>{it.time}</div>
+                  </div>
+                  {it.unread && <div style={{ width: 8, height: 8, borderRadius: 999, background: T.accent, marginTop: 6 }}/>}
+                </div>
+              ))}
+            </Card>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenLibrary, ScreenPlayer, ScreenNotifs });
+// --- app.jsx ---
+// Main app — state, routing, Tweaks, nav
+
+function TabBar({ theme, t, dir, active, onTab }) {
+  const T = theme;
+  const tabs = [
+    { id: 'home', icon: 'home', label: t('tabToday') },
+    { id: 'library', icon: 'library', label: dir==='rtl'?'مكتبة':'Library' },
+    { id: 'checkin', icon: 'sparkle', label: t('tabCheckIn') },
+    { id: 'challenges', icon: 'trophy', label: t('tabChallenges') },
+    { id: 'progress', icon: 'chart', label: t('tabProgress') },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40,
+      paddingBottom: 24, paddingTop: 8,
+      background: `linear-gradient(to top, ${T.bg} 70%, transparent)`,
+    }}>
+      <div style={{
+        margin: '0 16px', background: T.surface,
+        border: `1px solid ${T.border}`, borderRadius: 22,
+        padding: 6, display: 'flex',
+        boxShadow: T.isDark ? '0 10px 30px rgba(0,0,0,0.35)' : '0 10px 30px rgba(0,0,0,0.08)',
+      }}>
+        {tabs.map(tab => {
+          const isActive = active === tab.id;
+          return (
+            <button key={tab.id} onClick={() => onTab(tab.id)} style={{
+              flex: 1, height: 52, borderRadius: 14,
+              background: isActive ? T.accent : 'transparent',
+              color: isActive ? T.accentInk : T.textMuted,
+              border: 'none', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+              transition: 'background .2s',
+            }}>
+              <Icon name={tab.icon} size={19}/>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.2 }}>{tab.label}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TweaksPanel({ theme, open, onClose, cfg, setCfg }) {
+  const T = theme;
+  if (!open) return null;
+  const Row = ({ label, children }) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600, marginBottom: 8 }}>{label}</div>
+      {children}
+    </div>
+  );
+  const OptRow = ({ opts, value, onChange }) => (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {opts.map(([k, l]) => (
+        <button key={k} onClick={() => onChange(k)} style={{
+          flex: 1, height: 34, borderRadius: 10,
+          background: value === k ? T.accent : T.chipBg,
+          color: value === k ? T.accentInk : T.text,
+          border: `1px solid ${value === k ? 'transparent' : T.border}`,
+          fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+        }}>{l}</button>
+      ))}
+    </div>
+  );
+  return (
+    <div style={{
+      position: 'fixed', bottom: 20, right: 20, width: 300, zIndex: 100,
+      background: T.surface, border: `1px solid ${T.borderStrong}`,
+      borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+      padding: 18, direction: 'ltr', fontFamily: typeStyles(T).sansFont, color: T.text,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 20, letterSpacing: -0.3 }}>Tweaks</div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer' }}>
+          <Icon name="close" size={18}/>
+        </button>
+      </div>
+      <Row label="Theme">
+        <OptRow opts={[['brand','Brand (Dark)'],['light','Light']]} value={cfg.theme} onChange={v => setCfg({ ...cfg, theme: v })}/>
+      </Row>
+      <Row label="Language">
+        <OptRow opts={[['en','English'],['ar','العربية']]} value={cfg.lang} onChange={v => setCfg({ ...cfg, lang: v })}/>
+      </Row>
+      <Row label="Home layout">
+        <OptRow opts={[['list','List'],['stack','Stack'],['agenda','Agenda']]} value={cfg.homeVariant} onChange={v => setCfg({ ...cfg, homeVariant: v })}/>
+      </Row>
+      <Row label="Check-in style">
+        <OptRow opts={[['sliders','Sliders'],['emoji','Emoji'],['cards','Cards']]} value={cfg.checkinVariant} onChange={v => setCfg({ ...cfg, checkinVariant: v })}/>
+      </Row>
+      <Row label="Leaderboard">
+        <OptRow opts={[['podium','Podium'],['list','List']]} value={cfg.leaderboardVariant} onChange={v => setCfg({ ...cfg, leaderboardVariant: v })}/>
+      </Row>
+      <div style={{ fontSize: 11, color: T.textMuted, marginTop: 8 }}>Tap Profile to re-run onboarding.</div>
+      <button onClick={() => setCfg({ ...cfg, screen: 'join', onboarded: false })} style={{
+        marginTop: 10, width: '100%', height: 36, borderRadius: 10,
+        background: T.chipBg, border: `1px solid ${T.border}`, color: T.text,
+        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+      }}>Restart onboarding</button>
+    </div>
+  );
+}
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "brand",
+  "lang": "en",
+  "homeVariant": "stack",
+  "checkinVariant": "sliders",
+  "leaderboardVariant": "podium"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [cfg, setCfg] = React.useState(() => {
+    const saved = localStorage.getItem('wellness-plus-cfg');
+    return saved ? { ...TWEAK_DEFAULTS, ...JSON.parse(saved), screen: null } : { ...TWEAK_DEFAULTS };
+  });
+  const [tweaksOpen, setTweaksOpen] = React.useState(false);
+  const [screen, setScreen] = React.useState(() => {
+    return localStorage.getItem('wellness-plus-screen') || 'join';
+  });
+  const [doneActions, setDoneActions] = React.useState(new Set());
+  const [streak, setStreak] = React.useState(21);
+  const [joined, setJoined] = React.useState(false);
+  const [playerItem, setPlayerItem] = React.useState(null);
+  const [avatar, setAvatar] = React.useState(() => localStorage.getItem('wellness-plus-avatar') || 'monogram');
+  const [name, setName] = React.useState(() => localStorage.getItem('wellness-plus-name') || 'Layla');
+
+  React.useEffect(() => {
+    const { screen: _, ...persist } = cfg;
+    localStorage.setItem('wellness-plus-cfg', JSON.stringify(persist));
+  }, [cfg]);
+  React.useEffect(() => {
+    localStorage.setItem('wellness-plus-screen', screen);
+  }, [screen]);
+  React.useEffect(() => { localStorage.setItem('wellness-plus-avatar', avatar); }, [avatar]);
+  React.useEffect(() => { localStorage.setItem('wellness-plus-name', name); }, [name]);
+
+  // Tweaks edit mode contract
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+      if (e.data.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', handler);
+    try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(_) {}
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const theme = THEMES[cfg.theme] || THEMES.brand;
+  const lang = cfg.lang;
+  const t = useT(lang);
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  const go = (s, extra) => {
+    if (s === 'player' && extra) {
+      const items = {
+        'sleep-onset': { id: 'sleep-onset', kind: 'audio', mins: 6, title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' } },
+        'box-breath': { id: 'box-breath', kind: 'audio', mins: 2, title: { en: 'Box breathing, guided', ar: 'تنفس مربع، موجَّه' } },
+        'desk-mob': { id: 'desk-mob', kind: 'video', mins: 4, title: { en: 'Desk mobility flow', ar: 'حركات مكتبية' } },
+        'reset': { id: 'reset', kind: 'audio', mins: 3, title: { en: 'A 3-minute reset between meetings', ar: 'استراحة 3 دقائق بين الاجتماعات' } },
+        'wind-down': { id: 'wind-down', kind: 'article', mins: 5, title: { en: 'Build an evening wind-down', ar: 'بناء روتين استرخاء مسائي' } },
+        'caffeine': { id: 'caffeine', kind: 'article', mins: 4, title: { en: 'Caffeine cut-off, in plain terms', ar: 'الكافيين بلغة واضحة' } },
+      };
+      setPlayerItem(items[extra.id] || items['sleep-onset']);
+    }
+    setScreen(s);
+  };
+
+  const state = {
+    doneActions, toggleAction: (id) => {
+      const n = new Set(doneActions);
+      n.has(id) ? n.delete(id) : n.add(id); setDoneActions(n);
+    },
+    streak, setStreak,
+    joined, setJoined,
+    playerItem, setPlayerItem,
+    avatar, setAvatar,
+    name, setName,
+  };
+
+  const setLang = (l) => setCfg({ ...cfg, lang: l });
+  const setThemeKey = (k) => setCfg({ ...cfg, theme: k });
+
+  let content, showTabs = false;
+  switch (screen) {
+    case 'join':     content = <ScreenJoin theme={theme} t={t} dir={dir} onNext={() => go('otp')}/>; break;
+    case 'otp':      content = <ScreenOTP theme={theme} t={t} dir={dir} onNext={() => go('consent')} onBack={() => go('join')}/>; break;
+    case 'consent':  content = <ScreenConsent theme={theme} t={t} dir={dir} onNext={() => go('name')} onBack={() => go('otp')}/>; break;
+    case 'name':     content = <ScreenName theme={theme} t={t} dir={dir} state={state} onNext={() => go('baseline')} onBack={() => go('consent')}/>; break;
+    case 'baseline': content = <ScreenBaseline theme={theme} t={t} dir={dir} onNext={() => go('goals')} onBack={() => go('name')}/>; break;
+    case 'goals':    content = <ScreenGoals theme={theme} t={t} dir={dir} onNext={() => go('welcome')} onBack={() => go('baseline')}/>; break;
+    case 'welcome':  content = <ScreenWelcome theme={theme} t={t} dir={dir} state={state} onNext={() => go('home')}/>; break;
+    case 'home':     content = <ScreenHome theme={theme} t={t} dir={dir} go={go} variant={cfg.homeVariant} state={state}/>; showTabs = true; break;
+    case 'library':  content = <ScreenLibrary theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
+    case 'player':   content = <ScreenPlayer theme={theme} t={t} dir={dir} go={go} state={state}/>; break;
+    case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go}/>; break;
+    case 'checkin':  content = <ScreenCheckIn theme={theme} t={t} dir={dir} go={go} variant={cfg.checkinVariant} state={state}/>; showTabs = true; break;
+    case 'breathe':  content = <ScreenBreathe theme={theme} t={t} dir={dir} go={go}/>; break;
+    case 'challenges': content = <ScreenChallenges theme={theme} t={t} dir={dir} go={go} variant={cfg.leaderboardVariant} state={state}/>; showTabs = true; break;
+    case 'progress': content = <ScreenProgress theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
+    case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state}/>; showTabs = true; break;
+    default:         content = <ScreenHome theme={theme} t={t} dir={dir} go={go} variant={cfg.homeVariant} state={state}/>; showTabs = true;
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: theme.bg === '#F6F3EC' ? '#EAE4D5' : '#0a1615', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, boxSizing: 'border-box' }}>
+      <div style={{ direction: dir, transition: 'all .3s ease' }}>
+        <IOSDevice width={402} height={874} dark={theme.isDark}>
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 1,
+            fontFamily: typeStyles(theme).sansFont,
+          }}>
+            <div key={screen + cfg.theme + cfg.lang + cfg.homeVariant + cfg.checkinVariant + cfg.leaderboardVariant}
+                 style={{ position: 'absolute', inset: 0, animation: 'screenIn .35s ease both' }}>
+              {content}
+            </div>
+            {showTabs && <TabBar theme={theme} t={t} dir={dir} active={screen} onTab={go}/>}
+          </div>
+        </IOSDevice>
+      </div>
+      <TweaksPanel theme={theme} open={tweaksOpen} onClose={() => setTweaksOpen(false)} cfg={cfg} setCfg={setCfg}/>
+      <style>{`
+        @keyframes screenIn { 0%{opacity:0;transform:translateY(6px);} 100%{opacity:1;transform:translateY(0);} }
+        input, button, textarea { font-family: inherit; }
+        *::-webkit-scrollbar { display: none; }
+        * { -webkit-tap-highlight-color: transparent; }
+      `}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
