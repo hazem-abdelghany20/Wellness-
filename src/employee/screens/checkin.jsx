@@ -1,6 +1,7 @@
 import React from 'react';
 import { typeStyles, Icon, Button, Slider, Ring } from '../design-system.jsx';
 import { TopBack } from './onboarding.jsx';
+import { useCheckin } from '../hooks/use-checkin.js';
 
 // --- screens-checkin.jsx ---
 // Check-in — 3 input-style variants: 'sliders', 'emoji', 'cards'
@@ -8,9 +9,12 @@ import { TopBack } from './onboarding.jsx';
 function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
+  const { submit } = useCheckin();
   const [step, setStep] = React.useState(0);
   const [vals, setVals] = React.useState({ stress: 5, sleep: 6.5, energy: 5, mood: 6 });
   const [saved, setSaved] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
 
   const questions = [
     { id: 'stress', label: t('stress'), sub: t('stressSub'), min: 0, max: 10 },
@@ -23,12 +27,29 @@ function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
   const v = vals[q.id];
   const set = (nv) => setVals({ ...vals, [q.id]: nv });
 
-  const handleNext = () => {
-    if (step < questions.length - 1) setStep(step + 1);
-    else {
+  const handleNext = async () => {
+    if (step < questions.length - 1) {
+      setStep(step + 1);
+      return;
+    }
+    setErr(null);
+    setBusy(true);
+    try {
+      await submit({
+        sleep: vals.sleep,
+        stress: vals.stress,
+        energy: vals.energy,
+        mood: vals.mood,
+        note: '',
+        variant,
+      });
       setSaved(true);
       state.setStreak(state.streak + (state.streak % 1 === 0 ? 0 : 1));
       setTimeout(() => { go('home'); setSaved(false); setStep(0); }, 1800);
+    } catch (e) {
+      setErr(e?.message || 'Submit failed');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -73,8 +94,15 @@ function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
 
         <div style={{ flex: 1 }}/>
         <div style={{ paddingBottom: 22 }}>
-          <Button theme={T} onClick={handleNext} iconR="arrow" style={{ width: '100%' }}>
-            {step < questions.length - 1 ? t('next') : t('saveCheckIn')}
+          {err && (
+            <div style={{
+              fontSize: 13, color: T.negative || '#c0392b',
+              padding: '10px 14px', marginBottom: 10,
+              background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12,
+            }}>{err}</div>
+          )}
+          <Button theme={T} onClick={handleNext} iconR="arrow" disabled={busy} style={{ width: '100%', opacity: busy ? 0.6 : 1 }}>
+            {step < questions.length - 1 ? t('next') : (busy ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : t('saveCheckIn'))}
           </Button>
         </div>
       </div>
