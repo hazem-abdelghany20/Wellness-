@@ -20,7 +20,9 @@ import { HRBroadcastsPage } from './views/broadcasts.jsx';
 import { HRReportsPage }    from './views/reports.jsx';
 import { HRSettingsPage }   from './views/settings.jsx';
 import { HRAppConfigProvider, useHRAppConfig } from './state/app-config-context.jsx';
-import { HRAuthProvider } from './state/auth-context.jsx';
+import { HRAuthProvider, useHRAuth } from './state/auth-context.jsx';
+import { SignIn } from './views/sign-in.jsx';
+import { AccessDenied } from './views/access-denied.jsx';
 
 function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }) {
   const T = theme;
@@ -81,6 +83,7 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }
 
 function AppInner() {
   const { cfg, setCfg } = useHRAppConfig();
+  const { session, role, loading: authLoading } = useHRAuth();
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [range, setRange] = React.useState('30d');
   const [nav, setNav] = React.useState('dashboard');
@@ -109,6 +112,16 @@ function AppInner() {
 
   const layout = cfg.layout;
   // layouts differ in how the main dashboard is arranged
+
+  if (authLoading) {
+    return <div style={{ minHeight: '100vh', background: T.bg }}/>;
+  }
+  if (!session) {
+    return <SignIn theme={T} S={S} dir={dir}/>;
+  }
+  if (!['hr_admin', 'company_admin'].includes(role)) {
+    return <AccessDenied theme={T} dir={dir}/>;
+  }
 
   return (
     <div data-rtl={dir === 'rtl'} style={{
