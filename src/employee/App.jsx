@@ -23,7 +23,11 @@ import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
 import { ScreenNotifs } from './screens/notifications.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
 import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx';
-import { AuthProvider } from './state/auth-context.jsx';
+import { AuthProvider, useAuth } from './state/auth-context.jsx';
+import { Splash } from './screens/splash.jsx';
+
+const ONBOARDING_SCREENS = ['join', 'otp', 'consent', 'name', 'baseline', 'goals', 'welcome'];
+const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'profile', 'breathe', 'player', 'notifs'];
 
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
@@ -72,10 +76,11 @@ function TabBar({ theme, t, dir, active, onTab }) {
 
 function AppInner() {
   const { cfg, setCfg } = useAppConfig();
+  const { session, profile, loading: authLoading } = useAuth();
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
-  const [screen, setScreen] = React.useState(() => {
-    return localStorage.getItem('wellness-plus-screen') || 'join';
-  });
+  // Initial screen is resolved by the auth-driven routing effect below
+  // (we don't trust the persisted value until we know the session/profile state).
+  const [screen, setScreen] = React.useState(null);
   const [doneActions, setDoneActions] = React.useState(new Set());
   const [streak, setStreak] = React.useState(21);
   const [joined, setJoined] = React.useState(false);
@@ -87,8 +92,33 @@ function AppInner() {
     new URLSearchParams(window.location.search).get('tweaks') === '1';
 
   React.useEffect(() => {
-    localStorage.setItem('wellness-plus-screen', screen);
+    if (screen) localStorage.setItem('wellness-plus-screen', screen);
   }, [screen]);
+
+  // Auth-driven routing gate.
+  // - No session: route to onboarding (start at 'join').
+  // - Session but no profile.onboarded_at: route to onboarding (start at 'consent').
+  // - Fully onboarded: route to main app.
+  React.useEffect(() => {
+    if (authLoading) return;
+    if (!session) {
+      // Unauthenticated users may only sit on join/otp.
+      if (screen !== 'join' && screen !== 'otp') {
+        setScreen('join');
+      }
+    } else if (!profile?.onboarded_at) {
+      // Authenticated but not onboarded — must be on consent/name/baseline/goals/welcome.
+      // If they're on join/otp/null/main, jump them to consent.
+      if (screen === null || screen === 'join' || screen === 'otp' || MAIN_SCREENS.includes(screen)) {
+        setScreen('consent');
+      }
+    } else {
+      // Fully onboarded — never show onboarding screens again.
+      if (screen === null || ONBOARDING_SCREENS.includes(screen)) {
+        setScreen('home');
+      }
+    }
+  }, [authLoading, session, profile, screen]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-avatar', avatar); }, [avatar]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-name', name); }, [name]);
 
@@ -139,6 +169,11 @@ function AppInner() {
 
   const setLang = (l) => setCfg({ ...cfg, lang: l });
   const setThemeKey = (k) => setCfg({ ...cfg, theme: k });
+
+  // Splash while auth bootstraps, or while the routing effect is still resolving the initial screen.
+  if (authLoading || screen === null) {
+    return <Splash theme={theme}/>;
+  }
 
   let content, showTabs = false;
   switch (screen) {

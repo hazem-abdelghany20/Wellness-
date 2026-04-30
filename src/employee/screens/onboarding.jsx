@@ -3,13 +3,37 @@ import {
   typeStyles, Icon, AvatarDisplay, AVATAR_OPTIONS, Button, Card,
   WellnessMark, Ring, Slider,
 } from '../design-system.jsx';
+import { useAuth } from '../state/auth-context.jsx';
+import { useProfile } from '../hooks/use-profile.js';
 
 // --- screens-onboarding.jsx ---
 // Onboarding flow: code → OTP → consent → baseline → goals → welcome
 
 function ScreenJoin({ theme, t, onNext, dir }) {
   const [code, setCode] = React.useState('WH-4782');
+  const [email, setEmail] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const { signInWithCode } = useAuth();
   const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+
+  const handleSubmit = async () => {
+    if (!email.trim()) {
+      setErr(lang === 'ar' ? 'البريد الإلكتروني مطلوب' : 'Email is required');
+      return;
+    }
+    setErr(null); setBusy(true);
+    try {
+      await signInWithCode(code, email.trim());
+      onNext();
+    } catch (e) {
+      setErr(e?.message || (lang === 'ar' ? 'فشل تسجيل الدخول' : 'Sign-in failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <ScreenFrame theme={T}>
       <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -27,6 +51,7 @@ function ScreenJoin({ theme, t, onNext, dir }) {
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{t('companyCode')}</div>
           <input value={code} onChange={e => setCode(e.target.value.toUpperCase())}
+            disabled={busy}
             style={{
               width: '100%', height: 58, padding: '0 18px',
               background: T.surface, border: `1px solid ${T.borderStrong}`,
@@ -36,12 +61,37 @@ function ScreenJoin({ theme, t, onNext, dir }) {
             }}/>
         </div>
 
-        <Button theme={T} onClick={onNext} iconR="arrow">{t('continue')}</Button>
-        <button onClick={onNext} style={{
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{lang === 'ar' ? 'البريد الإلكتروني' : 'Work email'}</div>
+          <input value={email} onChange={e => setEmail(e.target.value)}
+            type="email" inputMode="email" autoComplete="email"
+            placeholder={lang === 'ar' ? 'name@company.com' : 'name@company.com'}
+            disabled={busy}
+            style={{
+              width: '100%', height: 54, padding: '0 16px',
+              background: T.surface, border: `1px solid ${T.borderStrong}`,
+              borderRadius: 14, color: T.text, fontSize: 17, fontWeight: 500,
+              fontFamily: typeStyles(T).sansFont, boxSizing: 'border-box', outline: 'none',
+              textAlign: dir === 'rtl' ? 'right' : 'left',
+            }}/>
+        </div>
+
+        {err && (
+          <div style={{
+            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
+            padding: '10px 12px', borderRadius: 10, fontSize: 13,
+            marginBottom: 12, fontFamily: typeStyles(T).sansFont,
+          }}>{err}</div>
+        )}
+
+        <Button theme={T} onClick={handleSubmit} iconR="arrow" disabled={busy}>
+          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Working…') : t('continue')}
+        </Button>
+        <button onClick={() => !busy && handleSubmit()} disabled={busy} style={{
           marginTop: 14, background: 'transparent', border: 'none',
           color: T.textMuted, fontFamily: typeStyles(T).sansFont, fontSize: 14,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          height: 44, cursor: 'pointer',
+          height: 44, cursor: busy ? 'default' : 'pointer',
         }}>
           <Icon name="qr" size={18}/>{t('scanQR')}
         </button>
@@ -53,17 +103,42 @@ function ScreenJoin({ theme, t, onNext, dir }) {
 
 function ScreenOTP({ theme, t, onNext, onBack, dir }) {
   const T = theme;
-  const [digits, setDigits] = React.useState(['4','7','2','0','','']);
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [digits, setDigits] = React.useState(['', '', '', '', '', '']);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
   const refs = React.useRef([]);
+  const { verifyOtp, pendingEmail } = useAuth();
   const allFilled = digits.every(d => d !== '');
+
   const setDigit = (i, v) => {
     if (!/^\d?$/.test(v)) return;
     const nd = [...digits]; nd[i] = v; setDigits(nd);
     if (v && i < 5) refs.current[i+1]?.focus();
   };
+
+  const handleVerify = React.useCallback(async (token) => {
+    setErr(null); setBusy(true);
+    try {
+      await verifyOtp(token);
+      onNext();
+    } catch (e) {
+      setErr(e?.message || (lang === 'ar' ? 'رمز غير صالح' : 'Invalid code'));
+      setDigits(['', '', '', '', '', '']);
+      refs.current[0]?.focus();
+    } finally {
+      setBusy(false);
+    }
+  }, [verifyOtp, onNext, lang]);
+
   React.useEffect(() => {
-    if (allFilled) { const tm = setTimeout(onNext, 400); return () => clearTimeout(tm); }
-  }, [allFilled]);
+    if (allFilled && !busy) {
+      const token = digits.join('');
+      const tm = setTimeout(() => handleVerify(token), 200);
+      return () => clearTimeout(tm);
+    }
+  }, [allFilled, busy, digits, handleVerify]);
+
   return (
     <ScreenFrame theme={T}>
       <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -73,26 +148,34 @@ function ScreenOTP({ theme, t, onNext, onBack, dir }) {
           color: T.text, fontWeight: 400, letterSpacing: -0.6, marginTop: 28, marginBottom: 12,
         }}>{t('verifyTitle')}</div>
         <div style={{ color: T.textMuted, fontSize: 15, lineHeight: 1.45, marginBottom: 30 }}>
-          {t('verifySub', { dest: 'a.mostafa@nilegroup.eg' })}
+          {t('verifySub', { dest: pendingEmail || 'a.mostafa@nilegroup.eg' })}
         </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 26, direction: 'ltr' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, direction: 'ltr' }}>
           {digits.map((d, i) => (
             <input key={i} ref={el => refs.current[i] = el}
               value={d} onChange={e => setDigit(i, e.target.value)}
-              inputMode="numeric" maxLength={1}
+              inputMode="numeric" maxLength={1} disabled={busy}
               style={{
                 flex: 1, height: 62, background: T.surface, border: `1px solid ${d ? T.accent : T.borderStrong}`,
                 borderRadius: 14, color: T.text, fontSize: 26, fontWeight: 600,
                 textAlign: 'center', fontFamily: typeStyles(T).sansFont,
                 outline: 'none', transition: 'border .2s',
+                opacity: busy ? 0.6 : 1,
               }}/>
           ))}
         </div>
-        <button style={{
+        {err && (
+          <div style={{
+            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
+            padding: '10px 12px', borderRadius: 10, fontSize: 13,
+            marginBottom: 12, fontFamily: typeStyles(T).sansFont,
+          }}>{err}</div>
+        )}
+        <button disabled={busy} style={{
           alignSelf: dir === 'rtl' ? 'flex-end' : 'flex-start',
           background: 'transparent', border: 'none', color: T.accent,
-          fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0,
-          fontFamily: typeStyles(T).sansFont,
+          fontSize: 14, fontWeight: 600, cursor: busy ? 'default' : 'pointer', padding: 0,
+          fontFamily: typeStyles(T).sansFont, opacity: busy ? 0.5 : 1,
         }}>{t('resend')}</button>
         <div style={{ flex: 1 }}/>
       </div>
@@ -102,11 +185,26 @@ function ScreenOTP({ theme, t, onNext, onBack, dir }) {
 
 function ScreenConsent({ theme, t, onNext, onBack, dir }) {
   const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const { update } = useProfile();
   const items = [
     { icon: 'shield', text: t('consentBullet1') },
     { icon: 'lock',   text: t('consentBullet2') },
     { icon: 'user',   text: t('consentBullet3') },
   ];
+  const submit = async () => {
+    setErr(null); setBusy(true);
+    try {
+      await update({ consent_at: new Date().toISOString() });
+      onNext();
+    } catch (e) {
+      setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <ScreenFrame theme={T}>
       <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -127,8 +225,17 @@ function ScreenConsent({ theme, t, onNext, onBack, dir }) {
             </Card>
           ))}
         </div>
+        {err && (
+          <div style={{
+            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
+            padding: '10px 12px', borderRadius: 10, fontSize: 13,
+            marginBottom: 12, fontFamily: typeStyles(T).sansFont,
+          }}>{err}</div>
+        )}
         <div style={{ flex: 1 }}/>
-        <Button theme={T} onClick={onNext}>{t('iAgree')}</Button>
+        <Button theme={T} onClick={submit} disabled={busy}>
+          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…') : t('iAgree')}
+        </Button>
       </div>
     </ScreenFrame>
   );
@@ -136,6 +243,7 @@ function ScreenConsent({ theme, t, onNext, onBack, dir }) {
 
 function ScreenBaseline({ theme, t, onNext, onBack, dir }) {
   const T = theme;
+  const lang = dir === 'rtl' ? 'ar' : 'en';
   const questions = [
     { id: 'stress',  label: t('stress'),  labels: [t('stressSub').split('→')[0].trim(), t('stressSub').split('→')[1].trim()] },
     { id: 'sleep',   label: t('sleep'),   labels: [t('sleepSub'), ''] , min: 3, max: 10, step: 0.5, fmt: (v)=>`${v}h` },
@@ -144,8 +252,29 @@ function ScreenBaseline({ theme, t, onNext, onBack, dir }) {
   ];
   const [idx, setIdx] = React.useState(0);
   const [vals, setVals] = React.useState({ stress: 5, sleep: 6.5, energy: 5, mood: 6 });
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const { update } = useProfile();
   const q = questions[idx];
   const v = vals[q.id];
+
+  const submit = async () => {
+    setErr(null); setBusy(true);
+    try {
+      await update({
+        baseline_sleep: vals.sleep,
+        baseline_stress: vals.stress,
+        baseline_energy: vals.energy,
+        baseline_mood: vals.mood,
+      });
+      onNext();
+    } catch (e) {
+      setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <ScreenFrame theme={T}>
       <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -178,9 +307,20 @@ function ScreenBaseline({ theme, t, onNext, onBack, dir }) {
             labels={q.labels}/>
         </Card>
 
+        {err && (
+          <div style={{
+            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
+            padding: '10px 12px', borderRadius: 10, fontSize: 13,
+            marginTop: 12, fontFamily: typeStyles(T).sansFont,
+          }}>{err}</div>
+        )}
+
         <div style={{ flex: 1 }}/>
-        <Button theme={T} onClick={() => idx < questions.length - 1 ? setIdx(idx + 1) : onNext()} iconR="arrow">
-          {idx < questions.length - 1 ? t('next') : t('continue')}
+        <Button theme={T}
+          onClick={() => idx < questions.length - 1 ? setIdx(idx + 1) : submit()}
+          disabled={busy} iconR="arrow">
+          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…')
+            : idx < questions.length - 1 ? t('next') : t('continue')}
         </Button>
       </div>
     </ScreenFrame>
@@ -199,11 +339,25 @@ function ScreenGoals({ theme, t, onNext, onBack, dir }) {
   ];
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const [sel, setSel] = React.useState(new Set(['stress', 'sleep']));
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const { update } = useProfile();
   const toggle = (id) => {
     const n = new Set(sel);
     if (n.has(id)) n.delete(id);
     else if (n.size < 3) n.add(id);
     setSel(n);
+  };
+  const submit = async () => {
+    setErr(null); setBusy(true);
+    try {
+      await update({ goals: Array.from(sel) });
+      onNext();
+    } catch (e) {
+      setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <ScreenFrame theme={T}>
@@ -236,8 +390,17 @@ function ScreenGoals({ theme, t, onNext, onBack, dir }) {
         <div style={{ textAlign: 'center', marginTop: 14, color: T.textMuted, fontSize: 12 }}>
           {sel.size} / 3
         </div>
+        {err && (
+          <div style={{
+            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
+            padding: '10px 12px', borderRadius: 10, fontSize: 13,
+            marginTop: 10, fontFamily: typeStyles(T).sansFont,
+          }}>{err}</div>
+        )}
         <div style={{ flex: 1 }}/>
-        <Button theme={T} onClick={onNext} disabled={sel.size === 0}>{t('finish')}</Button>
+        <Button theme={T} onClick={submit} disabled={sel.size === 0 || busy}>
+          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…') : t('finish')}
+        </Button>
       </div>
     </ScreenFrame>
   );
@@ -246,7 +409,23 @@ function ScreenGoals({ theme, t, onNext, onBack, dir }) {
 function ScreenWelcome({ theme, t, state, onNext, dir }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
-  const name = state && state.name ? state.name.split(' ')[0] : '';
+  const { profile, update } = useProfile();
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const fallbackName = state && state.name ? state.name.split(' ')[0] : '';
+  const profileName = profile && profile.display_name ? String(profile.display_name).split(' ')[0] : '';
+  const name = profileName || fallbackName;
+  const submit = async () => {
+    setErr(null); setBusy(true);
+    try {
+      await update({ onboarded_at: new Date().toISOString() });
+      onNext();
+    } catch (e) {
+      setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <ScreenFrame theme={T}>
       <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
@@ -258,7 +437,16 @@ function ScreenWelcome({ theme, t, state, onNext, dir }) {
           color: T.text, fontWeight: 400, letterSpacing: -0.8, marginTop: 30, marginBottom: 12,
         }}>{name ? (lang==='ar'?`أهلاً، ${name}`:`Welcome, ${name}`) : t('welcome')}</div>
         <div style={{ color: T.textMuted, fontSize: 16, marginBottom: 40, maxWidth: 280 }}>{t('welcomeSub')}</div>
-        <Button theme={T} onClick={onNext} iconR="arrow">{t('startApp')}</Button>
+        {err && (
+          <div style={{
+            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
+            padding: '10px 12px', borderRadius: 10, fontSize: 13,
+            marginBottom: 12, fontFamily: typeStyles(T).sansFont,
+          }}>{err}</div>
+        )}
+        <Button theme={T} onClick={submit} disabled={busy} iconR="arrow">
+          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…') : t('startApp')}
+        </Button>
       </div>
     </ScreenFrame>
   );
@@ -297,14 +485,28 @@ Object.assign(window, {
 function ScreenName({ theme, t, dir, state, onNext, onBack }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
-  const [val, setVal] = React.useState(state.name || '');
-  const [avatar, setAvatar] = React.useState(state.avatar || 'monogram');
+  const [val, setVal] = React.useState((state && state.name) || '');
+  const [avatar, setAvatar] = React.useState((state && state.avatar) || 'monogram');
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const { update } = useProfile();
   const options = AVATAR_OPTIONS;
-  const canContinue = val.trim().length >= 2;
-  const submit = () => {
-    state.setName(val.trim());
-    state.setAvatar(avatar);
-    onNext();
+  const canContinue = val.trim().length >= 2 && !busy;
+  const submit = async () => {
+    const trimmed = val.trim();
+    setErr(null); setBusy(true);
+    try {
+      await update({ display_name: trimmed, avatar_kind: avatar });
+      if (state) {
+        state.setName && state.setName(trimmed);
+        state.setAvatar && state.setAvatar(avatar);
+      }
+      onNext();
+    } catch (e) {
+      setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <ScreenFrame theme={T}>
@@ -346,8 +548,17 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
           ))}
         </div>
 
+        {err && (
+          <div style={{
+            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
+            padding: '10px 12px', borderRadius: 10, fontSize: 13,
+            marginTop: 6, fontFamily: typeStyles(T).sansFont,
+          }}>{err}</div>
+        )}
         <div style={{ flex: 1 }}/>
-        <Button theme={T} onClick={submit} disabled={!canContinue} iconR="arrow">{t('continue')}</Button>
+        <Button theme={T} onClick={submit} disabled={!canContinue} iconR="arrow">
+          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…') : t('continue')}
+        </Button>
       </div>
     </ScreenFrame>
   );
