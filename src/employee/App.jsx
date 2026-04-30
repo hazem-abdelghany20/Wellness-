@@ -22,6 +22,7 @@ import { ScreenProfile }  from './screens/profile.jsx';
 import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
 import { ScreenNotifs } from './screens/notifications.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
+import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx';
 
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
@@ -68,19 +69,8 @@ function TabBar({ theme, t, dir, active, onTab }) {
   );
 }
 
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "theme": "brand",
-  "lang": "en",
-  "homeVariant": "stack",
-  "checkinVariant": "sliders",
-  "leaderboardVariant": "podium"
-}/*EDITMODE-END*/;
-
-function App() {
-  const [cfg, setCfg] = React.useState(() => {
-    const saved = localStorage.getItem('wellness-plus-cfg');
-    return saved ? { ...TWEAK_DEFAULTS, ...JSON.parse(saved), screen: null } : { ...TWEAK_DEFAULTS };
-  });
+function AppInner() {
+  const { cfg, setCfg } = useAppConfig();
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [screen, setScreen] = React.useState(() => {
     return localStorage.getItem('wellness-plus-screen') || 'join';
@@ -95,10 +85,6 @@ function App() {
   const tweaksAvailable = import.meta.env.DEV ||
     new URLSearchParams(window.location.search).get('tweaks') === '1';
 
-  React.useEffect(() => {
-    const { screen: _, ...persist } = cfg;
-    localStorage.setItem('wellness-plus-cfg', JSON.stringify(persist));
-  }, [cfg]);
   React.useEffect(() => {
     localStorage.setItem('wellness-plus-screen', screen);
   }, [screen]);
@@ -201,4 +187,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AppConfigProvider>
+      <AppInner />
+    </AppConfigProvider>
+  );
+}
