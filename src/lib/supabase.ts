@@ -60,6 +60,19 @@ export async function getMyProfile() {
   return data;
 }
 
+export async function getMyCompany() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const companyId = user?.app_metadata?.company_id as string | undefined;
+  if (!companyId) return null;
+  const { data, error } = await supabase
+    .from('companies')
+    .select('id, name, slug, settings')
+    .eq('id', companyId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function updateMyProfile(updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('profiles')

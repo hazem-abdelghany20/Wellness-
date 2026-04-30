@@ -23,6 +23,7 @@ import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
 import { ScreenNotifs } from './screens/notifications.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
 import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx';
+import { AuthProvider } from './state/auth-context.jsx';
 
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
@@ -190,7 +191,9 @@ function AppInner() {
 export default function App() {
   return (
     <AppConfigProvider>
-      <AppInner />
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
     </AppConfigProvider>
   );
 }
