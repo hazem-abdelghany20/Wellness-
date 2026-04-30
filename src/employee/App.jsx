@@ -92,6 +92,9 @@ function App() {
   const [avatar, setAvatar] = React.useState(() => localStorage.getItem('wellness-plus-avatar') || 'monogram');
   const [name, setName] = React.useState(() => localStorage.getItem('wellness-plus-name') || 'Layla');
 
+  const tweaksAvailable = import.meta.env.DEV ||
+    new URLSearchParams(window.location.search).get('tweaks') === '1';
+
   React.useEffect(() => {
     const { screen: _, ...persist } = cfg;
     localStorage.setItem('wellness-plus-cfg', JSON.stringify(persist));
@@ -104,6 +107,7 @@ function App() {
 
   // Tweaks edit mode contract
   React.useEffect(() => {
+    if (!tweaksAvailable) return;
     const handler = (e) => {
       if (!e.data || typeof e.data !== 'object') return;
       if (e.data.type === '__activate_edit_mode') setTweaksOpen(true);
@@ -112,7 +116,7 @@ function App() {
     window.addEventListener('message', handler);
     try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(_) {}
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [tweaksAvailable]);
 
   const theme = THEMES[cfg.theme] || THEMES.brand;
   const lang = cfg.lang;
@@ -186,7 +190,7 @@ function App() {
           </div>
         </IOSDevice>
       </div>
-      <TweaksPanel theme={theme} open={tweaksOpen} onClose={() => setTweaksOpen(false)} cfg={cfg} setCfg={setCfg}/>
+      {tweaksAvailable && <TweaksPanel theme={theme} open={tweaksOpen} onClose={() => setTweaksOpen(false)} cfg={cfg} setCfg={setCfg}/>}
       <style>{`
         @keyframes screenIn { 0%{opacity:0;transform:translateY(6px);} 100%{opacity:1;transform:translateY(0);} }
         input, button, textarea { font-family: inherit; }
