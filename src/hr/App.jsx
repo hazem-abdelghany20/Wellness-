@@ -20,6 +20,7 @@ import { HRBroadcastsPage } from './views/broadcasts.jsx';
 import { HRReportsPage }    from './views/reports.jsx';
 import { HRSettingsPage }   from './views/settings.jsx';
 import { HRAppConfigProvider, useHRAppConfig } from './state/app-config-context.jsx';
+import { HRAuthProvider } from './state/auth-context.jsx';
 
 function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }) {
   const T = theme;
@@ -157,7 +158,9 @@ function AppInner() {
 export default function App() {
   return (
     <HRAppConfigProvider>
-      <AppInner />
+      <HRAuthProvider>
+        <AppInner />
+      </HRAuthProvider>
     </HRAppConfigProvider>
   );
 }
