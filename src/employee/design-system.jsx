@@ -403,6 +403,6 @@ Object.assign(window, {
 });
 
 export {
-  THEMES, typeStyles, Icon, AvatarDisplay, Button, Card, Chip,
+  THEMES, typeStyles, Icon, AvatarDisplay, AVATAR_OPTIONS, Button, Card, Chip,
   SectionLabel, WellnessMark, Sparkline, Ring, Slider,
 };
