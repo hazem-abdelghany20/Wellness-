@@ -2,15 +2,38 @@ import React from 'react';
 import {
   typeStyles, Icon, AvatarDisplay, AVATAR_OPTIONS, Button, Card, SectionLabel,
 } from '../design-system.jsx';
+import { useAuth } from '../state/auth-context.jsx';
+import { useProfile } from '../hooks/use-profile.js';
 
 function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey, state }) {
   const T = theme;
+  const { signOut, company } = useAuth();
+  const { profile, update } = useProfile();
   const [anon, setAnon] = React.useState(true);
   const [share, setShare] = React.useState(true);
   const [notifs, setNotifs] = React.useState(true);
   const [picker, setPicker] = React.useState(false);
-  const name = (state && state.name) || 'Amira Mostafa';
-  const avatar = (state && state.avatar) || 'monogram';
+  const [signingOut, setSigningOut] = React.useState(false);
+
+  if (!profile) return <ProfileLoading theme={T} dir={dir}/>;
+
+  const name = profile.display_name || (state && state.name) || '';
+  const avatar = profile.avatar_kind || (state && state.avatar) || 'monogram';
+  const companyName = company?.name || '';
+
+  const handleAvatarPick = async (opt) => {
+    setPicker(false);
+    if (state?.setAvatar) state.setAvatar(opt);
+    try { await update({ avatar_kind: opt }); }
+    catch (e) { console.warn('[profile] avatar update failed', e); }
+  };
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try { await signOut(); }
+    catch (e) { console.warn('[profile] signOut failed', e); setSigningOut(false); }
+  };
 
   return (
     <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
@@ -31,7 +54,9 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
           <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text, letterSpacing: -0.4, lineHeight: 1 }}>
             {name}
           </div>
-          <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{lang==='ar' ? 'مجموعة النيل · المالية' : 'Nile Group · Finance'}</div>
+          {companyName ? (
+            <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{companyName}</div>
+          ) : null}
         </div>
       </div>
 
@@ -88,7 +113,9 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
       </div>
 
       <div style={{ padding: '22px 16px 20px' }}>
-        <Button theme={T} variant="secondary" style={{ width: '100%' }}>{t('signOut')}</Button>
+        <Button theme={T} variant="secondary" style={{ width: '100%' }} onClick={handleSignOut} disabled={signingOut}>
+          {signingOut ? (lang==='ar'?'…':'…') : t('signOut')}
+        </Button>
       </div>
 
       {picker && (
@@ -110,7 +137,7 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
               {AVATAR_OPTIONS.map(opt => (
-                <button key={opt} onClick={() => { state.setAvatar(opt); setPicker(false); }}
+                <button key={opt} onClick={() => handleAvatarPick(opt)}
                   style={{
                     padding: 14, background: avatar === opt ? T.accentSoft : T.surfaceAlt,
                     border: `1.5px solid ${avatar === opt ? T.accent : 'transparent'}`,
@@ -128,6 +155,19 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProfileLoading({ theme, dir }) {
+  const T = theme;
+  const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
+  return (
+    <div style={{
+      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
     </div>
   );
 }
