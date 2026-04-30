@@ -16,7 +16,9 @@ import { AdminTenantDetail } from './views/tenant-detail.jsx';
 import { AdminBilling }      from './views/billing.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
 import { AdminAppConfigProvider, useAdminAppConfig } from './state/app-config-context.jsx';
-import { AdminAuthProvider } from './state/auth-context.jsx';
+import { AdminAuthProvider, useAdminAuth } from './state/auth-context.jsx';
+import { SignIn } from './views/sign-in.jsx';
+import { AccessDenied } from './views/access-denied.jsx';
 
 function AppInner() {
   const { cfg, patch } = useAdminAppConfig();
@@ -61,6 +63,12 @@ function AppInner() {
     try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: patch }, '*'); } catch(e){}
   };
   const setT = (k, fn) => (v) => { fn(v); persist({ [k]: v }); };
+
+  const { session, role, loading: authLoading } = useAdminAuth();
+
+  if (authLoading) return <div style={{ minHeight: '100vh', background: T.bg }}/>;
+  if (!session)    return <SignIn theme={T} dir={dir}/>;
+  if (role !== 'wellness_admin') return <AccessDenied theme={T} dir={dir}/>;
 
   return (
     <div data-rtl={dir==='rtl'} style={{
