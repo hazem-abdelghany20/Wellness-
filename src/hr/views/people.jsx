@@ -1,6 +1,6 @@
 import React from 'react';
-import { DENSITY } from '../tokens.jsx';
-import { HRIcon, HRButton, Panel, Badge, AvatarMark } from '../components.jsx';
+import { DENSITY } from '../../shared/tokens.jsx';
+import { HRIcon, HRButton, Panel, Badge, AvatarMark } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { usePeople } from '../hooks/use-people.js';
 

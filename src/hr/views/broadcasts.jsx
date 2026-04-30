@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { DENSITY } from '../tokens.jsx';
-import { HRButton, Panel, Badge } from '../components.jsx';
+import { DENSITY } from '../../shared/tokens.jsx';
+import { HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useBroadcasts } from '../hooks/use-broadcasts.js';
 

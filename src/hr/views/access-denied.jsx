@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHRAuth } from '../state/auth-context.jsx';
-import { HRButton } from '../components.jsx';
+import { HRButton } from '../../shared/components.jsx';
 
 export function AccessDenied({ theme, dir }) {
   const { signOut } = useHRAuth();

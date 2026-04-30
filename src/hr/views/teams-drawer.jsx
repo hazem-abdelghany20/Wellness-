@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   HRIcon, HRButton, Panel, PanelHeader, Badge, Delta, Spark, Bullet,
-} from '../components.jsx';
+} from '../../shared/components.jsx';
 import { useTeams } from '../hooks/use-teams.js';
 
 function TeamDrawer({ theme, team, onClose, S, lang, chartStyle }) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { DENSITY } from '../tokens.jsx';
-import { HRButton, Panel, Toggle } from '../components.jsx';
+import { DENSITY } from '../../shared/tokens.jsx';
+import { HRButton, Panel, Toggle } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useSettings } from '../hooks/use-settings.js';
 

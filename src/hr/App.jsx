@@ -1,9 +1,9 @@
 import React from 'react';
-import { HR_THEMES, DENSITY, HR_STRINGS } from './tokens.jsx';
+import { HR_THEMES, DENSITY, HR_STRINGS } from '../shared/tokens.jsx';
 import {
   HRIcon, HRButton, Panel, PanelHeader, Badge, Delta, Spark, TrendChart,
   Bullet, AvatarMark, Toggle,
-} from './components.jsx';
+} from '../shared/components.jsx';
 import {
   Sidebar, TopBar, KpiStrip, TrendsCard, AtRisk, TeamTable, SafetyQueue,
   Broadcasts, ContentPins, ChallengesCard, PeopleYouManage,

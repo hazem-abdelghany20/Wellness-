@@ -1,6 +1,6 @@
 import React from 'react';
-import { DENSITY } from './tokens.jsx';
-import { HRIcon, HRButton, Panel, PanelHeader, Badge, Delta, Spark, TrendChart, Bullet, AvatarMark, Toggle } from './components.jsx';
+import { DENSITY } from '../shared/tokens.jsx';
+import { HRIcon, HRButton, Panel, PanelHeader, Badge, Delta, Spark, TrendChart, Bullet, AvatarMark, Toggle } from '../shared/components.jsx';
 // --- hr-sections.jsx ---
 // HR Portal sections: KPI strip, trends chart, at-risk teams, team breakdown, safety queue,
 // broadcasts, content pins, active challenges, sidebar, topbar, people drawer.

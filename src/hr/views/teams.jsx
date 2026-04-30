@@ -1,6 +1,6 @@
 import React from 'react';
-import { DENSITY } from '../tokens.jsx';
-import { HRIcon, HRButton, Panel, Badge, Spark } from '../components.jsx';
+import { DENSITY } from '../../shared/tokens.jsx';
+import { HRIcon, HRButton, Panel, Badge, Spark } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useTeams } from '../hooks/use-teams.js';
 

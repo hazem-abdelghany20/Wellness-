@@ -1,5 +1,5 @@
 import React from 'react';
-import { HRIcon } from './components.jsx';
+import { HRIcon } from '../shared/components.jsx';
 
 function TweaksPanel({ theme, open, onClose, cfg, setCfg, S }) {
   const T = theme;

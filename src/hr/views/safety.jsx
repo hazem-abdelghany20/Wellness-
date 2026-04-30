@@ -1,6 +1,6 @@
 import React from 'react';
-import { DENSITY } from '../tokens.jsx';
-import { HRIcon, HRButton, Panel, Badge } from '../components.jsx';
+import { DENSITY } from '../../shared/tokens.jsx';
+import { HRIcon, HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useSafety } from '../hooks/use-safety.js';
 
