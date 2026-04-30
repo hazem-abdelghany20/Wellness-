@@ -19,14 +19,7 @@ import { HRChallengesPage } from './views/challenges.jsx';
 import { HRBroadcastsPage } from './views/broadcasts.jsx';
 import { HRReportsPage }    from './views/reports.jsx';
 import { HRSettingsPage }   from './views/settings.jsx';
-
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "theme": "dark",
-  "lang": "en",
-  "density": "comfortable",
-  "layout": "default",
-  "chartStyle": "line"
-}/*EDITMODE-END*/;
+import { HRAppConfigProvider, useHRAppConfig } from './state/app-config-context.jsx';
 
 function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }) {
   const T = theme;
@@ -85,13 +78,8 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }
   );
 }
 
-function HRApp() {
-  const [cfg, setCfg] = React.useState(() => {
-    try {
-      const saved = localStorage.getItem('hr-portal-cfg');
-      return saved ? { ...TWEAK_DEFAULTS, ...JSON.parse(saved) } : { ...TWEAK_DEFAULTS };
-    } catch { return { ...TWEAK_DEFAULTS }; }
-  });
+function AppInner() {
+  const { cfg, setCfg } = useHRAppConfig();
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [range, setRange] = React.useState('30d');
   const [nav, setNav] = React.useState('dashboard');
@@ -99,10 +87,6 @@ function HRApp() {
 
   const tweaksAvailable = import.meta.env.DEV ||
     new URLSearchParams(window.location.search).get('tweaks') === '1';
-
-  React.useEffect(() => {
-    try { localStorage.setItem('hr-portal-cfg', JSON.stringify(cfg)); } catch {}
-  }, [cfg]);
 
   React.useEffect(() => {
     if (!tweaksAvailable) return;
@@ -170,4 +154,10 @@ function HRApp() {
   );
 }
 
-export default HRApp;
+export default function App() {
+  return (
+    <HRAppConfigProvider>
+      <AppInner />
+    </HRAppConfigProvider>
+  );
+}
