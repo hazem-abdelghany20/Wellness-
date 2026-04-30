@@ -3,9 +3,31 @@ import {
   typeStyles, Icon, AvatarDisplay, Card,
   SectionLabel, WellnessMark, Sparkline, Ring,
 } from '../design-system.jsx';
+import { useDailyPlan } from '../hooks/use-daily-plan.js';
 
 // --- screens-home.jsx ---
 // Home / Today feed — 3 layout variants: 'list', 'stack', 'agenda'
+
+// Defaults to gracefully fall back when the server returns sparse action data.
+const ACTION_DEFAULTS = {
+  breathe: { icon: 'wind',     kind: 'Reset',   label: { en: '2-minute box breathing',     ar: 'تنفس مربع دقيقتان' }, minutes: 2 },
+  stretch: { icon: 'activity', kind: 'Move',    label: { en: 'Desk mobility flow',         ar: 'حركات مكتبية' },        minutes: 4 },
+  journal: { icon: 'book',     kind: 'Reflect', label: { en: 'Evening wind-down journal',  ar: 'يوميات نهاية اليوم' },  minutes: 3 },
+};
+
+function normalizeAction(a) {
+  const fallback = ACTION_DEFAULTS[a?.id] || ACTION_DEFAULTS[a?.kind] || {};
+  // Server label may be a plain string or already a {en, ar} object.
+  let label = a?.label ?? a?.title ?? fallback.label;
+  if (typeof label === 'string') label = { en: label, ar: label };
+  return {
+    id: a?.id,
+    icon: a?.icon || fallback.icon || 'sparkle',
+    kind: a?.kind || fallback.kind || '',
+    label: label || { en: '', ar: '' },
+    minutes: a?.minutes ?? a?.mins ?? fallback.minutes ?? 0,
+  };
+}
 
 function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const T = theme;
@@ -13,11 +35,25 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const greeting = t('goodMorning');
   const streak = state.streak;
 
-  const actions = [
-    { id: 'breathe', icon: 'wind', kind: 'Reset', label: { en: '2-minute box breathing', ar: 'تنفس مربع دقيقتان' }, minutes: 2, done: state.doneActions.has('breathe') },
-    { id: 'stretch', icon: 'activity', kind: 'Move', label: { en: 'Desk mobility flow', ar: 'حركات مكتبية' }, minutes: 4, done: state.doneActions.has('stretch') },
-    { id: 'journal', icon: 'book', kind: 'Reflect', label: { en: 'Evening wind-down journal', ar: 'يوميات نهاية اليوم' }, minutes: 3, done: state.doneActions.has('journal') },
-  ];
+  const { plan, completedIds, loading, complete } = useDailyPlan();
+
+  if (loading) {
+    return <HomeLoading theme={T} dir={dir}/>;
+  }
+
+  const rawActions = plan?.actions ?? [];
+  const completedSet = new Set(completedIds || []);
+  const actions = rawActions.map(a => {
+    const n = normalizeAction(a);
+    return { ...n, done: completedSet.has(n.id) };
+  });
+  const doneCount = actions.filter(a => a.done).length;
+  const totalCount = Math.max(actions.length, 1);
+
+  const onAction = (a) => {
+    if (a.id === 'breathe') { go('breathe'); return; }
+    if (!a.done) complete(a.id);
+  };
 
   const featured = {
     tag: { en: 'AUDIO · 6 MIN', ar: 'صوت · 6 د' },
@@ -60,8 +96,8 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
             </div>
           </Card>
           <Card theme={T} pad={14} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Ring theme={T} value={state.doneActions.size / 3} size={38} stroke={4}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{state.doneActions.size}/3</div>
+            <Ring theme={T} value={doneCount / totalCount} size={38} stroke={4}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{doneCount}/{actions.length || 0}</div>
             </Ring>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{lang==='ar'?'خطة اليوم':'Today'}</div>
@@ -74,9 +110,9 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
       {/* Today's plan */}
       <SectionLabel theme={T}>{t('todaysPlan')}</SectionLabel>
       <div style={{ padding: '0 16px' }}>
-        {variant === 'list' && <LayoutList theme={T} t={t} lang={lang} actions={actions} go={go} state={state}/>}
-        {variant === 'stack' && <LayoutStack theme={T} t={t} lang={lang} actions={actions} go={go} state={state}/>}
-        {variant === 'agenda' && <LayoutAgenda theme={T} t={t} lang={lang} actions={actions} go={go} state={state}/>}
+        {variant === 'list' && <LayoutList theme={T} t={t} lang={lang} actions={actions} onAction={onAction}/>}
+        {variant === 'stack' && <LayoutStack theme={T} t={t} lang={lang} actions={actions} onAction={onAction}/>}
+        {variant === 'agenda' && <LayoutAgenda theme={T} t={t} lang={lang} actions={actions} onAction={onAction}/>}
       </div>
 
       {/* Featured / recommendation */}
@@ -141,6 +177,19 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   );
 }
 
+function HomeLoading({ theme, dir }) {
+  const T = theme;
+  const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
+  return (
+    <div style={{
+      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
+    </div>
+  );
+}
+
 function IconBtn({ theme, icon, onClick }) {
   return (
     <button onClick={onClick} style={{
@@ -153,12 +202,12 @@ function IconBtn({ theme, icon, onClick }) {
 }
 
 // LAYOUT A — list with left icon, inline check
-function LayoutList({ theme, t, lang, actions, go, state }) {
+function LayoutList({ theme, t, lang, actions, onAction }) {
   const T = theme;
   return (
     <Card theme={T} pad={0} radius={22}>
       {actions.map((a, i) => (
-        <div key={a.id} onClick={() => a.id === 'breathe' ? go('breathe') : state.toggleAction(a.id)}
+        <div key={a.id} onClick={() => onAction(a)}
           style={{
             display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
             borderBottom: i < actions.length - 1 ? `1px solid ${T.border}` : 'none',
@@ -185,13 +234,13 @@ function LayoutList({ theme, t, lang, actions, go, state }) {
 }
 
 // LAYOUT B — stacked cards with big numerals
-function LayoutStack({ theme, t, lang, actions, go, state }) {
+function LayoutStack({ theme, t, lang, actions, onAction }) {
   const T = theme;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {actions.map((a, i) => (
         <Card key={a.id} theme={T} pad={18} radius={20}
-          onClick={() => a.id === 'breathe' ? go('breathe') : state.toggleAction(a.id)}
+          onClick={() => onAction(a)}
           style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: a.done ? 0.6 : 1 }}>
           <div style={{
             fontFamily: typeStyles(T).displayFont, fontSize: 38, color: T.accent,
@@ -217,7 +266,7 @@ function LayoutStack({ theme, t, lang, actions, go, state }) {
 }
 
 // LAYOUT C — agenda with time rail
-function LayoutAgenda({ theme, t, lang, actions, go, state }) {
+function LayoutAgenda({ theme, t, lang, actions, onAction }) {
   const T = theme;
   const times = ['09:00', '13:30', '21:00'];
   return (
@@ -225,16 +274,16 @@ function LayoutAgenda({ theme, t, lang, actions, go, state }) {
       {actions.map((a, i) => (
         <div key={a.id} style={{ display: 'flex', gap: 14, paddingBottom: i < actions.length - 1 ? 16 : 0 }}>
           <div style={{ width: 56, flexShrink: 0, paddingTop: 4 }}>
-            <div style={{ fontFamily: typeStyles(T).monoFont, fontSize: 13, color: T.textMuted, fontWeight: 600 }}>{times[i]}</div>
+            <div style={{ fontFamily: typeStyles(T).monoFont, fontSize: 13, color: T.textMuted, fontWeight: 600 }}>{times[i % times.length]}</div>
             <div style={{ fontSize: 10, color: T.textFaint, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              {lang==='ar' ? ['صباحاً','ظهراً','مساءً'][i] : ['morning','midday','evening'][i]}
+              {lang==='ar' ? ['صباحاً','ظهراً','مساءً'][i % 3] : ['morning','midday','evening'][i % 3]}
             </div>
           </div>
           <div style={{ width: 2, background: T.border, borderRadius: 2, position: 'relative' }}>
             <div style={{ position: 'absolute', top: 6, left: -4, width: 10, height: 10, borderRadius: 999, background: a.done ? T.accent : T.bg, border: `2px solid ${T.accent}` }}/>
           </div>
           <Card theme={T} pad={14} radius={16}
-            onClick={() => a.id === 'breathe' ? go('breathe') : state.toggleAction(a.id)}
+            onClick={() => onAction(a)}
             style={{ flex: 1, cursor: 'pointer' }}>
             <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600, marginBottom: 4 }}>
               {a.kind} · {a.minutes} {t('minutes')}
