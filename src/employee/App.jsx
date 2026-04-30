@@ -25,12 +25,43 @@ import { TweaksPanel } from './tweaks-panel.jsx';
 import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx';
 import { AuthProvider, useAuth } from './state/auth-context.jsx';
 import { Splash } from './screens/splash.jsx';
+import { useNotifications } from './hooks/use-notifications.js';
 
 const ONBOARDING_SCREENS = ['join', 'otp', 'consent', 'name', 'baseline', 'goals', 'welcome'];
 const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'profile', 'breathe', 'player', 'notifs'];
 
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
+
+// Small unread-count badge overlaid on the bell icon in the home header.
+// Positioned to track the IconBtn at top-right of the home screen header
+// (54px status-bar offset + 18px header padding + ~28px above bell center).
+function BellBadge({ theme, count, dir }) {
+  const T = theme;
+  const display = count > 99 ? '99+' : String(count);
+  // The home header lays out: [logo]                  [bell] [avatar]
+  // bell IconBtn is 40x40, avatar 38px, gap 8, padding 22px from edge.
+  // RTL flips so badge sticks to the leading-edge instead.
+  const horizontal = dir === 'rtl'
+    ? { left: 22 + 38 + 8 + 26 } // align over bell on the left side
+    : { right: 22 + 38 + 8 + 26 };
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 54 + 18 - 4, // status bar offset + header padding-top, nudge upward
+      ...horizontal,
+      minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box',
+      borderRadius: 999,
+      background: T.danger || T.accent,
+      color: T.accentInk || '#fff',
+      fontSize: 10, fontWeight: 700,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: `2px solid ${T.bg}`,
+      pointerEvents: 'none',
+      zIndex: 5,
+    }}>{display}</div>
+  );
+}
 
 function TabBar({ theme, t, dir, active, onTab }) {
   const T = theme;
@@ -77,6 +108,8 @@ function TabBar({ theme, t, dir, active, onTab }) {
 function AppInner() {
   const { cfg, setCfg } = useAppConfig();
   const { session, profile, loading: authLoading } = useAuth();
+  // App-level subscription — feeds the realtime bell badge.
+  const { unreadCount } = useNotifications(session?.user?.id);
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   // Initial screen is resolved by the auth-driven routing effect below
   // (we don't trust the persisted value until we know the session/profile state).
@@ -214,6 +247,10 @@ function AppInner() {
                  style={{ position: 'absolute', inset: 0, animation: 'screenIn .35s ease both' }}>
               {content}
             </div>
+            {/* Realtime unread-notification badge over the home-screen bell. */}
+            {screen === 'home' && unreadCount > 0 && (
+              <BellBadge theme={theme} count={unreadCount} dir={dir}/>
+            )}
             {showTabs && <TabBar theme={theme} t={t} dir={dir} active={screen} onTab={go}/>}
           </div>
         </IOSDevice>
