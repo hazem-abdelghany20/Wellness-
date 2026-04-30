@@ -1,46 +1,104 @@
 import React from 'react';
 import { typeStyles, Icon, Button, Card } from '../design-system.jsx';
 import { Confetti } from '../confetti.jsx';
+import { useChallenges } from '../hooks/use-challenges.js';
 
 // --- screens-challenge.jsx ---
 // Challenges + leaderboard (2 styles) + join confetti
+
+// Normalize a server challenge row into the shape the UI expects.
+function normalizeChallenge(c) {
+  if (!c) return null;
+  const title = typeof c.title === 'string' ? { en: c.title, ar: c.title_ar || c.title } : (c.title || { en: c.name || '', ar: c.name_ar || c.name || '' });
+  const sub = typeof c.description === 'string'
+    ? { en: c.description, ar: c.description_ar || c.description }
+    : (c.description || { en: '', ar: '' });
+  const today = new Date();
+  let daysLeft = c.days_left;
+  if (daysLeft == null && c.end_date) {
+    const end = new Date(c.end_date);
+    daysLeft = Math.max(0, Math.ceil((end - today) / 86400000));
+  }
+  return {
+    id: c.id,
+    title,
+    sub,
+    progress: c.progress ?? c.user_progress ?? 0,
+    daysLeft: daysLeft ?? 0,
+    raw: c,
+  };
+}
+
+// Normalize a leaderboard cache row.
+function normalizeLeaderboardRow(row, kind) {
+  if (kind === 'team') {
+    const name = typeof row.team_name === 'string'
+      ? { en: row.team_name, ar: row.team_name_ar || row.team_name }
+      : (row.team_name || row.name || { en: row.name_en || '', ar: row.name_ar || row.name_en || '' });
+    return {
+      rank: row.rank,
+      name,
+      pts: row.points ?? row.pts ?? 0,
+      delta: row.delta ?? '',
+      members: row.member_count ?? row.members ?? 0,
+      you: !!row.is_self_team || !!row.you,
+    };
+  }
+  return {
+    rank: row.rank,
+    name: row.display_name || row.name || row.user_initials || '—',
+    pts: row.points ?? row.pts ?? 0,
+    streak: row.streak ?? 0,
+    you: !!row.is_self || !!row.you,
+  };
+}
 
 function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const [tab, setTab] = React.useState('team'); // team | individual
+  const [activeId, setActiveId] = React.useState(null);
   const [joined, setJoined] = React.useState(state.joined);
   const [confetti, setConfetti] = React.useState(false);
+  const [joinErr, setJoinErr] = React.useState(null);
 
-  const joinChallenge = () => {
-    if (joined) return;
-    setJoined(true); state.setJoined(true);
-    setConfetti(true);
-    setTimeout(() => setConfetti(false), 2400);
+  const { challenges, leaderboard, loading, join } = useChallenges(activeId);
+
+  // Auto-pick the first challenge to view leaderboard for once data lands.
+  React.useEffect(() => {
+    if (!activeId && challenges && challenges.length > 0) {
+      setActiveId(challenges[0].id);
+    }
+  }, [challenges, activeId]);
+
+  const activeRaw = challenges.find(c => c.id === activeId) || challenges[0] || null;
+  const challenge = normalizeChallenge(activeRaw) || {
+    id: null,
+    title: { en: '', ar: '' },
+    sub: { en: '', ar: '' },
+    progress: 0,
+    daysLeft: 0,
   };
 
-  const challenge = {
-    title: { en: 'Move April', ar: 'تحرك أبريل' },
-    sub: { en: '30 minutes of movement, any way you like. 21 days.', ar: '30 دقيقة من الحركة بأي طريقة. 21 يوماً.' },
-    progress: 0.42,
-    daysLeft: 12,
+  const handleJoin = async () => {
+    if (joined || !challenge.id) return;
+    setJoinErr(null);
+    try {
+      await join(challenge.id);
+      setJoined(true); state.setJoined(true);
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 2400);
+    } catch (e) {
+      setJoinErr(e?.message || 'Join failed');
+    }
   };
 
-  const teams = [
-    { rank: 1, name: { en: 'People Ops', ar: 'الموارد البشرية' }, pts: 4820, delta: '+12%', members: 14 },
-    { rank: 2, name: { en: 'Commercial', ar: 'المبيعات' },        pts: 4510, delta: '+8%',  members: 22 },
-    { rank: 3, name: { en: 'Finance',    ar: 'المالية' },          pts: 4260, delta: '+3%',  members: 11, you: true },
-    { rank: 4, name: { en: 'Engineering',ar: 'الهندسة' },          pts: 3980, delta: '-2%',  members: 18 },
-    { rank: 5, name: { en: 'Marketing',  ar: 'التسويق' },          pts: 3510, delta: '+1%',  members: 9 },
-  ];
-  const people = [
-    { rank: 1, name: 'Y.R.', pts: 612, streak: 18 },
-    { rank: 2, name: 'A.M.', pts: 584, streak: 14, you: true },
-    { rank: 3, name: 'L.S.', pts: 512, streak: 9 },
-    { rank: 4, name: 'F.K.', pts: 488, streak: 7 },
-    { rank: 5, name: 'N.H.', pts: 441, streak: 12 },
-    { rank: 6, name: 'M.O.', pts: 402, streak: 5 },
-  ];
+  if (loading && challenges.length === 0) {
+    return <ChallengesLoading theme={T} dir={dir}/>;
+  }
+
+  const rows = (leaderboard || []).map(r => normalizeLeaderboardRow(r, tab));
+  const hasRows = rows.length > 0;
 
   return (
     <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box', position: 'relative' }}>
@@ -78,12 +136,40 @@ function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
               <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>14</span> <span>{lang==='ar'?'يوماً':'days'}</span></div>
               <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>3</span> <span>{lang==='ar'?'شارات':'badges'}</span></div>
             </div>
-            <Button theme={T} size="md" variant={joined ? 'secondary' : 'primary'} onClick={joinChallenge}>
+            <Button theme={T} size="md" variant={joined ? 'secondary' : 'primary'} onClick={handleJoin} disabled={!challenge.id || joined}>
               {joined ? t('joined') : t('joinNow')}
             </Button>
           </div>
         </Card>
+        {joinErr && (
+          <div style={{
+            marginTop: 8, padding: '10px 14px', fontSize: 13,
+            color: T.negative || '#c0392b', background: T.surface,
+            border: `1px solid ${T.border}`, borderRadius: 12,
+          }}>{joinErr}</div>
+        )}
       </div>
+
+      {/* Other active challenges — selecting one switches the leaderboard */}
+      {challenges.length > 1 && (
+        <div style={{ padding: '14px 16px 0' }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 4px' }}>
+            {challenges.map(c => {
+              const norm = normalizeChallenge(c);
+              const active = c.id === activeId;
+              return (
+                <button key={c.id} onClick={() => setActiveId(c.id)} style={{
+                  padding: '8px 14px', fontSize: 12, fontWeight: 600,
+                  background: active ? T.accent : T.chipBg,
+                  color: active ? T.accentInk : T.text,
+                  border: `1px solid ${active ? 'transparent' : T.border}`,
+                  borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>{norm?.title?.[lang] || '—'}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Leaderboard */}
       <div style={{ padding: '22px 16px 0' }}>
@@ -103,9 +189,17 @@ function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
           </div>
         </div>
 
-        {variant === 'podium'
-          ? <LBPodium theme={T} rows={tab === 'team' ? teams : people} lang={lang} kind={tab}/>
-          : <LBList theme={T} rows={tab === 'team' ? teams : people} lang={lang} kind={tab}/>}
+        {hasRows ? (
+          variant === 'podium'
+            ? <LBPodium theme={T} rows={rows} lang={lang} kind={tab}/>
+            : <LBList theme={T} rows={rows} lang={lang} kind={tab}/>
+        ) : (
+          <Card theme={T} pad={20} radius={22}>
+            <div style={{ fontSize: 13, color: T.textMuted, textAlign: 'center' }}>
+              {lang === 'ar' ? 'لا توجد بيانات بعد' : 'No leaderboard data yet'}
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Confetti toast */}
@@ -225,6 +319,19 @@ function LBRow({ theme, row, kind, lang, last }) {
         {label}{row.you && <span style={{ marginLeft: 6, fontSize: 10, color: T.accent, fontWeight: 700 }}>YOU</span>}
       </div>
       <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{row.pts}</div>
+    </div>
+  );
+}
+
+function ChallengesLoading({ theme, dir }) {
+  const T = theme;
+  const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
+  return (
+    <div style={{
+      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
     </div>
   );
 }
