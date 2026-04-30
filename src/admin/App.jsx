@@ -36,6 +36,9 @@ function AdminApp() {
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [editAvail, setEditAvail] = React.useState(false);
 
+  const tweaksAvailable = import.meta.env.DEV ||
+    new URLSearchParams(window.location.search).get('tweaks') === '1';
+
   const T = HR_THEMES[themeKey];
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const s = (en, ar) => lang === 'ar' ? ar : en;
@@ -46,6 +49,7 @@ function AdminApp() {
   }, [dir, T.bg]);
 
   React.useEffect(() => {
+    if (!tweaksAvailable) return;
     const h = (e) => {
       if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
       if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
@@ -54,7 +58,7 @@ function AdminApp() {
     setEditAvail(true);
     window.parent.postMessage({ type: '__edit_mode_available' }, '*');
     return () => window.removeEventListener('message', h);
-  }, []);
+  }, [tweaksAvailable]);
 
   const persist = (patch) => {
     try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: patch }, '*'); } catch(e){}
@@ -69,7 +73,7 @@ function AdminApp() {
       <AdminSidebar theme={T} active={active} onNav={(id) => { setActive(id); setOpenTenant(null); }} lang={lang}/>
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <AdminTopBar theme={T} lang={lang} dir={dir} range={range} onRange={setRange} onTweaks={() => setTweaksOpen(o=>!o)}/>
+        <AdminTopBar theme={T} lang={lang} dir={dir} range={range} onRange={setRange} onTweaks={tweaksAvailable ? (() => setTweaksOpen(o=>!o)) : undefined}/>
 
         <main style={{
           padding: 24, display: 'flex', flexDirection: 'column', gap: DENSITY[density].gap,

@@ -240,13 +240,15 @@ function AdminTopBar({ theme, lang, dir, range, onRange, onTweaks }) {
         <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: 999, background: T.danger }}/>
       </button>
 
-      <button onClick={onTweaks} style={{
-        background: T.accent, color: T.accentInk, border: 'none', borderRadius: 8,
-        height: 36, padding: '0 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-      }}>
-        <HRIcon name="settings" size={14}/> {s('Tweaks','التعديلات')}
-      </button>
+      {onTweaks && (
+        <button onClick={onTweaks} style={{
+          background: T.accent, color: T.accentInk, border: 'none', borderRadius: 8,
+          height: 36, padding: '0 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+        }}>
+          <HRIcon name="settings" size={14}/> {s('Tweaks','التعديلات')}
+        </button>
+      )}
     </div>
   );
 }
