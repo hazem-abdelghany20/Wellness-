@@ -97,11 +97,15 @@ function HRApp() {
   const [nav, setNav] = React.useState('dashboard');
   const [drawerTeam, setDrawerTeam] = React.useState(null);
 
+  const tweaksAvailable = import.meta.env.DEV ||
+    new URLSearchParams(window.location.search).get('tweaks') === '1';
+
   React.useEffect(() => {
     try { localStorage.setItem('hr-portal-cfg', JSON.stringify(cfg)); } catch {}
   }, [cfg]);
 
   React.useEffect(() => {
+    if (!tweaksAvailable) return;
     const handler = (e) => {
       if (!e.data || typeof e.data !== 'object') return;
       if (e.data.type === '__activate_edit_mode') setTweaksOpen(true);
@@ -110,7 +114,7 @@ function HRApp() {
     window.addEventListener('message', handler);
     try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch {}
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [tweaksAvailable]);
 
   const T = HR_THEMES[cfg.theme] || HR_THEMES.dark;
   const S = HR_STRINGS[cfg.lang] || HR_STRINGS.en;
@@ -129,7 +133,7 @@ function HRApp() {
       <Sidebar theme={T} S={S} active={nav} onNav={setNav}/>
 
       <div style={{ flex: 1, minWidth: 0, background: T.page }}>
-        <TopBar theme={T} S={S} dir={dir} range={range} onRange={setRange} onExport={() => {}} onTweaks={() => setTweaksOpen(!tweaksOpen)}/>
+        <TopBar theme={T} S={S} dir={dir} range={range} onRange={setRange} onExport={() => {}} onTweaks={tweaksAvailable ? () => setTweaksOpen(!tweaksOpen) : undefined}/>
 
         <div style={{ padding: `24px ${gap + 10}px ${gap + 10}px` }}>
           {nav === 'dashboard' ? (
@@ -161,7 +165,7 @@ function HRApp() {
       </div>
 
       <TeamDrawer theme={T} team={drawerTeam} onClose={() => setDrawerTeam(null)} S={S} lang={cfg.lang} chartStyle={cfg.chartStyle}/>
-      <TweaksPanel theme={T} open={tweaksOpen} onClose={() => setTweaksOpen(false)} cfg={cfg} setCfg={setCfg} S={S}/>
+      {tweaksAvailable && <TweaksPanel theme={T} open={tweaksOpen} onClose={() => setTweaksOpen(false)} cfg={cfg} setCfg={setCfg} S={S}/>}
     </div>
   );
 }
