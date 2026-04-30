@@ -16,6 +16,7 @@ import { AdminTenantDetail } from './views/tenant-detail.jsx';
 import { AdminBilling }      from './views/billing.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
 import { AdminAppConfigProvider, useAdminAppConfig } from './state/app-config-context.jsx';
+import { AdminAuthProvider } from './state/auth-context.jsx';
 
 function AppInner() {
   const { cfg, patch } = useAdminAppConfig();
@@ -123,7 +124,9 @@ function AppInner() {
 export default function App() {
   return (
     <AdminAppConfigProvider>
-      <AppInner />
+      <AdminAuthProvider>
+        <AppInner />
+      </AdminAuthProvider>
     </AdminAppConfigProvider>
   );
 }
