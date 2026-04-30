@@ -232,11 +232,27 @@ function TopBar({ theme, S, dir, range, onRange, onExport, onTweaks }) {
 }
 
 // ── KPI STRIP ───────────────────────────────────────────────────
-function KpiStrip({ theme, S, density, chartStyle }) {
+function mapOverviewKpis(overviewKpis) {
+  if (!overviewKpis) return null;
+  // Map raw RPC keys to the visual KPI cards. Missing keys fall through gracefully.
+  const idx    = overviewKpis.wellbeing_index ?? overviewKpis.index ?? null;
+  const active = overviewKpis.weekly_active   ?? overviewKpis.active ?? null;
+  const risk   = overviewKpis.at_risk_teams   ?? overviewKpis.risk   ?? null;
+  const safety = overviewKpis.safety_flags    ?? overviewKpis.safety ?? null;
+  return [
+    { key: 'index',  label: 'wellbeingIndex', value: idx    ?? 0,   suffix: '/10',   delta: 0, invert: false, spark: [] },
+    { key: 'active', label: 'weeklyActive',   value: active ?? 0,   suffix: '',     delta: 0, invert: false, fmt: (v) => Number(v).toLocaleString(), spark: [] },
+    { key: 'risk',   label: 'atRiskTeams',    value: risk   ?? 0,   suffix: '',     delta: 0, invert: true,  spark: [] },
+    { key: 'safety', label: 'safetyFlags',    value: safety ?? 0,   suffix: ' open', delta: 0, invert: true, spark: [] },
+  ];
+}
+
+function KpiStrip({ theme, S, density, chartStyle, kpis }) {
   const T = theme;
+  const items = (kpis ? mapOverviewKpis(kpis) : null) || HR_DATA.kpis;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: DENSITY[density].gap }}>
-      {HR_DATA.kpis.map((k, i) => (
+      {items.map((k, i) => (
         <Panel key={k.key} theme={T} density={density}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
             <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase' }}>
@@ -260,10 +276,31 @@ function KpiStrip({ theme, S, density, chartStyle }) {
 }
 
 // ── TRENDS CHART ────────────────────────────────────────────────
-function TrendsCard({ theme, S, lang, chartStyle, density }) {
+function buildTrendFromOverview(trend) {
+  if (!Array.isArray(trend) || trend.length === 0) return null;
+  const labels = trend.map(r => {
+    const d = new Date(r.week_start);
+    return Number.isNaN(d.getTime()) ? String(r.week_start) : `${d.toLocaleString('en', { month: 'short' })} ${d.getDate()}`;
+  });
+  const labelsAr = trend.map(r => {
+    const d = new Date(r.week_start);
+    return Number.isNaN(d.getTime()) ? String(r.week_start) : `${d.getDate()}`;
+  });
+  const series = [
+    { key: 'mood',   name: 'Mood',   values: trend.map(r => Number(r.avg_mood)   || 0) },
+    { key: 'stress', name: 'Stress', values: trend.map(r => Number(r.avg_stress) || 0) },
+  ];
+  return { labels, labelsAr, series };
+}
+
+function TrendsCard({ theme, S, lang, chartStyle, density, trend }) {
   const T = theme;
-  const [active, setActive] = React.useState(new Set(['sleep', 'stress', 'energy', 'mood']));
-  const series = HR_DATA.trends.series.map((s, i) => ({ ...s, color: T.series[i] }));
+  const overviewTrend = buildTrendFromOverview(trend);
+  const trendData = overviewTrend || HR_DATA.trends;
+  const initialKeys = trendData.series.map(s => s.key);
+  const [active, setActive] = React.useState(new Set(initialKeys));
+  React.useEffect(() => { setActive(new Set(trendData.series.map(s => s.key))); /* eslint-disable-next-line */ }, [overviewTrend ? 'live' : 'mock']);
+  const series = trendData.series.map((s, i) => ({ ...s, color: T.series[i % T.series.length] }));
   const toggle = (k) => {
     const n = new Set(active); n.has(k) ? n.delete(k) : n.add(k); setActive(n);
   };
@@ -288,7 +325,7 @@ function TrendsCard({ theme, S, lang, chartStyle, density }) {
           </div>
         }/>
       <div style={{ padding: '8px 12px 18px' }}>
-        <TrendChart theme={T} series={series} labels={lang==='ar'?HR_DATA.trends.labelsAr:HR_DATA.trends.labels}
+        <TrendChart theme={T} series={series} labels={lang==='ar'?trendData.labelsAr:trendData.labels}
           height={260} chartStyle={chartStyle} activeKeys={[...active]}/>
       </div>
     </Panel>

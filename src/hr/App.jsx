@@ -23,9 +23,20 @@ import { HRAppConfigProvider, useHRAppConfig } from './state/app-config-context.
 import { HRAuthProvider, useHRAuth } from './state/auth-context.jsx';
 import { SignIn } from './views/sign-in.jsx';
 import { AccessDenied } from './views/access-denied.jsx';
+import { useOverview } from './hooks/use-overview.js';
 
 function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }) {
   const T = theme;
+  const { data: overview, loading: overviewLoading } = useOverview(range);
+
+  if (overviewLoading && !overview) {
+    return (
+      <div style={{ padding: '80px 0', textAlign: 'center', color: T.textMuted, fontSize: 13 }}>
+        {cfg.lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Greeting row */}
@@ -45,7 +56,7 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }
       </div>
 
       <div style={{ marginBottom: gap }}>
-        <KpiStrip theme={T} S={S} density={density} chartStyle={cfg.chartStyle}/>
+        <KpiStrip theme={T} S={S} density={density} chartStyle={cfg.chartStyle} kpis={overview?.kpis}/>
       </div>
 
       <div style={{
@@ -53,7 +64,7 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }
         gridTemplateColumns: layout === 'wide' ? '1fr' : layout === 'split' ? '1fr 1fr' : 'minmax(0, 2fr) minmax(320px, 1fr)',
         gap, marginBottom: gap,
       }}>
-        <TrendsCard theme={T} S={S} lang={cfg.lang} chartStyle={cfg.chartStyle} density={density}/>
+        <TrendsCard theme={T} S={S} lang={cfg.lang} chartStyle={cfg.chartStyle} density={density} trend={overview?.trend}/>
         {layout !== 'wide' && <AtRisk theme={T} S={S} lang={cfg.lang} density={density} onOpenTeam={setDrawerTeam}/>}
       </div>
 
