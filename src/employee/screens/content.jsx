@@ -4,30 +4,54 @@ import {
 } from '../design-system.jsx';
 import { TopBack } from './onboarding.jsx';
 import { IconBtn } from './home.jsx';
+import { useContent } from '../hooks/use-content.js';
 
 // --- screens-content.jsx ---
 // Content library + audio/video/article player + Notifications
+
+const CATEGORIES = [
+  { id: 'all',         label: { en: 'All',     ar: 'الكل'   }, icon: 'sparkle'  },
+  { id: 'sleep',       label: { en: 'Sleep',   ar: 'النوم'  }, icon: 'moon'     },
+  { id: 'stress',      label: { en: 'Stress',  ar: 'التوتر' }, icon: 'leaf'     },
+  { id: 'movement',    label: { en: 'Move',    ar: 'حركة'   }, icon: 'activity' },
+  { id: 'mindfulness', label: { en: 'Focus',   ar: 'تركيز'  }, icon: 'target'   },
+];
+
+// Normalize a server row (or static fallback) to the shape the UI expects.
+function normalizeItem(row) {
+  if (!row) return null;
+  // Already-normalized shape (e.g. set by App.go for legacy ids)
+  if (row.title && typeof row.title === 'object') {
+    return {
+      id: row.id,
+      kind: row.kind || 'audio',
+      mins: row.mins ?? row.duration_mins ?? 0,
+      title: row.title,
+    };
+  }
+  return {
+    id: row.id,
+    kind: row.kind || 'audio',
+    mins: row.duration_mins ?? row.mins ?? 0,
+    cat: row.category,
+    title: { en: row.title_en || '', ar: row.title_ar || row.title_en || '' },
+  };
+}
 
 function ScreenLibrary({ theme, t, dir, go }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const [cat, setCat] = React.useState('all');
-  const cats = [
-    { id: 'all', label: { en: 'All', ar: 'الكل' }, icon: 'sparkle' },
-    { id: 'sleep', label: { en: 'Sleep', ar: 'النوم' }, icon: 'moon' },
-    { id: 'stress', label: { en: 'Stress', ar: 'التوتر' }, icon: 'leaf' },
-    { id: 'move', label: { en: 'Move', ar: 'حركة' }, icon: 'activity' },
-    { id: 'focus', label: { en: 'Focus', ar: 'تركيز' }, icon: 'target' },
-  ];
-  const items = [
-    { id: 'sleep-onset', kind: 'audio', mins: 6, cat: 'sleep', title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' }, tag: { en: 'Recommended', ar: 'موصى به' } },
-    { id: 'box-breath', kind: 'audio', mins: 2, cat: 'stress', title: { en: 'Box breathing, guided', ar: 'تنفس مربع، موجَّه' } },
-    { id: 'desk-mob', kind: 'video', mins: 4, cat: 'move', title: { en: 'Desk mobility flow', ar: 'حركات مكتبية' } },
-    { id: 'reset', kind: 'audio', mins: 3, cat: 'focus', title: { en: 'A 3-minute reset between meetings', ar: 'استراحة 3 دقائق بين الاجتماعات' } },
-    { id: 'wind-down', kind: 'article', mins: 5, cat: 'sleep', title: { en: 'Build an evening wind-down', ar: 'بناء روتين استرخاء مسائي' } },
-    { id: 'caffeine', kind: 'article', mins: 4, cat: 'sleep', title: { en: 'Caffeine cut-off, in plain terms', ar: 'الكافيين بلغة واضحة' } },
-  ];
-  const filtered = cat === 'all' ? items : items.filter(i => i.cat === cat);
+
+  const { items: rawItems, featured: rawFeatured, loading } = useContent(cat === 'all' ? null : cat);
+
+  if (loading && (!rawItems || rawItems.length === 0)) {
+    return <ContentLoading theme={T} dir={dir}/>;
+  }
+
+  const items = (rawItems || []).map(normalizeItem).filter(Boolean);
+  const featured = (rawFeatured || []).map(normalizeItem).filter(Boolean);
+  const heroItem = featured[0];
 
   return (
     <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
@@ -39,7 +63,7 @@ function ScreenLibrary({ theme, t, dir, go }) {
       </div>
 
       <div style={{ padding: '4px 22px 14px', display: 'flex', gap: 8, overflowX: 'auto' }}>
-        {cats.map(c => (
+        {CATEGORIES.map(c => (
           <Chip key={c.id} theme={T} active={cat === c.id} onClick={() => setCat(c.id)} icon={c.icon}>
             {c.label[lang]}
           </Chip>
@@ -47,10 +71,10 @@ function ScreenLibrary({ theme, t, dir, go }) {
       </div>
 
       {/* Featured hero */}
-      {cat === 'all' && (
+      {cat === 'all' && heroItem && (
         <div style={{ padding: '0 16px 18px' }}>
           <Card theme={T} pad={0} radius={24} style={{ overflow: 'hidden', cursor: 'pointer' }}
-                onClick={() => go('player', { id: 'sleep-onset' })}>
+                onClick={() => go('player', { item: heroItem })}>
             <div style={{
               height: 180, position: 'relative',
               background: `linear-gradient(135deg, ${T.accent}, ${T.accentSoft})`,
@@ -72,10 +96,10 @@ function ScreenLibrary({ theme, t, dir, go }) {
             </div>
             <div style={{ padding: '16px 18px 18px' }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
-                {lang==='ar'?'صوت · 6 د · موصى به':'AUDIO · 6 MIN · FOR YOU'}
+                {(heroItem.kind || 'audio').toUpperCase()} · {heroItem.mins} {lang==='ar'?'د':'MIN'} · {lang==='ar'?'موصى به':'FOR YOU'}
               </div>
               <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, marginTop: 6, letterSpacing: -0.3, lineHeight: 1.2 }}>
-                {lang==='ar'?'بداية النوم — إشارة لهذه الليلة':'Sleep onset — a cue for tonight'}
+                {heroItem.title?.[lang] || heroItem.title?.en || ''}
               </div>
             </div>
           </Card>
@@ -83,9 +107,18 @@ function ScreenLibrary({ theme, t, dir, go }) {
       )}
 
       <SectionLabel theme={T}>{lang==='ar'?'استكشف':'Explore'}</SectionLabel>
+      {items.length === 0 ? (
+        <div style={{ padding: '0 16px' }}>
+          <Card theme={T} pad={16}>
+            <div style={{ fontSize: 13, color: T.textMuted, textAlign: 'center' }}>
+              {lang==='ar' ? 'لا يوجد محتوى في هذا التصنيف بعد.' : 'No content in this category yet.'}
+            </div>
+          </Card>
+        </div>
+      ) : (
       <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {filtered.map(it => (
-          <Card key={it.id} theme={T} pad={0} radius={18} onClick={() => go('player', { id: it.id })}
+        {items.map(it => (
+          <Card key={it.id} theme={T} pad={0} radius={18} onClick={() => go('player', { item: it })}
                 style={{ overflow: 'hidden', cursor: 'pointer' }}>
             <div style={{
               height: 100, position: 'relative',
@@ -112,13 +145,34 @@ function ScreenLibrary({ theme, t, dir, go }) {
             </div>
             <div style={{ padding: '10px 12px 14px' }}>
               <div style={{ fontSize: 13, color: T.text, fontWeight: 500, lineHeight: 1.3, minHeight: 34 }}>
-                {it.title[lang]}
+                {it.title?.[lang] || it.title?.en || ''}
               </div>
               <div style={{ fontSize: 11, color: T.textMuted, marginTop: 6 }}>{it.mins} {t('minutes')}</div>
             </div>
           </Card>
         ))}
       </div>
+      )}
+    </div>
+  );
+}
+
+function playerTitle(item, lang) {
+  if (!item) return '';
+  if (item.title && typeof item.title === 'object') return item.title[lang] || item.title.en || '';
+  if (typeof item.title === 'string') return item.title;
+  return item[`title_${lang}`] || item.title_en || '';
+}
+
+function ContentLoading({ theme, dir }) {
+  const T = theme;
+  const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
+  return (
+    <div style={{
+      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
     </div>
   );
 }
@@ -126,21 +180,70 @@ function ScreenLibrary({ theme, t, dir, go }) {
 function ScreenPlayer({ theme, t, dir, go, state }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
+  const { saveProgress } = useContent();
   const item = state.playerItem || { id: 'sleep-onset', kind: 'audio', mins: 6, title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' } };
   const [playing, setPlaying] = React.useState(true);
   const [pos, setPos] = React.useState(0);
-  const dur = item.mins * 60;
+  const dur = (item.mins || 0) * 60;
+
+  // Track last server-write to throttle progress saves to ~5s.
+  const lastWriteRef = React.useRef(0);
+  const completedRef = React.useRef(false);
+  const posRef       = React.useRef(0);
+  React.useEffect(() => { posRef.current = pos; }, [pos]);
+
+  // Only save progress for real DB-backed items (UUID-shaped ids). Legacy
+  // hardcoded slugs like 'sleep-onset' have no row in content_items.
+  const isDbItem = typeof item?.id === 'string' && /^[0-9a-f-]{32,}$/i.test(item.id);
+
+  const writeProgress = React.useCallback(async (completed = false) => {
+    if (!isDbItem) return;
+    if (completed && completedRef.current) return;
+    if (completed) completedRef.current = true;
+    try { await saveProgress(item.id, posRef.current, completed); }
+    catch (e) { console.warn('[player] saveProgress failed', e); }
+  }, [isDbItem, item?.id, saveProgress]);
 
   React.useEffect(() => {
     if (!playing) return;
     const id = setInterval(() => {
       setPos(p => {
-        if (p + 1 >= dur) { setPlaying(false); return dur; }
-        return p + 1;
+        if (p + 1 >= dur) {
+          setPlaying(false);
+          // Fire completion write once we hit the end.
+          setTimeout(() => writeProgress(true), 0);
+          return dur;
+        }
+        const next = p + 1;
+        // Throttled progress write every ~5s while playing.
+        const now = Date.now();
+        if (now - lastWriteRef.current > 5000) {
+          lastWriteRef.current = now;
+          // Save without awaiting; UI shouldn't block.
+          posRef.current = next;
+          writeProgress(false);
+        }
+        return next;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [playing, dur]);
+  }, [playing, dur, writeProgress]);
+
+  // On unmount or when playback pauses, snapshot the current position.
+  React.useEffect(() => {
+    if (playing) return;
+    // Don't double-write at exact 0 or right after completion.
+    if (posRef.current > 0 && !completedRef.current && posRef.current < dur) {
+      writeProgress(false);
+    }
+  }, [playing, dur, writeProgress]);
+
+  React.useEffect(() => () => {
+    // Final snapshot on unmount.
+    if (posRef.current > 0 && !completedRef.current && posRef.current < dur) {
+      writeProgress(false);
+    }
+  }, [dur, writeProgress]);
 
   const fmt = (s) => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
   const isVideo = item.kind === 'video';
@@ -157,7 +260,7 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
             {lang==='ar'?'مقال · ':'ARTICLE · '}{item.mins} {t('minutes')}
           </div>
           <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 34, color: T.text, marginTop: 10, letterSpacing: -0.5, lineHeight: 1.1 }}>
-            {item.title[lang]}
+            {playerTitle(item, lang)}
           </div>
           <div style={{ marginTop: 24, color: T.text, fontSize: 16, lineHeight: 1.6, fontFamily: typeStyles(T).sansFont }}>
             {lang==='ar'
@@ -223,7 +326,7 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
           {(isVideo ? (lang==='ar'?'فيديو':'VIDEO') : (lang==='ar'?'صوت':'AUDIO'))} · {item.mins} {t('minutes')}
         </div>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text, marginTop: 8, letterSpacing: -0.4, lineHeight: 1.15 }}>
-          {item.title[lang]}
+          {playerTitle(item, lang)}
         </div>
       </div>
 
