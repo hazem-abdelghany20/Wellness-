@@ -1,37 +1,75 @@
 import React from 'react';
 import { DENSITY } from '../tokens.jsx';
 import { HRIcon, HRButton, Panel, Badge, Spark } from '../components.jsx';
-import { HR_DATA } from '../sections.jsx';
 import { HRPageHeader } from './_header.jsx';
+import { useTeams } from '../hooks/use-teams.js';
+
+// Derive a coarse risk bucket from aggregate metrics.
+function riskFromTeam(t) {
+  if (!t.has_signal) return 'unknown';
+  const stress = Number(t.avg_stress ?? 0);
+  const mood   = Number(t.avg_mood   ?? 0);
+  if (stress >= 7 || (mood && mood < 5)) return 'high';
+  if (stress >= 5.5 || (mood && mood < 6.5)) return 'med';
+  return 'low';
+}
+
+function indexFromTeam(t) {
+  // Synthesize a single wellbeing index from avg_mood (preferred) or avg_energy.
+  if (!t.has_signal) return null;
+  const mood = Number(t.avg_mood ?? 0);
+  return mood > 0 ? Number(mood.toFixed(1)) : null;
+}
 
 // ── TEAMS PAGE ───────────────────────────────────────────────────
 function HRTeamsPage({ theme, S, lang, density, chartStyle, onOpenTeam }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
+  const { teams, loading } = useTeams();
   const [riskFilter, setRiskFilter] = React.useState('all');
   const [deptFilter, setDeptFilter] = React.useState('all');
-  const depts = Array.from(new Set(HR_DATA.teams.map(t => t.dept)));
-  const filtered = HR_DATA.teams.filter(t =>
-    (riskFilter === 'all' || t.risk === riskFilter) &&
-    (deptFilter === 'all' || t.dept === deptFilter)
+
+  if (loading) {
+    return (
+      <div style={{ padding: '80px 0', textAlign: 'center', color: T.textMuted, fontSize: 13 }}>
+        {s('Loading…','جارٍ التحميل…')}
+      </div>
+    );
+  }
+
+  const enriched = (teams || []).map(t => ({
+    ...t,
+    _team:  t.team_name || t.name || '—',
+    _dept:  t.department || t.dept || '—',
+    _head:  t.head_name || t.head || '',
+    _size:  t.member_count || t.group_size || 0,
+    _index: indexFromTeam(t),
+    _trend: Number(t.trend ?? 0),
+    _risk:  riskFromTeam(t),
+  }));
+  const depts = Array.from(new Set(enriched.map(t => t._dept).filter(d => d && d !== '—')));
+  const filtered = enriched.filter(t =>
+    (riskFilter === 'all' || t._risk === riskFilter) &&
+    (deptFilter === 'all' || t._dept === deptFilter)
   );
   const counts = {
-    high: HR_DATA.teams.filter(t=>t.risk==='high').length,
-    med:  HR_DATA.teams.filter(t=>t.risk==='med').length,
-    low:  HR_DATA.teams.filter(t=>t.risk==='low').length,
+    high: enriched.filter(t=>t._risk==='high').length,
+    med:  enriched.filter(t=>t._risk==='med').length,
+    low:  enriched.filter(t=>t._risk==='low').length,
   };
+  const totalMembers = enriched.reduce((acc,t)=> acc + (Number(t._size)||0), 0);
   return (
     <>
       <HRPageHeader theme={T}
         eyebrow={s('All teams','كل الفرق')}
         title={s('Teams','الفرق')}
-        sub={`${HR_DATA.teams.length} ${s('teams · ',`فرق · `)}${HR_DATA.teams.reduce((s,t)=>s+t.size,0)} ${s('people in scope','شخص في النطاق')}`}
+        sub={`${enriched.length} ${s('teams · ',`فرق · `)}${totalMembers} ${s('people in scope','شخص في النطاق')}`}
         right={<><HRButton theme={T} variant="secondary" icon="reports">{s('Export','تصدير')}</HRButton></>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: DENSITY[density].gap, marginBottom: DENSITY[density].gap }}>
         <Panel theme={T} density={density}>
           <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>{s('Total teams','إجمالي الفرق')}</div>
-          <div className="display" style={{ fontSize: 30, color: T.text, letterSpacing: -0.6 }}>{HR_DATA.teams.length}</div>
+          <div className="display" style={{ fontSize: 30, color: T.text, letterSpacing: -0.6 }}>{enriched.length}</div>
         </Panel>
         <Panel theme={T} density={density}>
           <div style={{ fontSize: 11, color: T.danger, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>{s('High risk','مخاطر مرتفعة')}</div>
@@ -85,13 +123,13 @@ function HRTeamsPage({ theme, S, lang, density, chartStyle, onOpenTeam }) {
             <div>{S.risk}</div><div></div>
           </div>
           {filtered.map((t, i) => {
-            const tone = t.risk === 'high' ? 'danger' : t.risk === 'med' ? 'caution' : 'positive';
-            const label = t.risk === 'high' ? S.high : t.risk === 'med' ? S.med : S.low;
-            const sparkColor = t.risk === 'high' ? T.danger : t.risk === 'med' ? T.caution : T.positive;
-            // synth a 14pt trend from index value
-            const trend = Array.from({length: 14}, (_, k) => t.index + (Math.sin(k*0.6 + i)*0.4) + (t.trend * (k/14)));
+            const tone = t._risk === 'high' ? 'danger' : t._risk === 'med' ? 'caution' : t._risk === 'low' ? 'positive' : 'neutral';
+            const label = t._risk === 'high' ? S.high : t._risk === 'med' ? S.med : t._risk === 'low' ? S.low : s('No signal','بلا إشارة');
+            const sparkColor = t._risk === 'high' ? T.danger : t._risk === 'med' ? T.caution : T.positive;
+            const baseIdx = t._index ?? 6.0;
+            const trend = Array.from({length: 14}, (_, k) => baseIdx + (Math.sin(k*0.6 + i)*0.4) + (t._trend * (k/14)));
             return (
-              <div key={i} onClick={() => onOpenTeam && onOpenTeam(t)} style={{
+              <div key={t.team_id || i} onClick={() => onOpenTeam && onOpenTeam(t)} style={{
                 display: 'grid', gridTemplateColumns: '2fr 1fr 0.7fr 0.7fr 1.2fr 1fr 36px',
                 padding: `${DENSITY[density].cellPadY + 4}px 18px`, gap: 10,
                 alignItems: 'center', cursor: 'pointer',
@@ -100,13 +138,13 @@ function HRTeamsPage({ theme, S, lang, density, chartStyle, onOpenTeam }) {
               onMouseEnter={e => e.currentTarget.style.background = T.panelSunk}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <div>
-                  <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{t.team}</div>
-                  <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t.dept}</div>
+                  <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{t._team}</div>
+                  <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t._dept}</div>
                 </div>
-                <div style={{ fontSize: 12, color: T.textMid }}>{t.head}</div>
-                <div className="mono" style={{ textAlign: 'end', fontSize: 13, color: T.text }}>{t.size}</div>
-                <div className="mono" style={{ textAlign: 'end', fontSize: 14, color: T.text, fontWeight: 700 }}>{t.index}</div>
-                <div><Spark theme={T} values={trend} width={140} height={32} chartStyle={chartStyle === 'bar' ? 'bar' : (chartStyle || 'area')} color={sparkColor}/></div>
+                <div style={{ fontSize: 12, color: T.textMid }}>{t._head || '—'}</div>
+                <div className="mono" style={{ textAlign: 'end', fontSize: 13, color: T.text }}>{t._size || '—'}</div>
+                <div className="mono" style={{ textAlign: 'end', fontSize: 14, color: T.text, fontWeight: 700 }}>{t._index ?? '—'}</div>
+                <div>{t.has_signal ? <Spark theme={T} values={trend} width={140} height={32} chartStyle={chartStyle === 'bar' ? 'bar' : (chartStyle || 'area')} color={sparkColor}/> : <span style={{ fontSize: 11, color: T.textFaint }}>{s('Below privacy floor','تحت حد الخصوصية')}</span>}</div>
                 <div><Badge theme={T} tone={tone} dot>{label}</Badge></div>
                 <button style={{ background: 'transparent', border: 'none', color: T.textMuted, cursor: 'pointer', padding: 6 }} onClick={(e)=>e.stopPropagation()}>
                   <HRIcon name="chev" size={14}/>
@@ -114,6 +152,11 @@ function HRTeamsPage({ theme, S, lang, density, chartStyle, onOpenTeam }) {
               </div>
             );
           })}
+          {filtered.length === 0 && (
+            <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: T.textMuted }}>
+              {s('No teams match the current filters.','لا توجد فرق مطابقة للمرشحات.')}
+            </div>
+          )}
         </div>
       </Panel>
     </>
