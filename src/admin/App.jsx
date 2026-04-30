@@ -87,7 +87,7 @@ function AppInner() {
           {openTenant ? (
             <AdminTenantDetail theme={T} density={density} lang={lang} tenant={openTenant} onBack={() => setOpenTenant(null)}/>
           ) : active === 'billing' ? (
-            <AdminBilling theme={T} density={density} lang={lang}/>
+            <AdminBilling theme={T} density={density} lang={lang} companyId={openTenant?.id}/>
           ) : active === 'tenants' ? (
             <AdminTenantsView theme={T} density={density} lang={lang} onOpen={setOpenTenant}/>
           ) : active === 'content' ? (
