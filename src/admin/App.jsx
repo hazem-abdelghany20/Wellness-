@@ -15,21 +15,17 @@ import { AdminChallengeTemplatesView }     from './views/challenge-templates.jsx
 import { AdminTenantDetail } from './views/tenant-detail.jsx';
 import { AdminBilling }      from './views/billing.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
+import { AdminAppConfigProvider, useAdminAppConfig } from './state/app-config-context.jsx';
 
-const ADMIN_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "themeKey": "dark",
-  "lang": "en",
-  "density": "comfortable",
-  "chartStyle": "area",
-  "layout": "default"
-}/*EDITMODE-END*/;
+function AppInner() {
+  const { cfg, patch } = useAdminAppConfig();
+  const { themeKey, lang, density, chartStyle, layout } = cfg;
+  const setThemeKey   = (v) => patch({ themeKey: v });
+  const setLang       = (v) => patch({ lang: v });
+  const setDensity    = (v) => patch({ density: v });
+  const setChartStyle = (v) => patch({ chartStyle: v });
+  const setLayout     = (v) => patch({ layout: v });
 
-function AdminApp() {
-  const [themeKey, setThemeKey] = React.useState(ADMIN_DEFAULTS.themeKey);
-  const [lang, setLang]         = React.useState(ADMIN_DEFAULTS.lang);
-  const [density, setDensity]   = React.useState(ADMIN_DEFAULTS.density);
-  const [chartStyle, setChartStyle] = React.useState(ADMIN_DEFAULTS.chartStyle);
-  const [layout, setLayout]     = React.useState(ADMIN_DEFAULTS.layout);
   const [active, setActive]     = React.useState('overview');
   const [openTenant, setOpenTenant] = React.useState(null);
   const [range, setRange]       = React.useState('30d');
@@ -124,4 +120,10 @@ function AdminApp() {
   );
 }
 
-export default AdminApp;
+export default function App() {
+  return (
+    <AdminAppConfigProvider>
+      <AppInner />
+    </AdminAppConfigProvider>
+  );
+}
