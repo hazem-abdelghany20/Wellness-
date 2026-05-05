@@ -310,3 +310,52 @@ export function subscribeToPlanCompletions(planId: string, cb: (payload: unknown
     }, cb)
     .subscribe();
 }
+
+// ── Wallet (v2 Sprint 0 — read-only Mine-tab hero) ────────────
+
+export type AwardedRewardStatus = 'ready' | 'claimed' | 'fulfilled';
+
+export interface AwardedReward {
+  id: string;
+  profile_id: string;
+  company_id: string;
+  competition_id: string | null;
+  tier: 'bronze' | 'silver' | 'gold';
+  chosen_item_id: string | null;
+  status: AwardedRewardStatus;
+  fulfillment_method: 'manual' | 'tremendous';
+  notes: string | null;
+  awarded_at: string;
+  claimed_at: string | null;
+  fulfilled_at: string | null;
+  // Joined catalog fields (optional — present when select includes the join).
+  chosen_item?: {
+    id: string;
+    name_en: string;
+    name_ar: string | null;
+    category: 'wh_service' | 'amazon' | 'custom';
+    value_minor: number;
+    currency: string;
+    thumbnail_url: string | null;
+  } | null;
+}
+
+export async function listMyAwardedRewards(): Promise<AwardedReward[]> {
+  const { data, error } = await supabase
+    .from('awarded_rewards')
+    .select(`
+      id, profile_id, company_id, competition_id, tier, chosen_item_id,
+      status, fulfillment_method, notes,
+      awarded_at, claimed_at, fulfilled_at,
+      chosen_item:gift_catalog_items (
+        id, name_en, name_ar, category, value_minor, currency, thumbnail_url
+      )
+    `)
+    .order('awarded_at', { ascending: false });
+  if (error) {
+    // Pre-migration project: table missing returns 42P01. Treat as empty.
+    if ((error as { code?: string }).code === '42P01') return [];
+    throw error;
+  }
+  return (data ?? []) as unknown as AwardedReward[];
+}

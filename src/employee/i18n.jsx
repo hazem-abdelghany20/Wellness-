@@ -33,6 +33,17 @@ const STRINGS = {
     tabChallenges: 'Challenges',
     tabProgress: 'Progress',
     tabProfile: 'Profile',
+    tabMine: 'Mine',
+
+    // Mine / Wallet
+    walletTitle: 'My rewards',
+    walletSub: 'Rewards earned through challenges and check-in streaks.',
+    walletEmptyTitle: 'No rewards yet',
+    walletEmptySub: 'Complete challenges to earn Bronze, Silver, and Gold rewards.',
+    rewardStatusReady: 'Ready to claim',
+    rewardStatusClaimed: 'Pending fulfillment',
+    rewardStatusFulfilled: 'Delivered',
+    rewardChooseCTA: 'Choose your reward',
 
     // Home
     goodMorning: 'Good morning, Amira',
@@ -136,6 +147,16 @@ const STRINGS = {
     tabChallenges: 'التحديات',
     tabProgress: 'التقدم',
     tabProfile: 'الملف',
+    tabMine: 'حسابي',
+
+    walletTitle: 'مكافآتي',
+    walletSub: 'مكافآت من التحديات وسلاسل التسجيل اليومي.',
+    walletEmptyTitle: 'لا توجد مكافآت بعد',
+    walletEmptySub: 'أكمل التحديات لتحصل على مكافآت برونزية وفضية وذهبية.',
+    rewardStatusReady: 'جاهزة للاستلام',
+    rewardStatusClaimed: 'قيد التنفيذ',
+    rewardStatusFulfilled: 'تم التسليم',
+    rewardChooseCTA: 'اختر مكافأتك',
 
     goodMorning: 'صباح الخير، أميرة',
     dayStreak: 'يوماً متتالياً',
