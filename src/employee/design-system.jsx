@@ -397,11 +397,6 @@ function Slider({ theme, value, onChange, min = 0, max = 10, step = 1, labels, a
   );
 }
 
-Object.assign(window, {
-  THEMES, typeStyles, Icon, Button, Card, Chip, SectionLabel,
-  WellnessMark, Sparkline, Ring, Slider,
-});
-
 export {
   THEMES, typeStyles, Icon, AvatarDisplay, AVATAR_OPTIONS, Button, Card, Chip,
   SectionLabel, WellnessMark, Sparkline, Ring, Slider,

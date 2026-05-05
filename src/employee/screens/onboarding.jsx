@@ -477,11 +477,6 @@ function TopBack({ theme, onBack, dir }) {
   );
 }
 
-Object.assign(window, {
-  ScreenJoin, ScreenOTP, ScreenConsent, ScreenName, ScreenBaseline, ScreenGoals, ScreenWelcome,
-  ScreenFrame, TopBack,
-});
-
 function ScreenName({ theme, t, dir, state, onNext, onBack }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
@@ -563,8 +558,6 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
     </ScreenFrame>
   );
 }
-
-Object.assign(window, { ScreenName });
 
 export {
   ScreenJoin, ScreenOTP, ScreenConsent, ScreenBaseline, ScreenGoals,

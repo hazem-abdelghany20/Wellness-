@@ -304,6 +304,4 @@ function LayoutAgenda({ theme, t, lang, actions, onAction }) {
   );
 }
 
-Object.assign(window, { ScreenHome, IconBtn });
-
 export { ScreenHome, IconBtn, LayoutList, LayoutStack, LayoutAgenda };

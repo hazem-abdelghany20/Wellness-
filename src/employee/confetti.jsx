@@ -46,6 +46,5 @@ function Confetti({ theme, run }) {
     </div>
   );
 }
-window.Confetti = Confetti;
 
 export { Confetti };

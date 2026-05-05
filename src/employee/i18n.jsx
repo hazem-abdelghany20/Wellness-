@@ -215,6 +215,4 @@ function useT(lang) {
   };
 }
 
-Object.assign(window, { STRINGS, useT });
-
 export { STRINGS, useT };
