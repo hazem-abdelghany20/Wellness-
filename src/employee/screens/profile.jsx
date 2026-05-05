@@ -15,6 +15,22 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
   const [picker, setPicker] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
 
+  // Sync from server. Falls back to optimistic defaults when the column
+  // is missing (e.g. before migration 0015 lands on the project).
+  React.useEffect(() => {
+    if (!profile) return;
+    setAnon(profile.anon ?? true);
+    setShare(profile.share_aggregate ?? true);
+    setNotifs(profile.digest_opt_in ?? true);
+  }, [profile]);
+
+  const persistPref = async (column, value) => {
+    try { await update({ [column]: value }); }
+    catch (e) { console.warn(`[profile] ${column} update failed`, e); }
+  };
+  const handleAnon = (next) => { setAnon(next); persistPref('anon', next); };
+  const handleNotifs = (next) => { setNotifs(next); persistPref('digest_opt_in', next); };
+
   if (!profile) return <ProfileLoading theme={T} dir={dir}/>;
 
   const name = profile.display_name || (state && state.name) || '';
@@ -63,7 +79,7 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
       <SectionLabel theme={T}>{t('privacy')}</SectionLabel>
       <div style={{ padding: '0 16px' }}>
         <Card theme={T} pad={0} radius={20}>
-          <ToggleRow theme={T} icon="shield" title={t('anonymous')} sub={t('anonymousSub')} value={anon} onChange={setAnon}/>
+          <ToggleRow theme={T} icon="shield" title={t('anonymous')} sub={t('anonymousSub')} value={anon} onChange={handleAnon}/>
           <div style={{ height: 1, background: T.border, marginLeft: 62 }}/>
           <ToggleRow theme={T} icon="chart" title={t('shareAgg')} sub={t('shareAggSub')} value={share} onChange={setShare} disabled/>
         </Card>
@@ -73,7 +89,7 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
       <SectionLabel theme={T}>{t('notifs')}</SectionLabel>
       <div style={{ padding: '0 16px' }}>
         <Card theme={T} pad={0} radius={20}>
-          <ToggleRow theme={T} icon="bell" title={lang==='ar'?'تذكير التسجيل اليومي':'Daily check-in reminder'} sub="09:00" value={notifs} onChange={setNotifs}/>
+          <ToggleRow theme={T} icon="bell" title={lang==='ar'?'تذكير التسجيل اليومي':'Daily check-in reminder'} sub="09:00" value={notifs} onChange={handleNotifs}/>
         </Card>
       </div>
 
