@@ -4,6 +4,7 @@ import {
   SectionLabel, WellnessMark, Sparkline, Ring,
 } from '../design-system.jsx';
 import { useDailyPlan } from '../hooks/use-daily-plan.js';
+import { tierFor } from '../lib/tiers.js';
 
 // --- screens-home.jsx ---
 // Home / Today feed — 3 layout variants: 'list', 'stack', 'agenda'
@@ -84,17 +85,8 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
         }}>{greeting}</div>
 
         {/* Streak + quick stat row */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Card theme={T} pad={14} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: 10, background: T.accentSoft,
-              color: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}><Icon name="flame" size={20}/></div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: T.text, lineHeight: 1 }}>{streak}</div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t('dayStreak')}</div>
-            </div>
-          </Card>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+          <StreakTierCard theme={T} t={t} lang={lang} streak={streak}/>
           <Card theme={T} pad={14} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
             <Ring theme={T} value={doneCount / totalCount} size={38} stroke={4}>
               <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{doneCount}/{actions.length || 0}</div>
@@ -187,6 +179,52 @@ function HomeLoading({ theme, dir }) {
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
     </div>
+  );
+}
+
+function StreakTierCard({ theme, t, lang, streak }) {
+  const T = theme;
+  const info = tierFor(streak);
+  const pct = Math.max(0, Math.min(1, info.progress));
+  const dayWord = lang === 'ar'
+    ? (info.daysToNext === 1 ? 'يوم' : 'أيام')
+    : (info.daysToNext === 1 ? 'day' : 'days');
+  const toNext = info.next
+    ? (lang === 'ar'
+        ? `${info.daysToNext} ${dayWord} إلى ${info.nextLabel.ar}`
+        : `${info.daysToNext} ${dayWord} to ${info.nextLabel.en}`)
+    : (lang === 'ar' ? 'وصلت للذهبي' : 'Top tier reached');
+  return (
+    <Card theme={T} pad={14} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 10, background: T.accentSoft,
+          color: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}><Icon name="flame" size={20}/></div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: T.text, lineHeight: 1 }}>{streak}</div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t('dayStreak')}</div>
+        </div>
+        <div style={{
+          padding: '4px 9px', borderRadius: 999,
+          background: info.color + '22',
+          color: info.color,
+          fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
+          whiteSpace: 'nowrap',
+        }}>{info.label[lang === 'ar' ? 'ar' : 'en']}</div>
+      </div>
+      <div>
+        <div style={{ height: 4, borderRadius: 999, background: T.track, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${Math.round(pct * 100)}%`,
+            background: info.color, transition: 'width .3s',
+          }}/>
+        </div>
+        <div style={{ fontSize: 10, color: T.textMuted, marginTop: 4, letterSpacing: 0.2 }}>
+          {toNext}
+        </div>
+      </div>
+    </Card>
   );
 }
 
