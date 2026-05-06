@@ -85,8 +85,11 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
       <div style={{ padding: '18px 22px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <WellnessMark theme={T} size={22} showText={false}/>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <IconBtn theme={T} icon="bell" onClick={() => go('notifs')}/>
-          <button onClick={() => go('profile')} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+          <IconBtn theme={T} icon="bell" onClick={() => go('notifs')}
+            aria-label={lang === 'ar' ? 'الإشعارات' : 'Notifications'}/>
+          <button onClick={() => go('profile')}
+            aria-label={lang === 'ar' ? 'الملف الشخصي' : 'Profile'}
+            style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
             <AvatarDisplay theme={T} kind={state.avatar || 'monogram'} name={state.name || '?'} size={38}/>
           </button>
         </div>
@@ -349,14 +352,15 @@ function StreakTierCard({ theme, t, lang, streak }) {
   );
 }
 
-function IconBtn({ theme, icon, onClick }) {
+function IconBtn({ theme, icon, onClick, 'aria-label': ariaLabel }) {
   return (
-    <button onClick={onClick} style={{
-      width: 40, height: 40, borderRadius: 999,
-      background: theme.chipBg, border: `1px solid ${theme.border}`,
-      color: theme.text, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer',
-    }}><Icon name={icon} size={18}/></button>
+    <button onClick={onClick} aria-label={ariaLabel}
+      style={{
+        width: 40, height: 40, borderRadius: 999,
+        background: theme.chipBg, border: `1px solid ${theme.border}`,
+        color: theme.text, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer',
+      }}><Icon name={icon} size={18}/></button>
   );
 }
 

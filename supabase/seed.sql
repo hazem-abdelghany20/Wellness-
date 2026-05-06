@@ -114,3 +114,100 @@ INSERT INTO public.challenges (
   true
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- ── v2 Gift Engine Demo Data ─────────────────────────────────
+-- Catalog: 6 WH Services + 2 Custom items. Global (company_id NULL)
+-- so every demo tenant sees them. HR can deactivate items they don't
+-- offer or override per-company by creating company-scoped copies.
+
+INSERT INTO public.gift_catalog_items (
+  id, company_id, name_en, name_ar, description_en, description_ar,
+  category, value_minor, currency, active
+) VALUES
+  ('00000000-0000-0000-0010-000000000001', NULL,
+   'Sakoon — 4-week program', 'ساكون — برنامج ٤ أسابيع',
+   'Group coaching for stress and burnout recovery.',
+   'تدريب جماعي لإدارة الضغط والاحتراق الوظيفي.',
+   'wh_service', 50000, 'EGP', true),
+  ('00000000-0000-0000-0010-000000000002', NULL,
+   'Sleep Reset — 1:1 sessions', 'إعادة ضبط النوم — جلسات فردية',
+   '3 individual coaching sessions for sleep.',
+   '٣ جلسات تدريب فردية للنوم.',
+   'wh_service', 65000, 'EGP', true),
+  ('00000000-0000-0000-0010-000000000003', NULL,
+   'Stress Less — workshop',  'تقليل الضغط — ورشة',
+   'Half-day workshop with breath, journal, and CBT tools.',
+   'ورشة نصف يوم بأدوات تنفّس ويوميات و CBT.',
+   'wh_service', 35000, 'EGP', true),
+  ('00000000-0000-0000-0010-000000000004', NULL,
+   'Empath — therapy voucher',  'إمباث — قسيمة علاج',
+   '4 sessions with a licensed therapist.',
+   '٤ جلسات مع معالج مرخّص.',
+   'wh_service', 80000, 'EGP', true),
+  ('00000000-0000-0000-0010-000000000005', NULL,
+   'Catalyst — leadership 1:1', 'كاتاليست — تدريب قيادة',
+   '2 leadership coaching sessions.',
+   'جلستا تدريب على القيادة.',
+   'wh_service', 45000, 'EGP', true),
+  ('00000000-0000-0000-0010-000000000006', NULL,
+   'Wellbeing Index — quarterly review',
+   'مؤشر الرفاهية — مراجعة فصلية',
+   'Personalized data-led wellbeing review.',
+   'مراجعة شخصية للرفاهية مبنية على بياناتك.',
+   'wh_service', 25000, 'EGP', true),
+  ('00000000-0000-0000-0010-000000000010', NULL,
+   'Day off — recharge', 'يوم إجازة — لإعادة الشحن',
+   'A flexible day off, redeemable within 90 days.',
+   'يوم إجازة مرن، يمكن استخدامه خلال ٩٠ يوماً.',
+   'custom', 0, 'EGP', true),
+  ('00000000-0000-0000-0010-000000000011', NULL,
+   'Coffee with the CEO', 'قهوة مع الرئيس التنفيذي',
+   '30-minute one-on-one mentorship coffee.',
+   'لقاء قهوة لمدة ٣٠ دقيقة وحدك مع الرئيس التنفيذي.',
+   'custom', 0, 'EGP', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- A demo gift pool for the global Sleep Sprint challenge.
+INSERT INTO public.gift_pools (
+  id, company_id, name, description, budget_minor, currency, competition_id, active
+) VALUES (
+  '00000000-0000-0000-0011-000000000001',
+  '00000000-0000-0000-0000-000000000001',
+  'Q2 Sleep Sprint pool',
+  'Awards for the 21-Day Sleep Sprint top performers.',
+  500000, 'EGP',
+  '00000000-0000-0000-0003-000000000001',
+  true
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Tier configuration for the Sleep Sprint:
+-- Bronze: Wellbeing Index review (single fixed reward)
+-- Silver: choose between Stress Less workshop OR Catalyst session
+-- Gold: choose between Sakoon, Sleep Reset, or Empath voucher
+INSERT INTO public.tier_configurations (
+  id, company_id, competition_id, tier,
+  gift_catalog_item_id, allow_employee_choice, choice_options
+) VALUES
+  ('00000000-0000-0000-0012-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001',
+   'bronze',
+   '00000000-0000-0000-0010-000000000006',
+   false,
+   '{}'),
+  ('00000000-0000-0000-0012-000000000002',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001',
+   'silver',
+   NULL,
+   true,
+   ARRAY['00000000-0000-0000-0010-000000000003'::UUID, '00000000-0000-0000-0010-000000000005'::UUID]),
+  ('00000000-0000-0000-0012-000000000003',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001',
+   'gold',
+   NULL,
+   true,
+   ARRAY['00000000-0000-0000-0010-000000000001'::UUID, '00000000-0000-0000-0010-000000000002'::UUID, '00000000-0000-0000-0010-000000000004'::UUID])
+ON CONFLICT (competition_id, tier) DO NOTHING;

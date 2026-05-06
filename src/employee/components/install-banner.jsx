@@ -68,15 +68,19 @@ export function InstallBanner({ theme, lang }) {
           {lang === 'ar' ? 'وصول أسرع. يعمل بلا اتصال.' : 'Faster access. Works offline.'}
         </div>
       </div>
-      <button onClick={handleDismiss} type="button" style={{
-        background: 'transparent', border: 'none',
-        color: T.textMuted, fontSize: 12, padding: '6px 10px', cursor: 'pointer',
-      }}>{lang === 'ar' ? 'لاحقاً' : 'Later'}</button>
-      <button onClick={handleInstall} type="button" style={{
-        background: T.accent, color: T.accentInk, border: 'none',
-        borderRadius: 9, fontWeight: 600, fontSize: 12,
-        padding: '8px 14px', cursor: 'pointer',
-      }}>{lang === 'ar' ? 'تثبيت' : 'Install'}</button>
+      <button onClick={handleDismiss} type="button"
+        aria-label={lang === 'ar' ? 'تأجيل التثبيت' : 'Dismiss install prompt'}
+        style={{
+          background: 'transparent', border: 'none',
+          color: T.textMuted, fontSize: 12, padding: '6px 10px', cursor: 'pointer',
+        }}>{lang === 'ar' ? 'لاحقاً' : 'Later'}</button>
+      <button onClick={handleInstall} type="button"
+        aria-label={lang === 'ar' ? 'تثبيت Wellness+' : 'Install Wellness+ as an app'}
+        style={{
+          background: T.accent, color: T.accentInk, border: 'none',
+          borderRadius: 9, fontWeight: 600, fontSize: 12,
+          padding: '8px 14px', cursor: 'pointer',
+        }}>{lang === 'ar' ? 'تثبيت' : 'Install'}</button>
     </div>
   );
 }

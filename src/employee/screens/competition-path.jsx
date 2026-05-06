@@ -53,12 +53,14 @@ function ScreenCompetitionPath({ theme, t, dir, go, challengeId }) {
     }}>
       {/* Header */}
       <div style={{ padding: '18px 22px 6px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => go && go('challenges')} style={{
-          width: 36, height: 36, borderRadius: 999,
-          background: T.chipBg, border: `1px solid ${T.border}`,
-          color: T.text, cursor: 'pointer',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}><Icon name={lang === 'ar' ? 'chev' : 'chevL'} size={16}/></button>
+        <button onClick={() => go && go('challenges')}
+          aria-label={lang === 'ar' ? 'العودة' : 'Back'}
+          style={{
+            width: 36, height: 36, borderRadius: 999,
+            background: T.chipBg, border: `1px solid ${T.border}`,
+            color: T.text, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}><Icon name={lang === 'ar' ? 'chev' : 'chevL'} size={16}/></button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>
             {challenge.theme === 'sabr' ? (lang === 'ar' ? 'صبر' : 'Sabr')
