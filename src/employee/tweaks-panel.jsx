@@ -51,6 +51,9 @@ function TweaksPanel({ theme, open, onClose, cfg, setCfg }) {
       <Row label="Leaderboard">
         <OptRow opts={[['podium','Podium'],['list','List']]} value={cfg.leaderboardVariant} onChange={v => setCfg({ ...cfg, leaderboardVariant: v })}/>
       </Row>
+      <Row label="Ramadan mode">
+        <OptRow opts={[[false,'Off'],[true,'On']]} value={!!cfg.ramadanMode} onChange={v => setCfg({ ...cfg, ramadanMode: v })}/>
+      </Row>
       <div style={{ fontSize: 11, color: T.textMuted, marginTop: 8 }}>Tap Profile to re-run onboarding.</div>
       <button onClick={() => setCfg({ ...cfg, screen: 'join', onboarded: false })} style={{
         marginTop: 10, width: '100%', height: 36, borderRadius: 10,

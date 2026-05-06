@@ -11,6 +11,7 @@ const DEFAULTS = {
   homeVariant: 'stack',
   checkinVariant: 'sliders',
   leaderboardVariant: 'podium',
+  ramadanMode: false,
 };
 
 const AppConfigContext = createContext(null);

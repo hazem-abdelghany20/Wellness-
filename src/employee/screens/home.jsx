@@ -6,6 +6,8 @@ import {
 import { useDailyPlan } from '../hooks/use-daily-plan.js';
 import { tierFor } from '../lib/tiers.js';
 import { listSignatureChallenges } from '../../lib/supabase.js';
+import { useAppConfig } from '../state/app-config-context.jsx';
+import { prayerTimes, CAIRO } from '../lib/sun-times.js';
 
 // --- screens-home.jsx ---
 // Home / Today feed — 3 layout variants: 'list', 'stack', 'agenda'
@@ -38,6 +40,9 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const streak = state.streak;
 
   const { plan, completedIds, loading, complete } = useDailyPlan();
+  const { cfg } = useAppConfig();
+  const ramadan = cfg?.ramadanMode;
+  const times = React.useMemo(() => ramadan ? prayerTimes(new Date(), CAIRO) : null, [ramadan]);
   const [signatures, setSignatures] = React.useState([]);
   React.useEffect(() => {
     let alive = true;
@@ -86,6 +91,8 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
           </button>
         </div>
       </div>
+
+      {ramadan && times && <RamadanStrip theme={T} lang={lang} times={times}/>}
 
       <div style={{ padding: '8px 22px 22px' }}>
         <div style={{
@@ -200,6 +207,53 @@ function HomeLoading({ theme, dir }) {
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
+    </div>
+  );
+}
+
+function RamadanStrip({ theme, lang, times }) {
+  const T = theme;
+  // Sunset-leaning gradient that reads on both light and dark.
+  const grad = `linear-gradient(120deg, rgba(194,122,56,0.18), rgba(245,181,68,0.10))`;
+  return (
+    <div style={{ padding: '0 16px 8px' }}>
+      <div style={{
+        background: grad, border: `1px solid rgba(194,122,56,0.25)`,
+        borderRadius: 16, padding: '12px 16px',
+        display: 'flex', alignItems: 'center', gap: 14,
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          background: 'rgba(245,181,68,0.20)', color: '#C27A38',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="moon" size={18}/>
+        </div>
+        <div style={{
+          fontSize: 11, color: T.textMuted, fontWeight: 700, letterSpacing: 0.5,
+          textTransform: 'uppercase', minWidth: 64,
+        }}>
+          {lang === 'ar' ? 'وضع رمضان' : 'Ramadan'}
+        </div>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'space-around', gap: 8 }}>
+          <TimeBlock theme={T} label={lang === 'ar' ? 'سحور' : 'Suhoor'} value={times.suhoor}/>
+          <TimeBlock theme={T} label={lang === 'ar' ? 'إفطار' : 'Iftar'} value={times.iftar}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimeBlock({ theme, label, value }) {
+  const T = theme;
+  return (
+    <div style={{ textAlign: 'center', minWidth: 56 }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: T.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+        {value}
+      </div>
+      <div style={{ fontSize: 10, color: T.textMuted, marginTop: 3, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600 }}>
+        {label}
+      </div>
     </div>
   );
 }
