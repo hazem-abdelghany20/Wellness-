@@ -16,6 +16,7 @@ import { HRPeoplePage }     from './views/people.jsx';
 import { HRSafetyPage }     from './views/safety.jsx';
 import { HRContentPage }    from './views/content.jsx';
 import { HRChallengesPage } from './views/challenges.jsx';
+import { HRGiftsPage }      from './views/gifts.jsx';
 import { HRBroadcastsPage } from './views/broadcasts.jsx';
 import { HRReportsPage }    from './views/reports.jsx';
 import { HRSettingsPage }   from './views/settings.jsx';
@@ -157,6 +158,8 @@ function AppInner() {
             <HRContentPage theme={T} S={S} lang={cfg.lang} density={density}/>
           ) : nav === 'challenges' ? (
             <HRChallengesPage theme={T} S={S} lang={cfg.lang} density={density}/>
+          ) : nav === 'gifts' ? (
+            <HRGiftsPage theme={T} S={S} lang={cfg.lang} density={density}/>
           ) : nav === 'broadcasts' ? (
             <HRBroadcastsPage theme={T} S={S} lang={cfg.lang} density={density}/>
           ) : nav === 'reports' ? (

@@ -82,7 +82,7 @@ const HR_STRINGS = {
   en: {
     dashboard: 'Dashboard', teams: 'Teams', people: 'People',
     safety: 'Safety', content: 'Content', challenges: 'Challenges',
-    broadcasts: 'Broadcasts', reports: 'Reports', settings: 'Settings',
+    gifts: 'Gifts', broadcasts: 'Broadcasts', reports: 'Reports', settings: 'Settings',
     overview: 'Overview',
     tenant: 'Nile Group',
     search: 'Search teams, people, content…',
@@ -125,7 +125,7 @@ const HR_STRINGS = {
   ar: {
     dashboard: 'لوحة التحكم', teams: 'الفرق', people: 'الأشخاص',
     safety: 'السلامة', content: 'المحتوى', challenges: 'التحديات',
-    broadcasts: 'البث', reports: 'التقارير', settings: 'الإعدادات',
+    gifts: 'الهدايا', broadcasts: 'البث', reports: 'التقارير', settings: 'الإعدادات',
     overview: 'نظرة عامة',
     tenant: 'مجموعة النيل',
     search: 'ابحث عن الفرق، الأشخاص، المحتوى…',

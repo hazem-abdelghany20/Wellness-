@@ -44,6 +44,9 @@ function HRIcon({ name, size = 18, stroke, style = {} }) {
     globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></>,
     mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></>,
     phone: <><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></>,
+    gifts: <><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M3 12h18M12 8v13"/><path d="M12 8c-1.5 0-3.5-.8-3.5-2.5A2 2 0 0 1 12 5M12 8c1.5 0 3.5-.8 3.5-2.5A2 2 0 0 0 12 5"/></>,
+    star: <><path d="M12 3l2.7 6 6.3.6-4.8 4.3 1.4 6.4L12 17l-5.6 3.3L7.8 14 3 9.6l6.3-.6L12 3z" fill="currentColor" stroke="none"/></>,
+    coin: <><circle cx="12" cy="12" r="9"/><path d="M9 9.5h6M8.5 13l3 3 4-7"/></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"

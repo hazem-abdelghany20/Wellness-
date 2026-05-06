@@ -186,3 +186,150 @@ export async function updateCompanySettings(patch: Record<string, unknown>) {
   if (error) throw error;
   return data;
 }
+
+// ── Gifts engine (v2) ─────────────────────────────────────────
+
+export interface GiftPool {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string | null;
+  budget_minor: number;
+  spent_minor: number;
+  currency: string;
+  competition_id: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GiftCatalogItem {
+  id: string;
+  company_id: string | null;
+  name_en: string;
+  name_ar: string | null;
+  description_en: string | null;
+  description_ar: string | null;
+  category: 'wh_service' | 'amazon' | 'custom';
+  value_minor: number;
+  currency: string;
+  thumbnail_url: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AwardedRewardSummary {
+  id: string;
+  profile_id: string;
+  tier: 'bronze' | 'silver' | 'gold';
+  status: 'ready' | 'claimed' | 'fulfilled';
+  awarded_at: string;
+  claimed_at: string | null;
+  fulfilled_at: string | null;
+  chosen_item: { id: string; name_en: string; value_minor: number } | null;
+  profile?: { display_name: string | null; initials: string | null } | null;
+}
+
+export async function listGiftPools(): Promise<GiftPool[]> {
+  const { data, error } = await supabase
+    .from('gift_pools')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) {
+    if ((error as { code?: string }).code === '42P01') return [];
+    throw error;
+  }
+  return (data ?? []) as GiftPool[];
+}
+
+export async function listGiftCatalog(): Promise<GiftCatalogItem[]> {
+  const { data, error } = await supabase
+    .from('gift_catalog_items')
+    .select('*')
+    .eq('active', true)
+    .order('category', { ascending: true })
+    .order('name_en', { ascending: true });
+  if (error) {
+    if ((error as { code?: string }).code === '42P01') return [];
+    throw error;
+  }
+  return (data ?? []) as GiftCatalogItem[];
+}
+
+export async function listCompanyAwardedRewards(limit = 50): Promise<AwardedRewardSummary[]> {
+  const { data, error } = await supabase
+    .from('awarded_rewards')
+    .select(`
+      id, profile_id, tier, status, awarded_at, claimed_at, fulfilled_at,
+      chosen_item:gift_catalog_items(id, name_en, value_minor),
+      profile:profiles(display_name, initials)
+    `)
+    .order('awarded_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    if ((error as { code?: string }).code === '42P01') return [];
+    throw error;
+  }
+  return (data ?? []) as unknown as AwardedRewardSummary[];
+}
+
+export interface TierConfiguration {
+  id: string;
+  company_id: string;
+  competition_id: string;
+  tier: 'bronze' | 'silver' | 'gold';
+  gift_catalog_item_id: string | null;
+  allow_employee_choice: boolean;
+  choice_options: string[];
+  value_minor_override: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listTierConfigurations(competitionId?: string): Promise<TierConfiguration[]> {
+  let query = supabase.from('tier_configurations').select('*');
+  if (competitionId) query = query.eq('competition_id', competitionId);
+  const { data, error } = await query.order('competition_id').order('tier');
+  if (error) {
+    if ((error as { code?: string }).code === '42P01') return [];
+    throw error;
+  }
+  return (data ?? []) as TierConfiguration[];
+}
+
+export async function upsertTierConfiguration(
+  config: Omit<TierConfiguration, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+): Promise<TierConfiguration> {
+  const { data, error } = await supabase
+    .from('tier_configurations')
+    .upsert(config, { onConflict: 'competition_id,tier' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as TierConfiguration;
+}
+
+export async function upsertGiftPool(
+  pool: Omit<GiftPool, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+): Promise<GiftPool> {
+  const { data, error } = await supabase
+    .from('gift_pools')
+    .upsert(pool)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as GiftPool;
+}
+
+export async function upsertGiftCatalogItem(
+  item: Omit<GiftCatalogItem, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+): Promise<GiftCatalogItem> {
+  const { data, error } = await supabase
+    .from('gift_catalog_items')
+    .upsert(item)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as GiftCatalogItem;
+}

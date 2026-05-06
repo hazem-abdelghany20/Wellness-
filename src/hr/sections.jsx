@@ -99,6 +99,7 @@ function Sidebar({ theme, S, active, onNav, collapsed }) {
     { id: 'safety', key: 'safety', badge: 7 },
     { id: 'content', key: 'content' },
     { id: 'challenges', key: 'challenges' },
+    { id: 'gifts', key: 'gifts' },
     { id: 'broadcasts', key: 'broadcasts' },
     { id: 'reports', key: 'reports' },
   ];
