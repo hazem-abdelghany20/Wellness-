@@ -207,7 +207,7 @@ function StreakTierCard({ theme, t, lang, streak }) {
         </div>
         <div style={{
           padding: '4px 9px', borderRadius: 999,
-          background: info.color + '22',
+          background: info.colorSoft,
           color: info.color,
           fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
           whiteSpace: 'nowrap',

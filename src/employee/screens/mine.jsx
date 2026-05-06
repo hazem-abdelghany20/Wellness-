@@ -3,17 +3,10 @@ import {
   typeStyles, Icon, Card, SectionLabel,
 } from '../design-system.jsx';
 import { useWallet } from '../hooks/use-wallet.js';
-import { tierFor } from '../lib/tiers.js';
+import { tierToken } from '../../shared/tokens.jsx';
 
 // v2 Sprint 0 — Mine tab "wallet hero": read-only list of awarded rewards.
 // Edit / claim / choose flows arrive in Sprint 2.
-
-const TIER_COLORS = { bronze: '#C08458', silver: '#A0AEC0', gold: '#D4A65A' };
-const TIER_LABEL = {
-  bronze: { en: 'Bronze', ar: 'برونزي' },
-  silver: { en: 'Silver', ar: 'فضي' },
-  gold:   { en: 'Gold',   ar: 'ذهبي' },
-};
 
 function ScreenMine({ theme, t, dir }) {
   const T = theme;
@@ -90,8 +83,10 @@ function ScreenMine({ theme, t, dir }) {
 
 function RewardRow({ theme, t, lang, reward, divider }) {
   const T = theme;
-  const tierColor = TIER_COLORS[reward.tier] || T.accent;
-  const tierLabel = (TIER_LABEL[reward.tier] || { en: reward.tier, ar: reward.tier })[lang === 'ar' ? 'ar' : 'en'];
+  const tk = tierToken(reward.tier);
+  const tierColor = tk.accent;
+  const tierSoft = tk.accentSoft;
+  const tierLabel = tk.label[lang === 'ar' ? 'ar' : 'en'];
   const itemName = reward.chosen_item
     ? (lang === 'ar' && reward.chosen_item.name_ar ? reward.chosen_item.name_ar : reward.chosen_item.name_en)
     : t('rewardChooseCTA');
@@ -107,7 +102,7 @@ function RewardRow({ theme, t, lang, reward, divider }) {
     }}>
       <div style={{
         width: 42, height: 42, borderRadius: 12,
-        background: tierColor + '22', color: tierColor,
+        background: tierSoft, color: tierColor,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
         <Icon name="star" size={20}/>
@@ -122,7 +117,7 @@ function RewardRow({ theme, t, lang, reward, divider }) {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
           <span style={{
             padding: '2px 8px', borderRadius: 999,
-            background: tierColor + '22', color: tierColor,
+            background: tierSoft, color: tierColor,
             fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
           }}>{tierLabel}</span>
           <span style={{ fontSize: 11, color: T.textMuted }}>{t(statusKey)}</span>

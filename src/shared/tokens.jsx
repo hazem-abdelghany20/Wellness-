@@ -167,6 +167,28 @@ const HR_STRINGS = {
   },
 };
 
-Object.assign(window, { HR_THEMES, DENSITY, HR_STRINGS });
+// Gift / streak tier tokens — shared across employee Wallet, HR Gifts,
+// and any future Admin views. Values chosen to read on both light and
+// dark backgrounds without per-theme variants.
+const TIER_TOKENS = Object.freeze({
+  bronze: Object.freeze({
+    accent: '#B5683E', accentSoft: 'rgba(181,104,62,0.16)', ink: '#FFFFFF',
+    label: Object.freeze({ en: 'Bronze', ar: 'برونزي' }),
+  }),
+  silver: Object.freeze({
+    accent: '#8896A4', accentSoft: 'rgba(136,150,164,0.18)', ink: '#FFFFFF',
+    label: Object.freeze({ en: 'Silver', ar: 'فضي' }),
+  }),
+  gold: Object.freeze({
+    accent: '#C99738', accentSoft: 'rgba(201,151,56,0.18)', ink: '#1F1606',
+    label: Object.freeze({ en: 'Gold', ar: 'ذهبي' }),
+  }),
+});
 
-export { HR_THEMES, DENSITY, HR_STRINGS };
+const TIER_ORDER = Object.freeze(['bronze', 'silver', 'gold']);
+
+function tierToken(tier) {
+  return TIER_TOKENS[tier] || TIER_TOKENS.bronze;
+}
+
+export { HR_THEMES, DENSITY, HR_STRINGS, TIER_TOKENS, TIER_ORDER, tierToken };

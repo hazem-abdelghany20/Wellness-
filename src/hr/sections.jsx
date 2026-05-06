@@ -632,9 +632,4 @@ function PeopleYouManage({ theme, S, lang, density }) {
   );
 }
 
-Object.assign(window, {
-  HR_DATA, Sidebar, TopBar, KpiStrip, TrendsCard, AtRisk, TeamTable,
-  SafetyQueue, Broadcasts, ContentPins, ChallengesCard, PeopleYouManage,
-});
-
 export { HR_DATA, Sidebar, TopBar, KpiStrip, TrendsCard, AtRisk, TeamTable, SafetyQueue, Broadcasts, ContentPins, ChallengesCard, PeopleYouManage };

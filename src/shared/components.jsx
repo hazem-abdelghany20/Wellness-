@@ -310,8 +310,4 @@ function Toggle({ theme, value, onChange, size = 'md' }) {
   );
 }
 
-Object.assign(window, {
-  HRIcon, HRButton, Panel, PanelHeader, Badge, Delta, Spark, TrendChart, Bullet, AvatarMark, Toggle,
-});
-
 export { HRIcon, HRButton, Panel, PanelHeader, Badge, Delta, Spark, TrendChart, Bullet, AvatarMark, Toggle };

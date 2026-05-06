@@ -634,11 +634,6 @@ function AdminTeam({ theme, density, lang }) {
   );
 }
 
-Object.assign(window, {
-  ADMIN_DATA, AdminSidebar, AdminTopBar, AdminKpiStrip, DauMauChart,
-  TenantsTable, ContentHealth, IntegrationsStatus, AuditLog, FeatureFlags, AdminTeam,
-});
-
 export {
   ADMIN_DATA, AdminSidebar, AdminTopBar, AdminKpiStrip, DauMauChart,
   TenantsTable, ContentHealth, IntegrationsStatus, AuditLog,
