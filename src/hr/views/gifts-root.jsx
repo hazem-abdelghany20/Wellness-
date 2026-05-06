@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { HRGiftsOverview } from './gifts.jsx';
 import { HRGiftCatalogPage } from './gifts-catalog.jsx';
+import { HRGiftTiersPage } from './gifts-tiers.jsx';
 
-// Sub-section router for Gifts. Sprint 1 ships overview + catalog;
-// Sprint 2 extends with tier configuration + per-pool management.
+// Sub-section router for Gifts. Sprint 1 shipped overview + catalog;
+// Sprint 2 adds tier rewards. Per-pool management still pending.
 
 function HRGiftsRoot({ theme, S, lang, density }) {
   const T = theme;
@@ -27,7 +28,7 @@ function HRGiftsRoot({ theme, S, lang, density }) {
       }}>
         {sections.map(sec => {
           const active = section === sec.id;
-          const stub = sec.id === 'tiers' || sec.id === 'pools';
+          const stub = sec.id === 'pools';
           return (
             <button key={sec.id} onClick={() => setSection(sec.id)} style={{
               padding: '8px 16px', borderRadius: 8,
@@ -52,10 +53,7 @@ function HRGiftsRoot({ theme, S, lang, density }) {
         <HRGiftCatalogPage theme={T} lang={lang} density={density}/>
       )}
       {section === 'tiers' && (
-        <ComingSoon theme={T} lang={lang}
-          title={s('Tier rewards configuration', 'إعداد مكافآت المراحل')}
-          desc={s('Map Bronze / Silver / Gold to gift items per competition. Ships in Sprint 2.',
-                 'اربط البرونزي/الفضي/الذهبي بعناصر الكتالوج لكل تحدٍّ. ستصدر في Sprint 2.')}/>
+        <HRGiftTiersPage theme={T} lang={lang} density={density}/>
       )}
       {section === 'pools' && (
         <ComingSoon theme={T} lang={lang}
