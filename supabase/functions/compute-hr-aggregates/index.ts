@@ -53,8 +53,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Belt-and-suspenders 5+ floor verification — re-read the rows we
+    // just wrote and confirm every group_size is >= 5. The DB CHECK
+    // constraint already prevents sub-5 writes; this guards against any
+    // future code path that attempts a direct upsert.
+    const { data: written } = await supabase
+      .from('hr_weekly_aggregates')
+      .select('group_size, week_start, team_id')
+      .eq('company_id', companyId)
+      .in('week_start', weeks);
+
+    const violations = (written ?? []).filter((r: { group_size: number }) => r.group_size < 5);
+    if (violations.length > 0) {
+      console.error('[compute-hr-aggregates] privacy floor violation', violations);
+    }
+
     return new Response(
-      JSON.stringify({ computed }),
+      JSON.stringify({
+        computed,
+        privacy: {
+          group_floor: 5,
+          dp_epsilon: 2,
+          dp_metrics: ['avg_sleep', 'avg_stress', 'avg_energy', 'avg_mood', 'checkin_rate'],
+          violations: violations.length,
+        },
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
