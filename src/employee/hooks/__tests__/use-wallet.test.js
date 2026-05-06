@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 
-vi.mock('../../../lib/supabase', () => ({ listMyAwardedRewards: vi.fn() }));
+vi.mock('../../../lib/supabase', () => ({
+  listMyAwardedRewards: vi.fn(),
+  claimMyReward: vi.fn(),
+}));
 
-import { listMyAwardedRewards } from '../../../lib/supabase';
+import { listMyAwardedRewards, claimMyReward } from '../../../lib/supabase';
 import { useWallet } from '../use-wallet';
 
 const mkReward = (over = {}) => ({
@@ -83,5 +86,17 @@ describe('useWallet', () => {
     const { result } = renderHook(() => useWallet());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.grouped).toEqual({ ready: [], claimed: [], fulfilled: [] });
+  });
+
+  it('claim() calls the RPC with reward + chosen item then refetches', async () => {
+    listMyAwardedRewards
+      .mockResolvedValueOnce([mkReward({ id: 'r1', status: 'ready' })])
+      .mockResolvedValueOnce([mkReward({ id: 'r1', status: 'claimed' })]);
+    claimMyReward.mockResolvedValue({ id: 'r1', status: 'claimed' });
+    const { result } = renderHook(() => useWallet());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => { await result.current.claim('r1', 'item-7'); });
+    expect(claimMyReward).toHaveBeenCalledWith('r1', 'item-7');
+    expect(result.current.rewards[0].status).toBe('claimed');
   });
 });

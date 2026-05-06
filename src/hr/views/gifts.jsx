@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DENSITY, tierToken } from '../../shared/tokens.jsx';
 import { HRButton, HRIcon, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useGiftsOverview } from '../hooks/use-gifts.js';
+import { markRewardFulfilled } from '../../lib/supabase-hr';
 
 // HR Gifts overview — v2 Sprint 1.
 // 4 stat cards · 3 quick actions · activity feed.
@@ -11,7 +12,7 @@ import { useGiftsOverview } from '../hooks/use-gifts.js';
 function HRGiftsOverview({ theme, S, lang, density, onSection }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
-  const { rewards, stats, loading, error } = useGiftsOverview();
+  const { rewards, stats, loading, error, refetch } = useGiftsOverview();
   const gap = DENSITY[density].gap;
 
   if (loading) {
@@ -107,7 +108,8 @@ function HRGiftsOverview({ theme, S, lang, density, onSection }) {
           <div>
             {rewards.slice(0, 12).map((r, i) => (
               <ActivityRow key={r.id} theme={T} lang={lang} reward={r}
-                divider={i < Math.min(rewards.length, 12) - 1}/>
+                divider={i < Math.min(rewards.length, 12) - 1}
+                onFulfilled={refetch}/>
             ))}
             {rewards.length > 12 && (
               <div style={{ padding: '12px 0 0', textAlign: 'center', fontSize: 12, color: T.textMuted }}>
@@ -172,7 +174,7 @@ function QuickAction({ theme, icon, title, sub, onClick }) {
   );
 }
 
-function ActivityRow({ theme, lang, reward, divider }) {
+function ActivityRow({ theme, lang, reward, divider, onFulfilled }) {
   const T = theme;
   const tk = tierToken(reward.tier);
   const tierLabel = tk.label[lang === 'ar' ? 'ar' : 'en'];
@@ -184,6 +186,22 @@ function ActivityRow({ theme, lang, reward, divider }) {
     : reward.status === 'claimed' ? (lang === 'ar' ? 'قيد التنفيذ' : 'Pending')
     : (lang === 'ar' ? 'تم التسليم' : 'Delivered');
   const when = formatRelative(reward.awarded_at, lang);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const isClaimed = reward.status === 'claimed';
+
+  const handleFulfill = async () => {
+    if (busy) return;
+    setBusy(true); setErr(null);
+    try {
+      await markRewardFulfilled(reward.id, 'manual', { source: 'overview_quick_action' });
+      onFulfilled?.();
+    } catch (e) {
+      setErr(e?.message || 'failed');
+      setBusy(false);
+    }
+  };
 
   return (
     <div style={{
@@ -200,16 +218,26 @@ function ActivityRow({ theme, lang, reward, divider }) {
         <div style={{ fontSize: 13, color: T.text, fontWeight: 500, lineHeight: 1.3 }}>
           {name} · {itemName}
         </div>
-        <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{when}</div>
+        <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
+          {when}{err ? ` · ${err}` : ''}
+        </div>
       </div>
       <span style={{
         padding: '2px 8px', borderRadius: 999,
         background: tk.accentSoft, color: tk.accent,
         fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
       }}>{tierLabel}</span>
-      <span style={{ fontSize: 11, color: T.textMuted, minWidth: 70, textAlign: 'end' }}>
-        {statusLabel}
-      </span>
+      {isClaimed ? (
+        <HRButton theme={T} variant="primary" disabled={busy} onClick={handleFulfill}>
+          {busy
+            ? (lang === 'ar' ? '…' : '…')
+            : (lang === 'ar' ? 'تأكيد التسليم' : 'Mark fulfilled')}
+        </HRButton>
+      ) : (
+        <span style={{ fontSize: 11, color: T.textMuted, minWidth: 70, textAlign: 'end' }}>
+          {statusLabel}
+        </span>
+      )}
     </div>
   );
 }

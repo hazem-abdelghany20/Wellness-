@@ -359,3 +359,68 @@ export async function listMyAwardedRewards(): Promise<AwardedReward[]> {
   }
   return (data ?? []) as unknown as AwardedReward[];
 }
+
+export interface TierChoiceOption {
+  id: string;
+  name_en: string;
+  name_ar: string | null;
+  description_en: string | null;
+  description_ar: string | null;
+  value_minor: number;
+  currency: string;
+  thumbnail_url: string | null;
+}
+
+export interface TierChoice {
+  allow_choice: boolean;
+  fixed_item: TierChoiceOption | null;
+  options: TierChoiceOption[];
+}
+
+export async function getTierChoiceForReward(
+  competitionId: string,
+  tier: 'bronze' | 'silver' | 'gold'
+): Promise<TierChoice | null> {
+  const { data: cfg, error: cfgErr } = await supabase
+    .from('tier_configurations')
+    .select('allow_employee_choice, gift_catalog_item_id, choice_options')
+    .eq('competition_id', competitionId)
+    .eq('tier', tier)
+    .maybeSingle();
+  if (cfgErr) {
+    if ((cfgErr as { code?: string }).code === '42P01') return null;
+    throw cfgErr;
+  }
+  if (!cfg) return null;
+
+  const ids: string[] = cfg.allow_employee_choice
+    ? (cfg.choice_options as string[] || [])
+    : (cfg.gift_catalog_item_id ? [cfg.gift_catalog_item_id as string] : []);
+  if (ids.length === 0) {
+    return { allow_choice: !!cfg.allow_employee_choice, fixed_item: null, options: [] };
+  }
+  const { data: items, error: itemsErr } = await supabase
+    .from('gift_catalog_items')
+    .select('id, name_en, name_ar, description_en, description_ar, value_minor, currency, thumbnail_url')
+    .in('id', ids)
+    .eq('active', true);
+  if (itemsErr) throw itemsErr;
+  const opts = (items ?? []) as TierChoiceOption[];
+  return {
+    allow_choice: !!cfg.allow_employee_choice,
+    fixed_item: cfg.allow_employee_choice ? null : (opts[0] ?? null),
+    options: opts,
+  };
+}
+
+export async function claimMyReward(
+  rewardId: string,
+  chosenItemId?: string
+): Promise<AwardedReward> {
+  const { data, error } = await supabase.rpc('claim_my_reward', {
+    p_reward_id: rewardId,
+    p_chosen_item: chosenItemId ?? null,
+  });
+  if (error) throw error;
+  return data as AwardedReward;
+}

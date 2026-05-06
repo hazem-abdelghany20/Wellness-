@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { listMyAwardedRewards } from '../../lib/supabase';
+import { listMyAwardedRewards, claimMyReward } from '../../lib/supabase';
 
 const STATUS_ORDER = { ready: 0, claimed: 1, fulfilled: 2 };
 
@@ -36,5 +36,11 @@ export function useWallet() {
     });
   }, [rewards]);
 
-  return { rewards: sorted, grouped, loading, error, refetch };
+  const claim = useCallback(async (rewardId, chosenItemId) => {
+    const updated = await claimMyReward(rewardId, chosenItemId);
+    await refetch();
+    return updated;
+  }, [refetch]);
+
+  return { rewards: sorted, grouped, loading, error, refetch, claim };
 }

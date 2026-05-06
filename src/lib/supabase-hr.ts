@@ -333,3 +333,19 @@ export async function upsertGiftCatalogItem(
   if (error) throw error;
   return data as GiftCatalogItem;
 }
+
+export async function markRewardFulfilled(
+  rewardId: string,
+  deliveryMethod: 'manual' | 'tremendous' | 'voucher_code' = 'manual',
+  deliveryDetails: Record<string, unknown> = {},
+  notes?: string
+) {
+  const { data, error } = await supabase.rpc('mark_reward_fulfilled', {
+    p_reward_id: rewardId,
+    p_delivery_method: deliveryMethod,
+    p_delivery_details: deliveryDetails,
+    p_notes: notes ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
