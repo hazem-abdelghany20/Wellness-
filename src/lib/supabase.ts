@@ -424,3 +424,115 @@ export async function claimMyReward(
   if (error) throw error;
   return data as AwardedReward;
 }
+
+// ── Signature competitions (Sabr / Niyyah / Ramadan Mode — v2 Sprint 3)
+
+export interface SignatureChallenge {
+  id: string;
+  title_en: string;
+  title_ar: string | null;
+  description_en: string | null;
+  description_ar: string | null;
+  theme: string | null;
+  cultural_context: string | null;
+  duration_days: number | null;
+  badge_color: string | null;
+  badge_icon: string | null;
+  start_date: string;
+  end_date: string;
+  active: boolean;
+}
+
+export interface PracticeDay {
+  id: string;
+  challenge_id: string;
+  day_number: number;
+  title_en: string;
+  title_ar: string | null;
+  body_en: string;
+  body_ar: string | null;
+  prompt_en: string | null;
+  prompt_ar: string | null;
+}
+
+export interface PracticeCompletion {
+  challenge_id: string;
+  day_number: number;
+  completed_at: string;
+  reflection: string | null;
+}
+
+export async function listSignatureChallenges(): Promise<SignatureChallenge[]> {
+  const { data, error } = await supabase
+    .from('challenges')
+    .select('id, title_en, title_ar, description_en, description_ar, theme, cultural_context, duration_days, badge_color, badge_icon, start_date, end_date, active')
+    .not('theme', 'is', null)
+    .eq('active', true)
+    .order('start_date', { ascending: false });
+  if (error) {
+    if ((error as { code?: string }).code === '42P01') return [];
+    if ((error as { code?: string }).code === '42703') return []; // theme column missing
+    throw error;
+  }
+  return (data ?? []) as SignatureChallenge[];
+}
+
+export async function getCompetitionPath(challengeId: string): Promise<{
+  challenge: SignatureChallenge | null;
+  days: PracticeDay[];
+  completions: PracticeCompletion[];
+}> {
+  const [chRes, daysRes, compRes] = await Promise.all([
+    supabase
+      .from('challenges')
+      .select('id, title_en, title_ar, description_en, description_ar, theme, cultural_context, duration_days, badge_color, badge_icon, start_date, end_date, active')
+      .eq('id', challengeId)
+      .maybeSingle(),
+    supabase
+      .from('competition_practice_days')
+      .select('*')
+      .eq('challenge_id', challengeId)
+      .order('day_number'),
+    supabase
+      .from('practice_completions')
+      .select('challenge_id, day_number, completed_at, reflection')
+      .eq('challenge_id', challengeId)
+      .order('day_number'),
+  ]);
+
+  const swallow = (e: unknown) => {
+    const code = (e as { code?: string })?.code;
+    return code === '42P01' || code === '42703';
+  };
+  if (chRes.error && !swallow(chRes.error)) throw chRes.error;
+  if (daysRes.error && !swallow(daysRes.error)) throw daysRes.error;
+  if (compRes.error && !swallow(compRes.error)) throw compRes.error;
+
+  return {
+    challenge: (chRes.data ?? null) as SignatureChallenge | null,
+    days: (daysRes.data ?? []) as PracticeDay[],
+    completions: (compRes.data ?? []) as PracticeCompletion[],
+  };
+}
+
+export async function completePracticeDay(
+  challengeId: string,
+  dayNumber: number,
+  reflection?: string
+): Promise<PracticeCompletion> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('not_authenticated');
+  const { data, error } = await supabase
+    .from('practice_completions')
+    .upsert({
+      challenge_id: challengeId,
+      user_id: user.id,
+      day_number: dayNumber,
+      reflection: reflection || null,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: 'challenge_id,user_id,day_number' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as PracticeCompletion;
+}

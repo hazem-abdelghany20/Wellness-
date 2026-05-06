@@ -22,6 +22,7 @@ import { ScreenProfile }  from './screens/profile.jsx';
 import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
 import { ScreenNotifs } from './screens/notifications.jsx';
 import { ScreenMine } from './screens/mine.jsx';
+import { ScreenCompetitionPath } from './screens/competition-path.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
 import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx';
 import { AuthProvider, useAuth } from './state/auth-context.jsx';
@@ -29,7 +30,7 @@ import { Splash } from './screens/splash.jsx';
 import { useNotifications } from './hooks/use-notifications.js';
 
 const ONBOARDING_SCREENS = ['join', 'otp', 'consent', 'name', 'baseline', 'goals', 'welcome'];
-const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'profile', 'mine', 'breathe', 'player', 'notifs'];
+const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'profile', 'mine', 'breathe', 'player', 'notifs', 'competition-path'];
 
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
@@ -120,6 +121,7 @@ function AppInner() {
   const [streak, setStreak] = React.useState(21);
   const [joined, setJoined] = React.useState(false);
   const [playerItem, setPlayerItem] = React.useState(null);
+  const [competitionId, setCompetitionId] = React.useState(null);
   const [avatar, setAvatar] = React.useState(() => localStorage.getItem('wellness-plus-avatar') || 'monogram');
   const [name, setName] = React.useState(() => localStorage.getItem('wellness-plus-name') || 'Layla');
 
@@ -176,6 +178,9 @@ function AppInner() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   const go = (s, extra) => {
+    if (s === 'competition-path' && extra?.id) {
+      setCompetitionId(extra.id);
+    }
     if (s === 'player' && extra) {
       // Library now passes a fully-shaped item from the DB row.
       if (extra.item) {
@@ -234,6 +239,7 @@ function AppInner() {
     case 'challenges': content = <ScreenChallenges theme={theme} t={t} dir={dir} go={go} variant={cfg.leaderboardVariant} state={state}/>; showTabs = true; break;
     case 'progress': content = <ScreenProgress theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
     case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
+    case 'competition-path': content = <ScreenCompetitionPath theme={theme} t={t} dir={dir} go={go} challengeId={competitionId}/>; break;
     case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state}/>; showTabs = true; break;
     default:         content = <ScreenHome theme={theme} t={t} dir={dir} go={go} variant={cfg.homeVariant} state={state}/>; showTabs = true;
   }

@@ -5,6 +5,7 @@ import {
 } from '../design-system.jsx';
 import { useDailyPlan } from '../hooks/use-daily-plan.js';
 import { tierFor } from '../lib/tiers.js';
+import { listSignatureChallenges } from '../../lib/supabase.js';
 
 // --- screens-home.jsx ---
 // Home / Today feed — 3 layout variants: 'list', 'stack', 'agenda'
@@ -37,6 +38,14 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const streak = state.streak;
 
   const { plan, completedIds, loading, complete } = useDailyPlan();
+  const [signatures, setSignatures] = React.useState([]);
+  React.useEffect(() => {
+    let alive = true;
+    listSignatureChallenges()
+      .then((rows) => { if (alive) setSignatures(rows); })
+      .catch(() => { /* swallow — strip just won't render */ });
+    return () => { alive = false; };
+  }, []);
 
   if (loading) {
     return <HomeLoading theme={T} dir={dir}/>;
@@ -98,6 +107,19 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
           </Card>
         </div>
       </div>
+
+      {/* Signature paths (Sabr / Niyyah / Ramadan Mode) */}
+      {signatures.length > 0 && (
+        <>
+          <SectionLabel theme={T}>{lang === 'ar' ? 'مسارات مميّزة' : 'Featured paths'}</SectionLabel>
+          <div style={{ padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {signatures.map(sig => (
+              <SignaturePathCard key={sig.id} theme={T} lang={lang} sig={sig}
+                onOpen={() => go('competition-path', { id: sig.id })}/>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Today's plan */}
       <SectionLabel theme={T}>{t('todaysPlan')}</SectionLabel>
@@ -179,6 +201,51 @@ function HomeLoading({ theme, dir }) {
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
     </div>
+  );
+}
+
+function SignaturePathCard({ theme, lang, sig, onOpen }) {
+  const T = theme;
+  const title = (lang === 'ar' && sig.title_ar) ? sig.title_ar : sig.title_en;
+  const desc = (lang === 'ar' && sig.description_ar) ? sig.description_ar : sig.description_en;
+  const accent = sig.badge_color || T.accent;
+  const days = sig.duration_days;
+  const subtle = sig.theme === 'sabr' ? (lang === 'ar' ? 'صبر' : 'Sabr')
+    : sig.theme === 'niyyah' ? (lang === 'ar' ? 'نيّة' : 'Niyyah')
+    : (lang === 'ar' ? 'مسار' : 'Path');
+  return (
+    <button onClick={onOpen} type="button" style={{
+      background: T.surface, border: `1px solid ${T.border}`, borderRadius: 18,
+      padding: 14, color: T.text, fontFamily: 'inherit', cursor: 'pointer',
+      textAlign: 'start', width: '100%',
+      borderInlineStart: `4px solid ${accent}`,
+      display: 'flex', alignItems: 'center', gap: 14,
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+        background: accent + '22', color: accent,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={sig.theme === 'sabr' ? 'leaf' : sig.theme === 'niyyah' ? 'target' : 'trophy'} size={22}/>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 10, color: T.textMuted, letterSpacing: 0.4,
+          textTransform: 'uppercase', fontWeight: 700, marginBottom: 2,
+        }}>
+          {subtle}{days ? ` · ${days} ${lang === 'ar' ? 'يوماً' : 'days'}` : ''}
+        </div>
+        <div style={{ fontSize: 15, color: T.text, fontWeight: 600, lineHeight: 1.2 }}>{title}</div>
+        {desc && (
+          <div style={{
+            fontSize: 12, color: T.textMuted, marginTop: 4, lineHeight: 1.4,
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>{desc}</div>
+        )}
+      </div>
+      <Icon name={lang === 'ar' ? 'chevL' : 'chev'} size={16} style={{ color: T.textMuted, flexShrink: 0 }}/>
+    </button>
   );
 }
 
