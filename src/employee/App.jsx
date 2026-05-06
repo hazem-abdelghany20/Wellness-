@@ -23,6 +23,7 @@ import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
 import { ScreenNotifs } from './screens/notifications.jsx';
 import { ScreenMine } from './screens/mine.jsx';
 import { ScreenCompetitionPath } from './screens/competition-path.jsx';
+import { InstallBanner } from './components/install-banner.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
 import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx';
 import { AuthProvider, useAuth } from './state/auth-context.jsx';
@@ -261,6 +262,7 @@ function AppInner() {
               <BellBadge theme={theme} count={unreadCount} dir={dir}/>
             )}
             {showTabs && <TabBar theme={theme} t={t} dir={dir} active={screen} onTab={go}/>}
+            {showTabs && <InstallBanner theme={theme} lang={lang}/>}
           </div>
         </IOSDevice>
       </div>
