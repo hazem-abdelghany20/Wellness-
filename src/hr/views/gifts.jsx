@@ -8,7 +8,7 @@ import { useGiftsOverview } from '../hooks/use-gifts.js';
 // 4 stat cards · 3 quick actions · activity feed.
 // Catalog management ships in HRGiftCatalogPage; tier-config in Sprint 2.
 
-function HRGiftsPage({ theme, S, lang, density, onSection }) {
+function HRGiftsOverview({ theme, S, lang, density, onSection }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { rewards, stats, loading, error } = useGiftsOverview();
@@ -255,4 +255,4 @@ function formatRelative(iso, lang = 'en') {
   return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US');
 }
 
-export { HRGiftsPage };
+export { HRGiftsOverview };
