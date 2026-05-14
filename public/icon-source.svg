@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background: brand dark teal (matches manifest theme_color) -->
+  <rect width="512" height="512" rx="112" ry="112" fill="#0a1615"/>
+
+  <!-- Safe area for maskable icons: content stays within central 80% (51.2px inset from each edge).
+       Mark below sits inside 110-402 box on both axes. -->
+
+  <!-- Outer ring: subtle teal accent -->
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#1f3d3a" stroke-width="6"/>
+
+  <!-- Wellness "+" mark with rounded caps -->
+  <g fill="#7ee0c8">
+    <!-- vertical bar -->
+    <rect x="240" y="148" width="32" height="216" rx="16" ry="16"/>
+    <!-- horizontal bar -->
+    <rect x="148" y="240" width="216" height="32" rx="16" ry="16"/>
+  </g>
+
+  <!-- Soft glow dot at center for warmth -->
+  <circle cx="256" cy="256" r="12" fill="#0a1615"/>
+</svg>

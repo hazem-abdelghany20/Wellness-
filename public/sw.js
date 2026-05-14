@@ -1,19 +1,24 @@
-/* Wellness+ service worker — v1.
+/* Wellness+ service worker — v2.
  * Strategy:
- *   - precache: HTML entry + manifest at install time.
+ *   - precache: HTML entry + manifest + icons + offline page at install time.
  *   - runtime: cache-first for hashed assets (JS / CSS / fonts / images).
  *   - runtime: network-first with cache fallback for everything else.
  *   - never cache /rest/v1/ or /functions/v1/ (Supabase API + edge fns).
+ *   - bump VERSION whenever sw.js changes to force precache refresh.
  */
-const VERSION = 'wellness-v1';
+const VERSION = 'wellness-v2';
 const PRECACHE = `${VERSION}-precache`;
 const RUNTIME  = `${VERSION}-runtime`;
 
 const PRECACHE_URLS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/manifest.webmanifest',
-  '/wellness-mark.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+  '/favicon-32.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -95,7 +100,9 @@ async function networkFirst(req) {
   } catch {
     const cached = await cache.match(req);
     if (cached) return cached;
-    // Final fallback: serve the precached app shell.
+    // Final fallback: branded offline page, then precached shell.
+    const offline = await caches.match('/offline.html');
+    if (offline) return offline;
     const shell = await caches.match('/index.html');
     if (shell) return shell;
     return new Response('Offline', {
