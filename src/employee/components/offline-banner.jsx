@@ -28,7 +28,9 @@ export function OfflineBanner({ theme, lang }) {
       role="status"
       aria-live="polite"
       style={{
-        position: 'absolute', left: 16, right: 16, top: 12, zIndex: 50,
+        // Sit below the iOS-frame status bar (~62px tall) so we don't
+        // clip the notch/clock readout.
+        position: 'absolute', left: 16, right: 16, top: 68, zIndex: 50,
         background: T.surface, border: `1px solid ${T.border}`,
         borderRadius: 12, padding: '8px 12px',
         display: 'flex', alignItems: 'center', gap: 10,

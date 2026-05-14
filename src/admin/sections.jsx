@@ -118,7 +118,7 @@ function AdminSidebar({ theme, active, onNav, lang }) {
       position: 'sticky', top: 0, height: '100vh', zIndex: 10,
     }}>
       <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <img src="assets/wellness-mark.png" alt="" style={{ height: 22, filter: 'brightness(0) invert(1)' }}/>
+        <img src="/wellness-mark.png" alt="" style={{ height: 22, filter: 'brightness(0) invert(1)' }}/>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: T.sidebarMark, letterSpacing: -0.3, lineHeight: 1 }}>
             Wellness<span style={{ color: T.sidebarActive }}>+</span>

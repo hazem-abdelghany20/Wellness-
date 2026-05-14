@@ -293,7 +293,7 @@ function WellnessMark({ theme, size = 22, showText = true }) {
   const w = h * (551 / 274);
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      <img src="assets/wellness-mark.png" alt="Wellness+" style={{ height: h, width: w, display: 'block' }}/>
+      <img src="/wellness-mark.png" alt="Wellness+" style={{ height: h, width: w, display: 'block' }}/>
       {showText && (
         <span style={{
           fontFamily: typeStyles(t).displayFont, fontSize: Math.round(size * 0.9), fontWeight: 500,
