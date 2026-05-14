@@ -211,3 +211,140 @@ INSERT INTO public.tier_configurations (
    true,
    ARRAY['00000000-0000-0000-0010-000000000001'::UUID, '00000000-0000-0000-0010-000000000002'::UUID, '00000000-0000-0000-0010-000000000004'::UUID])
 ON CONFLICT (competition_id, tier) DO NOTHING;
+
+-- ── Demo employees (Wellhouse Group) ─────────────────────────
+-- Six profiles across Engineering / Finance / People-Ops, used by the
+-- Foundever-style walkthrough so Wallet hero, Mine tab, and HR Gifts
+-- overview all render with real data.
+--
+-- These insert directly into auth.users (Supabase service-role pattern)
+-- and let the on_auth_user_created trigger create the profile stub, then
+-- we UPDATE the stub to attach team_id / display_name / role / streaks.
+-- handle_new_user pulls company_code from raw_user_meta_data → maps to
+-- '00000000-0000-0000-0000-000000000001' via WH-4782.
+
+INSERT INTO auth.users (
+  id, instance_id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token
+) VALUES
+  ('00000000-0000-0000-1000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'amira.hassan@demo.wellhouse.test', crypt('demo-password-1', gen_salt('bf')),
+   now(), jsonb_build_object('provider','email','company_id','00000000-0000-0000-0000-000000000001','role','employee'),
+   jsonb_build_object('company_code','WH-4782','display_name','Amira Hassan'),
+   now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-1000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'yusuf.naguib@demo.wellhouse.test', crypt('demo-password-2', gen_salt('bf')),
+   now(), jsonb_build_object('provider','email','company_id','00000000-0000-0000-0000-000000000001','role','employee'),
+   jsonb_build_object('company_code','WH-4782','display_name','Yusuf Naguib'),
+   now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-1000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'lina.farouk@demo.wellhouse.test', crypt('demo-password-3', gen_salt('bf')),
+   now(), jsonb_build_object('provider','email','company_id','00000000-0000-0000-0000-000000000001','role','employee'),
+   jsonb_build_object('company_code','WH-4782','display_name','Lina Farouk'),
+   now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-1000-000000000004', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'omar.sami@demo.wellhouse.test', crypt('demo-password-4', gen_salt('bf')),
+   now(), jsonb_build_object('provider','email','company_id','00000000-0000-0000-0000-000000000001','role','employee'),
+   jsonb_build_object('company_code','WH-4782','display_name','Omar Sami'),
+   now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-1000-000000000005', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'nadia.kamel@demo.wellhouse.test', crypt('demo-password-5', gen_salt('bf')),
+   now(), jsonb_build_object('provider','email','company_id','00000000-0000-0000-0000-000000000001','role','manager'),
+   jsonb_build_object('company_code','WH-4782','display_name','Nadia Kamel'),
+   now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-1000-000000000006', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'sara.hr@demo.wellhouse.test', crypt('demo-password-6', gen_salt('bf')),
+   now(), jsonb_build_object('provider','email','company_id','00000000-0000-0000-0000-000000000001','role','hr_admin'),
+   jsonb_build_object('company_code','WH-4782','display_name','Sara Anwar'),
+   now(), now(), '', '', '', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- Upsert profile rows (handle_new_user trigger created stubs above; this
+-- fills in role / team / streaks / onboarded flag).
+INSERT INTO public.profiles (
+  id, company_id, team_id, display_name, role,
+  baseline_sleep, baseline_stress, baseline_energy, baseline_mood,
+  streak_current, streak_best, checkins_total, onboarded, consented_at
+) VALUES
+  ('00000000-0000-0000-1000-000000000001', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0001-000000000001', 'Amira Hassan',  'employee',
+   6, 5, 6, 7, 12, 18, 47, true, now() - INTERVAL '60 days'),
+  ('00000000-0000-0000-1000-000000000002', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0001-000000000001', 'Yusuf Naguib',  'employee',
+   7, 4, 7, 7,  5,  9, 22, true, now() - INTERVAL '45 days'),
+  ('00000000-0000-0000-1000-000000000003', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0001-000000000002', 'Lina Farouk',   'employee',
+   5, 6, 5, 6,  8, 14, 31, true, now() - INTERVAL '50 days'),
+  ('00000000-0000-0000-1000-000000000004', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0001-000000000002', 'Omar Sami',     'employee',
+   6, 5, 6, 7,  3,  6, 14, true, now() - INTERVAL '30 days'),
+  ('00000000-0000-0000-1000-000000000005', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0001-000000000003', 'Nadia Kamel',   'manager',
+   7, 4, 8, 8, 21, 21, 63, true, now() - INTERVAL '80 days'),
+  ('00000000-0000-0000-1000-000000000006', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0001-000000000003', 'Sara Anwar',    'hr_admin',
+   7, 5, 7, 7,  6, 11, 28, true, now() - INTERVAL '70 days')
+ON CONFLICT (id) DO UPDATE SET
+  team_id        = EXCLUDED.team_id,
+  display_name   = EXCLUDED.display_name,
+  role           = EXCLUDED.role,
+  baseline_sleep = EXCLUDED.baseline_sleep,
+  baseline_stress= EXCLUDED.baseline_stress,
+  baseline_energy= EXCLUDED.baseline_energy,
+  baseline_mood  = EXCLUDED.baseline_mood,
+  streak_current = EXCLUDED.streak_current,
+  streak_best    = EXCLUDED.streak_best,
+  checkins_total = EXCLUDED.checkins_total,
+  onboarded      = EXCLUDED.onboarded,
+  consented_at   = EXCLUDED.consented_at;
+
+-- ── Awarded rewards demo data ───────────────────────────────
+-- One reward per status (ready / claimed / fulfilled) for Amira so the
+-- Wallet hero shows all three lifecycle states. Sprinkle one ready
+-- reward across two other employees so the HR Gifts overview activity
+-- feed has real rows.
+INSERT INTO public.awarded_rewards (
+  id, profile_id, company_id, competition_id, tier,
+  chosen_item_id, status, fulfillment_method, notes,
+  awarded_at, claimed_at, fulfilled_at
+) VALUES
+  -- Amira: gold tier, choose flow not yet exercised → status=ready.
+  ('00000000-0000-0000-2000-000000000001',
+   '00000000-0000-0000-1000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001', 'gold',
+   NULL, 'ready', 'manual',
+   'Top of Sleep Sprint leaderboard — pick a gold reward.',
+   now() - INTERVAL '2 days', NULL, NULL),
+  -- Amira: silver tier from a prior sprint, claimed Stress Less workshop.
+  ('00000000-0000-0000-2000-000000000002',
+   '00000000-0000-0000-1000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001', 'silver',
+   '00000000-0000-0000-0010-000000000003', 'claimed', 'manual',
+   NULL,
+   now() - INTERVAL '14 days', now() - INTERVAL '12 days', NULL),
+  -- Amira: bronze tier from earlier — fulfilled.
+  ('00000000-0000-0000-2000-000000000003',
+   '00000000-0000-0000-1000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001', 'bronze',
+   '00000000-0000-0000-0010-000000000006', 'fulfilled', 'manual',
+   'Quarterly wellbeing review delivered 2026-04-22.',
+   now() - INTERVAL '40 days', now() - INTERVAL '38 days', now() - INTERVAL '21 days'),
+  -- Lina: silver, ready to claim.
+  ('00000000-0000-0000-2000-000000000004',
+   '00000000-0000-0000-1000-000000000003',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001', 'silver',
+   NULL, 'ready', 'manual', NULL,
+   now() - INTERVAL '1 days', NULL, NULL),
+  -- Nadia: gold, claimed Sakoon — awaiting HR fulfillment.
+  ('00000000-0000-0000-2000-000000000005',
+   '00000000-0000-0000-1000-000000000005',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0003-000000000001', 'gold',
+   '00000000-0000-0000-0010-000000000001', 'claimed', 'manual', NULL,
+   now() - INTERVAL '3 days', now() - INTERVAL '1 days', NULL)
+ON CONFLICT (id) DO NOTHING;
