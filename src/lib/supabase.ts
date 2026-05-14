@@ -1,12 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const isProd = !!import.meta.env.PROD;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    '[Wellness+] Supabase env vars missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local'
-  );
+  const msg =
+    '[Wellness+] Supabase env vars missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local';
+  if (isProd) {
+    // Fail loudly in prod — a silent placeholder client masks misconfigured
+    // deploys and produces confusing auth failures downstream.
+    throw new Error(msg);
+  }
+  // Dev: warn but allow boot so the UI shell is inspectable without Supabase.
+  console.warn(msg);
 }
 
 export const supabase = createClient(
