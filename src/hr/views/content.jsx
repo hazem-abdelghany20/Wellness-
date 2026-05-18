@@ -8,7 +8,7 @@ import { useContent } from '../hooks/use-content.js';
 function HRContentPage({ theme, S, lang, density }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
-  const { items, loading, assign } = useContent();
+  const { items, loading, update } = useContent();
   const [tab, setTab] = useState('library');
   const [busyId, setBusyId] = useState(null);
   const [flash, setFlash] = useState(null);
@@ -30,17 +30,18 @@ function HRContentPage({ theme, S, lang, density }) {
     mins:    c.duration_mins ?? 0,
     cat:     c.category || s('General','عام'),
     pinned:  !!c.featured,
+    published: c.published !== false,
   }));
 
   const visible = library.filter(c => tab !== 'pinned' || c.pinned);
 
-  const handleAssign = async (id) => {
-    setBusyId(id); setFlash(null);
+  const handleTogglePublished = async (content) => {
+    setBusyId(`publish-${content.id}`); setFlash(null);
     try {
-      await assign(id, 'all');
-      setFlash({ id, kind: 'ok' });
+      await update(content.id, { published: !content.published });
+      setFlash({ id: content.id, kind: 'ok' });
     } catch (e) {
-      setFlash({ id, kind: 'err' });
+      setFlash({ id: content.id, kind: 'err' });
     } finally {
       setBusyId(null);
     }
@@ -72,18 +73,23 @@ function HRContentPage({ theme, S, lang, density }) {
               <div style={{ width: 48, height: 48, borderRadius: 12, background: T.panelSunk, display: 'grid', placeItems: 'center' }}>
                 <HRIcon name={iconFor[c.kind] || 'book'} size={22} stroke={T.accent}/>
               </div>
-              {c.pinned && <Badge theme={T} tone="info" dot>{s('Pinned','مثبَّت')}</Badge>}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {c.pinned && <Badge theme={T} tone="info" dot>{s('Pinned','مثبَّت')}</Badge>}
+                <Badge theme={T} tone={c.published ? 'positive' : 'neutral'} dot>{c.published ? s('Published','منشور') : s('Draft','مسودة')}</Badge>
+              </div>
             </div>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, lineHeight: 1.35, marginBottom: 6 }}>{c.title}</div>
             <div style={{ fontSize: 11, color: T.textMuted }}>{c.cat} · {c.mins} {s('min','د')}</div>
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 11, color: flash?.id === c.id ? (flash.kind === 'ok' ? T.positive : T.danger) : T.textFaint }}>
-                {flash?.id === c.id ? (flash.kind === 'ok' ? s('Assigned','تم التعيين') : s('Error','خطأ')) : ''}
+                {flash?.id === c.id ? (flash.kind === 'ok' ? s('Saved','تم الحفظ') : s('Error','خطأ')) : ''}
               </span>
-              <HRButton theme={T} variant="secondary" size="sm" disabled={busyId === c.id}
-                onClick={() => handleAssign(c.id)}>
-                {busyId === c.id ? s('Assigning…','جاري التعيين…') : s('Assign to all','تعيين للكل')}
-              </HRButton>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <HRButton theme={T} variant="ghost" size="sm" disabled={busyId === `publish-${c.id}`}
+                  onClick={() => handleTogglePublished(c)}>
+                  {c.published ? s('Unpublish','إلغاء النشر') : s('Publish','نشر')}
+                </HRButton>
+              </div>
             </div>
           </Panel>
         ))}

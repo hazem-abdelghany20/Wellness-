@@ -104,40 +104,38 @@ function ScreenJoin({ theme, t, onNext, dir }) {
 function ScreenOTP({ theme, t, onNext, onBack, dir }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
-  const [digits, setDigits] = React.useState(['', '', '', '', '', '']);
+  const maxCodeLength = 8;
+  const minCodeLength = 6;
+  const [code, setCode] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState(null);
-  const refs = React.useRef([]);
+  const inputRef = React.useRef(null);
   const { verifyOtp, pendingEmail } = useAuth();
-  const allFilled = digits.every(d => d !== '');
+  const digits = React.useMemo(() => {
+    const chars = code.split('');
+    return Array.from({ length: maxCodeLength }, (_, i) => chars[i] || '');
+  }, [code]);
+  const canVerify = code.length >= minCodeLength;
 
-  const setDigit = (i, v) => {
-    if (!/^\d?$/.test(v)) return;
-    const nd = [...digits]; nd[i] = v; setDigits(nd);
-    if (v && i < 5) refs.current[i+1]?.focus();
+  const setCodeFromInput = (value) => {
+    const next = value.replace(/\D/g, '').slice(0, maxCodeLength);
+    setCode(next);
   };
 
-  const handleVerify = React.useCallback(async (token) => {
+  const handleVerify = React.useCallback(async () => {
+    if (!canVerify || busy) return;
     setErr(null); setBusy(true);
     try {
-      await verifyOtp(token);
+      await verifyOtp(code);
       onNext();
     } catch (e) {
       setErr(e?.message || (lang === 'ar' ? 'رمز غير صالح' : 'Invalid code'));
-      setDigits(['', '', '', '', '', '']);
-      refs.current[0]?.focus();
+      setCode('');
+      inputRef.current?.focus();
     } finally {
       setBusy(false);
     }
-  }, [verifyOtp, onNext, lang]);
-
-  React.useEffect(() => {
-    if (allFilled && !busy) {
-      const token = digits.join('');
-      const tm = setTimeout(() => handleVerify(token), 200);
-      return () => clearTimeout(tm);
-    }
-  }, [allFilled, busy, digits, handleVerify]);
+  }, [canVerify, busy, verifyOtp, code, onNext, lang]);
 
   return (
     <ScreenFrame theme={T}>
@@ -150,18 +148,58 @@ function ScreenOTP({ theme, t, onNext, onBack, dir }) {
         <div style={{ color: T.textMuted, fontSize: 15, lineHeight: 1.45, marginBottom: 30 }}>
           {t('verifySub', { dest: pendingEmail || 'a.mostafa@nilegroup.eg' })}
         </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16, direction: 'ltr' }}>
+        <div
+          onClick={() => inputRef.current?.focus()}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${maxCodeLength}, minmax(0, 1fr))`,
+            gap: 6,
+            marginBottom: 14,
+            direction: 'ltr',
+            position: 'relative',
+          }}
+        >
+          <input
+            ref={inputRef}
+            value={code}
+            onChange={e => setCodeFromInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleVerify();
+            }}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={maxCodeLength}
+            disabled={busy}
+            aria-label={lang === 'ar' ? 'رمز التحقق' : 'Verification code'}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: 0,
+              border: 0,
+              width: '100%',
+              height: '100%',
+              cursor: busy ? 'default' : 'text',
+            }}
+          />
           {digits.map((d, i) => (
-            <input key={i} ref={el => refs.current[i] = el}
-              value={d} onChange={e => setDigit(i, e.target.value)}
-              inputMode="numeric" maxLength={1} disabled={busy}
-              style={{
-                flex: 1, height: 62, background: T.surface, border: `1px solid ${d ? T.accent : T.borderStrong}`,
-                borderRadius: 14, color: T.text, fontSize: 26, fontWeight: 600,
-                textAlign: 'center', fontFamily: typeStyles(T).sansFont,
-                outline: 'none', transition: 'border .2s',
-                opacity: busy ? 0.6 : 1,
-              }}/>
+            <div key={i} style={{
+              minWidth: 0,
+              height: 52,
+              background: T.surface,
+              border: `1px solid ${d ? T.accent : T.borderStrong}`,
+              borderRadius: 12,
+              color: T.text,
+              fontSize: 22,
+              fontWeight: 600,
+              textAlign: 'center',
+              fontFamily: typeStyles(T).sansFont,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'border .2s',
+              opacity: busy ? 0.6 : 1,
+              boxSizing: 'border-box',
+            }}>{d}</div>
           ))}
         </div>
         {err && (
@@ -171,11 +209,14 @@ function ScreenOTP({ theme, t, onNext, onBack, dir }) {
             marginBottom: 12, fontFamily: typeStyles(T).sansFont,
           }}>{err}</div>
         )}
+        <Button theme={T} onClick={handleVerify} disabled={busy || !canVerify}>
+          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Verifying…') : t('continue')}
+        </Button>
         <button disabled={busy} style={{
           alignSelf: dir === 'rtl' ? 'flex-end' : 'flex-start',
           background: 'transparent', border: 'none', color: T.accent,
           fontSize: 14, fontWeight: 600, cursor: busy ? 'default' : 'pointer', padding: 0,
-          fontFamily: typeStyles(T).sansFont, opacity: busy ? 0.5 : 1,
+          marginTop: 16, fontFamily: typeStyles(T).sansFont, opacity: busy ? 0.5 : 1,
         }}>{t('resend')}</button>
         <div style={{ flex: 1 }}/>
       </div>
@@ -197,7 +238,7 @@ function ScreenConsent({ theme, t, onNext, onBack, dir }) {
   const submit = async () => {
     setErr(null); setBusy(true);
     try {
-      await update({ consent_at: new Date().toISOString() });
+      await update({ consented_at: new Date().toISOString() });
       onNext();
     } catch (e) {
       setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
@@ -418,7 +459,7 @@ function ScreenWelcome({ theme, t, state, onNext, dir }) {
   const submit = async () => {
     setErr(null); setBusy(true);
     try {
-      await update({ onboarded_at: new Date().toISOString() });
+      await update({ onboarded: true });
       onNext();
     } catch (e) {
       setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));

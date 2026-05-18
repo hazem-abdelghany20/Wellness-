@@ -35,7 +35,7 @@ export function SignIn({ theme, S, dir }) {
         ) : (
           <>
             <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12 }}>Code sent to {pendingEmail}</div>
-            <input value={token} onChange={e => setToken(e.target.value)} placeholder="6-digit code" style={{ width: '100%', height: 40, padding: '0 12px', borderRadius: 8, background: theme.panelSunk, border: `1px solid ${theme.border}`, color: theme.text, marginBottom: 12, boxSizing: 'border-box' }} />
+            <input value={token} onChange={e => setToken(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" autoComplete="one-time-code" placeholder="Verification code" style={{ width: '100%', height: 40, padding: '0 12px', borderRadius: 8, background: theme.panelSunk, border: `1px solid ${theme.border}`, color: theme.text, marginBottom: 12, boxSizing: 'border-box' }} />
             <HRButton theme={theme} onClick={handleVerify} disabled={busy || token.length < 6}>{busy ? 'Verifying…' : (S?.verify || 'Verify')}</HRButton>
           </>
         )}

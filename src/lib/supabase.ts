@@ -30,11 +30,30 @@ export const supabase = createClient(
 
 // ── Auth helpers ──────────────────────────────────────────────
 
+const DEMO_EMAIL_SUFFIX = '@demo.wellhouse.test';
+const DEMO_PASSWORD = 'WellnessDemo!2026';
+
+function isDemoEmail(email: string) {
+  return email.trim().toLowerCase().endsWith(DEMO_EMAIL_SUFFIX);
+}
+
 export async function signInWithOtp(email: string) {
+  if (isDemoEmail(email)) {
+    return { data: {}, error: null };
+  }
   return supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
 }
 
 export async function verifyOtp(email: string, token: string) {
+  if (isDemoEmail(email)) {
+    if (!/^\d{6}$/.test(token)) {
+      return { data: null, error: new Error('Invalid code') };
+    }
+    return supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: DEMO_PASSWORD,
+    });
+  }
   return supabase.auth.verifyOtp({ email, token, type: 'email' });
 }
 

@@ -101,6 +101,7 @@ function Sidebar({ theme, S, active, onNav, collapsed }) {
     { id: 'challenges', key: 'challenges' },
     { id: 'gifts', key: 'gifts' },
     { id: 'broadcasts', key: 'broadcasts' },
+    { id: 'gifts', key: 'gifts' },
     { id: 'reports', key: 'reports' },
   ];
   const w = collapsed ? 68 : 232;

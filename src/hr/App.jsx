@@ -119,7 +119,7 @@ function AppInner() {
   const T = HR_THEMES[cfg.theme] || HR_THEMES.dark;
   const S = HR_STRINGS[cfg.lang] || HR_STRINGS.en;
   const dir = cfg.lang === 'ar' ? 'rtl' : 'ltr';
-  const density = cfg.density;
+  const density = DENSITY[cfg.density] ? cfg.density : 'comfortable';
   const gap = DENSITY[density].gap;
 
   const layout = cfg.layout;

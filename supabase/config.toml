@@ -79,6 +79,8 @@ enable_signup = true
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
+# Minimum password length for email/password auth.
+minimum_password_length = 6
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
@@ -88,6 +90,8 @@ enable_signup = true
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
+# If enabled, users will need to reauthenticate or have logged in recently to change their password.
+secure_password_change = false
 
 [auth.sms]
 enable_signup = false

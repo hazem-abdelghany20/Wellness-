@@ -90,9 +90,14 @@ export async function listGlobalContent() {
 }
 
 export async function updateContent(id: string, patch: Record<string, unknown>) {
+  const normalized = { ...patch };
+  if ('status' in normalized && !('published' in normalized)) {
+    normalized.published = normalized.status === 'published';
+  }
+
   const { data, error } = await supabase
     .from('content_items')
-    .update(patch)
+    .update(normalized)
     .eq('id', id)
     .select()
     .single();

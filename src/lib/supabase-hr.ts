@@ -51,10 +51,25 @@ export async function getContentLibrary() {
   const { data, error } = await supabase
     .from('content_items')
     .select('*')
-    .eq('published', true)
     .order('sort_order');
   if (error) throw error;
   return data ?? [];
+}
+
+export async function updateContentItem(contentId: string, patch: Record<string, unknown>) {
+  const normalized = { ...patch };
+  if ('published' in normalized && !('status' in normalized)) {
+    normalized.status = normalized.published ? 'published' : 'draft';
+  }
+
+  const { data, error } = await supabase
+    .from('content_items')
+    .update(normalized)
+    .eq('id', contentId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 export async function assignContent(contentId: string, scope: 'all' | 'team', teamId?: string) {
@@ -91,16 +106,17 @@ export async function scheduleChallenge(template: any, window: { start: string; 
 
   const { data, error } = await supabase.from('challenges').insert({
     company_id: companyId,
-    title:        template.title,
-    description:  template.description,
-    kind:         template.kind ?? 'team',
-    metric:       template.metric ?? 'checkins',
-    target:       template.target ?? 10,
-    start_date:   window.start,
-    end_date:     window.end,
-    active:       true,
-    scope:        scope,
-    team_id:      scope === 'team' ? teamId : null,
+    title_en:       template.title_en ?? template.title ?? 'New challenge',
+    title_ar:       template.title_ar ?? template.title ?? 'New challenge',
+    description_en: template.description_en ?? template.description ?? '',
+    description_ar: template.description_ar ?? template.description ?? '',
+    metric:         template.metric ?? 'checkins',
+    goal_value:     template.goal_value ?? template.target ?? 10,
+    start_date:     window.start,
+    end_date:       window.end,
+    badge_icon:     template.badge_icon ?? 'trophy',
+    badge_color:    template.badge_color ?? '#F5B544',
+    active:         true,
   }).select().single();
   if (error) throw error;
   return data;
@@ -144,6 +160,115 @@ export async function cancelBroadcast(id: string) {
     .update({ status: 'cancelled' })
     .eq('id', id);
   if (error) throw error;
+}
+
+// ── Gifts ───────────────────────────────────────────────────────
+
+async function getMyCompanyId() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const companyId = user?.app_metadata?.company_id as string | undefined;
+  if (!companyId) throw new Error('not_in_company');
+  return companyId;
+}
+
+export async function getGiftCatalogItems() {
+  const companyId = await getMyCompanyId();
+  const { data, error } = await supabase
+    .from('gift_catalog_items')
+    .select('*')
+    .or(`company_id.eq.${companyId},company_id.is.null`)
+    .order('category')
+    .order('name_en');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createGiftCatalogItem(payload: {
+  name_en: string;
+  name_ar?: string;
+  description_en?: string;
+  description_ar?: string;
+  category?: string;
+  value_minor?: number;
+  currency?: string;
+}) {
+  const companyId = await getMyCompanyId();
+  const { data, error } = await supabase
+    .from('gift_catalog_items')
+    .insert({
+      company_id: companyId,
+      name_en: payload.name_en,
+      name_ar: payload.name_ar ?? payload.name_en,
+      description_en: payload.description_en ?? '',
+      description_ar: payload.description_ar ?? payload.description_en ?? '',
+      category: payload.category ?? 'wh_service',
+      value_minor: payload.value_minor ?? 0,
+      currency: payload.currency ?? 'EGP',
+      active: true,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateGiftCatalogItem(id: string, patch: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('gift_catalog_items')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getTierConfigurations() {
+  const companyId = await getMyCompanyId();
+  const { data, error } = await supabase
+    .from('tier_configurations')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('tier');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function updateTierConfiguration(id: string, patch: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('tier_configurations')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getAwardedRewards() {
+  const companyId = await getMyCompanyId();
+  const { data, error } = await supabase
+    .from('awarded_rewards')
+    .select(`
+      *,
+      profiles(display_name, initials),
+      gift_catalog_items(name_en, name_ar)
+    `)
+    .eq('company_id', companyId)
+    .order('awarded_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getGiftPools() {
+  const companyId = await getMyCompanyId();
+  const { data, error } = await supabase
+    .from('gift_pools')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }
 
 // ── Reports ────────────────────────────────────────────────────

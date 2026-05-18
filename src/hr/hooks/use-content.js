@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getContentLibrary, assignContent } from '../../lib/supabase-hr';
+import { getContentLibrary, assignContent, updateContentItem } from '../../lib/supabase-hr';
 
 export function useContent() {
   const [items, setItems] = useState([]);
@@ -18,5 +18,11 @@ export function useContent() {
   const assign = useCallback((contentId, scope, teamId) =>
     assignContent(contentId, scope, teamId), []);
 
-  return { items, loading, error, assign, refetch };
+  const update = useCallback(async (contentId, patch) => {
+    const updated = await updateContentItem(contentId, patch);
+    setItems(prev => prev.map(item => item.id === contentId ? updated : item));
+    return updated;
+  }, []);
+
+  return { items, loading, error, assign, update, refetch };
 }

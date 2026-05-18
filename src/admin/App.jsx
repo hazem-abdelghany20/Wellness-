@@ -38,7 +38,8 @@ function AppInner() {
   const tweaksAvailable = import.meta.env.DEV ||
     new URLSearchParams(window.location.search).get('tweaks') === '1';
 
-  const T = HR_THEMES[themeKey];
+  const T = HR_THEMES[themeKey] || HR_THEMES.dark;
+  const safeDensity = DENSITY[density] ? density : 'comfortable';
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const s = (en, ar) => lang === 'ar' ? ar : en;
 
@@ -81,31 +82,31 @@ function AppInner() {
         <AdminTopBar theme={T} lang={lang} dir={dir} range={range} onRange={setRange} onTweaks={tweaksAvailable ? (() => setTweaksOpen(o=>!o)) : undefined}/>
 
         <main style={{
-          padding: 24, display: 'flex', flexDirection: 'column', gap: DENSITY[density].gap,
+          padding: 24, display: 'flex', flexDirection: 'column', gap: DENSITY[safeDensity].gap,
           maxWidth: layout === 'wide' ? 'none' : 1480, width: '100%', margin: '0 auto', boxSizing: 'border-box',
         }}>
           {openTenant ? (
-            <AdminTenantDetail theme={T} density={density} lang={lang} tenant={openTenant} onBack={() => setOpenTenant(null)}/>
+            <AdminTenantDetail theme={T} density={safeDensity} lang={lang} tenant={openTenant} onBack={() => setOpenTenant(null)}/>
           ) : active === 'billing' ? (
-            <AdminBilling theme={T} density={density} lang={lang} companyId={openTenant?.id}/>
+            <AdminBilling theme={T} density={safeDensity} lang={lang} companyId={openTenant?.id}/>
           ) : active === 'tenants' ? (
-            <AdminTenantsView theme={T} density={density} lang={lang} onOpen={setOpenTenant}/>
+            <AdminTenantsView theme={T} density={safeDensity} lang={lang} onOpen={setOpenTenant}/>
           ) : active === 'content' ? (
-            <AdminContentView theme={T} density={density} lang={lang}/>
+            <AdminContentView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'integrations' ? (
-            <AdminIntegrationsView theme={T} density={density} lang={lang}/>
+            <AdminIntegrationsView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'flags' ? (
-            <AdminFlagsView theme={T} density={density} lang={lang}/>
+            <AdminFlagsView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'audit' ? (
-            <AdminAuditView theme={T} density={density} lang={lang}/>
+            <AdminAuditView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'roles' ? (
-            <AdminRolesView theme={T} density={density} lang={lang}/>
+            <AdminRolesView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'localization' ? (
-            <AdminLocalizationView theme={T} density={density} lang={lang}/>
+            <AdminLocalizationView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'challenges' ? (
-            <AdminChallengeTemplatesView theme={T} density={density} lang={lang}/>
+            <AdminChallengeTemplatesView theme={T} density={safeDensity} lang={lang}/>
           ) : (
-            <AdminOverview theme={T} density={density} chartStyle={chartStyle} layout={layout} lang={lang} onOpenTenant={setOpenTenant}/>
+            <AdminOverview theme={T} density={safeDensity} chartStyle={chartStyle} layout={layout} lang={lang} onOpenTenant={setOpenTenant}/>
           )}
 
           <footer style={{ padding: '16px 0 32px', display: 'flex', justifyContent: 'space-between', color: T.textFaint, fontSize: 11 }}>
@@ -117,7 +118,7 @@ function AppInner() {
 
       {tweaksOpen && (
         <TweaksPanel
-          theme={T} lang={lang} density={density} chartStyle={chartStyle}
+          theme={T} lang={lang} density={safeDensity} chartStyle={chartStyle}
           layout={layout} themeKey={themeKey}
           setThemeKey={setThemeKey} setLang={setLang} setDensity={setDensity}
           setChartStyle={setChartStyle} setLayout={setLayout}

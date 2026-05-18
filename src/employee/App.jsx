@@ -136,7 +136,7 @@ function AppInner() {
 
   // Auth-driven routing gate.
   // - No session: route to onboarding (start at 'join').
-  // - Session but no profile.onboarded_at: route to onboarding (start at 'consent').
+  // - Session but no completed onboarding flag: route to onboarding (start at 'consent').
   // - Fully onboarded: route to main app.
   React.useEffect(() => {
     if (authLoading) return;
@@ -145,7 +145,7 @@ function AppInner() {
       if (screen !== 'join' && screen !== 'otp') {
         setScreen('join');
       }
-    } else if (!profile?.onboarded_at) {
+    } else if (!(profile?.onboarded || profile?.onboarded_at)) {
       // Authenticated but not onboarded — must be on consent/name/baseline/goals/welcome.
       // If they're on join/otp/null/main, jump them to consent.
       if (screen === null || screen === 'join' || screen === 'otp' || MAIN_SCREENS.includes(screen)) {

@@ -13,6 +13,7 @@ function HRIcon({ name, size = 18, stroke, style = {} }) {
     challenges: <><path d="M8 4h8v4a4 4 0 0 1-8 0V4z"/><path d="M5 5H3v2a3 3 0 0 0 3 3M19 5h2v2a3 3 0 0 1-3 3"/><path d="M10 13v3h4v-3M8 21h8M12 16v5"/></>,
     broadcasts: <><path d="M3 10v4a1 1 0 0 0 1 1h4l6 5V4L8 9H4a1 1 0 0 0-1 1z"/><path d="M18 8a5 5 0 0 1 0 8"/></>,
     reports: <><path d="M9 3h7l4 4v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4"/><path d="M9 3v4h7"/><path d="M8 13h8M8 17h5"/></>,
+    gifts: <><path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/><path d="M2 7h20v5H2z"/><path d="M12 7v14"/><path d="M12 7H8.5a2.5 2.5 0 1 1 2-4c.9 1.2 1.5 4 1.5 4z"/><path d="M12 7h3.5a2.5 2.5 0 1 0-2-4c-.9 1.2-1.5 4-1.5 4z"/></>,
     settings: <><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></>,
     search: <><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.5-4.5"/></>,
     bell: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 18a2 2 0 0 0 4 0"/></>,
@@ -44,7 +45,6 @@ function HRIcon({ name, size = 18, stroke, style = {} }) {
     globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></>,
     mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></>,
     phone: <><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></>,
-    gifts: <><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M3 12h18M12 8v13"/><path d="M12 8c-1.5 0-3.5-.8-3.5-2.5A2 2 0 0 1 12 5M12 8c1.5 0 3.5-.8 3.5-2.5A2 2 0 0 0 12 5"/></>,
     star: <><path d="M12 3l2.7 6 6.3.6-4.8 4.3 1.4 6.4L12 17l-5.6 3.3L7.8 14 3 9.6l6.3-.6L12 3z" fill="currentColor" stroke="none"/></>,
     coin: <><circle cx="12" cy="12" r="9"/><path d="M9 9.5h6M8.5 13l3 3 4-7"/></>,
   };
@@ -57,7 +57,7 @@ function HRIcon({ name, size = 18, stroke, style = {} }) {
   );
 }
 
-function HRButton({ children, onClick, variant = 'primary', size = 'md', icon, iconR, style = {}, theme }) {
+function HRButton({ children, onClick, variant = 'primary', size = 'md', icon, iconR, style = {}, theme, disabled = false, type = 'button' }) {
   const T = theme;
   const sizes = {
     sm: { h: 30, px: 12, fs: 12, r: 8,  iconSize: 14 },
@@ -74,10 +74,11 @@ function HRButton({ children, onClick, variant = 'primary', size = 'md', icon, i
   };
   const v = variants[variant];
   return (
-    <button onClick={onClick} style={{
+    <button type={type} disabled={disabled} onClick={disabled ? undefined : onClick} style={{
       height: s.h, padding: `0 ${s.px}px`, borderRadius: s.r,
       background: v.bg, color: v.color, border: `1px solid ${v.border}`,
-      fontSize: s.fs, fontWeight: 600, cursor: 'pointer', letterSpacing: -0.1,
+      fontSize: s.fs, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', letterSpacing: 0,
+      opacity: disabled ? 0.55 : 1,
       display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
       transition: 'background .15s, border-color .15s',
       ...style,
