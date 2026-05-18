@@ -15,6 +15,12 @@ function HRChallengesPage({ theme, S, lang, density }) {
   const [scope, setScope] = useState('all');
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(null);
+  const scheduleFormRef = React.useRef(null);
+  const templateSelectRef = React.useRef(null);
+  const focusScheduleForm = () => {
+    scheduleFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => templateSelectRef.current?.focus(), 350);
+  };
 
   if (loading) {
     return (
@@ -63,16 +69,16 @@ function HRChallengesPage({ theme, S, lang, density }) {
         eyebrow={s('Active + drafts','نشطة + مسودات')}
         title={s('Challenges','التحديات')}
         sub={`${active.length} ${s('active · ',`نشطة · `)}${past.length} ${s('past','سابقة')}`}
-        right={<HRButton theme={T} variant="primary" icon="plus">{S.newChallenge}</HRButton>}/>
+        right={<HRButton theme={T} variant="primary" icon="plus" onClick={focusScheduleForm}>{S.newChallenge}</HRButton>}/>
 
-      <Panel theme={T} density={density} style={{ marginBottom: DENSITY[density].gap }}>
+      <div ref={scheduleFormRef}><Panel theme={T} density={density} style={{ marginBottom: DENSITY[density].gap }}>
         <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 14 }}>
           {s('Schedule a challenge','جدولة تحدي')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 10, alignItems: 'flex-end' }}>
           <div>
             <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>{s('Template','القالب')}</div>
-            <select value={selectedId || ''} onChange={(e)=>setSelectedId(e.target.value || null)} style={{
+            <select ref={templateSelectRef} value={selectedId || ''} onChange={(e)=>setSelectedId(e.target.value || null)} style={{
               width: '100%', boxSizing: 'border-box', padding: '8px 10px',
               background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 9,
               color: T.text, fontSize: 13, fontFamily: 'inherit', outline: 'none',
@@ -121,7 +127,7 @@ function HRChallengesPage({ theme, S, lang, density }) {
             {flash.kind === 'ok' ? s('Challenge scheduled.','تمت جدولة التحدي.') : s('Failed to schedule.','تعذّرت الجدولة.')}
           </div>
         )}
-      </Panel>
+      </Panel></div>
 
       <div style={{ marginBottom: 12, fontSize: 11, color: T.textMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>{s('Active','نشطة')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: DENSITY[density].gap, marginBottom: DENSITY[density].gap }}>

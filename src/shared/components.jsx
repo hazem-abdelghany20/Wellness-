@@ -58,7 +58,7 @@ function HRIcon({ name, size = 18, stroke, style = {} }) {
   );
 }
 
-function HRButton({ children, onClick, variant = 'primary', size = 'md', icon, iconR, style = {}, theme, disabled = false, type = 'button' }) {
+function HRButton({ children, onClick, variant = 'primary', size = 'md', icon, iconR, style = {}, theme, disabled = false, type = 'button', title }) {
   const T = theme;
   const sizes = {
     sm: { h: 30, px: 12, fs: 12, r: 8,  iconSize: 14 },
@@ -74,12 +74,16 @@ function HRButton({ children, onClick, variant = 'primary', size = 'md', icon, i
     danger:    { bg: T.panel, color: T.danger, border: T.borderStrong },
   };
   const v = variants[variant];
+  // A button with no onClick and no submit type is a v1 placeholder. Auto-disable
+  // it and surface "Coming soon" so testers don't think it's broken.
+  const isStub = !onClick && type !== 'submit';
+  const reallyDisabled = disabled || isStub;
   return (
-    <button type={type} disabled={disabled} onClick={disabled ? undefined : onClick} style={{
+    <button type={type} disabled={reallyDisabled} onClick={reallyDisabled ? undefined : onClick} title={title || (isStub ? 'Coming soon' : undefined)} style={{
       height: s.h, padding: `0 ${s.px}px`, borderRadius: s.r,
       background: v.bg, color: v.color, border: `1px solid ${v.border}`,
-      fontSize: s.fs, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', letterSpacing: 0,
-      opacity: disabled ? 0.55 : 1,
+      fontSize: s.fs, fontWeight: 600, cursor: reallyDisabled ? 'not-allowed' : 'pointer', letterSpacing: 0,
+      opacity: reallyDisabled ? 0.45 : 1,
       display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
       transition: 'background .15s, border-color .15s',
       ...style,

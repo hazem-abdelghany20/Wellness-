@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   try {
-    const { user, companyId } = await requireAuth(req);
+    const { user, companyId: jwtCompanyId } = await requireAuth(req);
     const { challenge_id, action } = await req.json() as {
       challenge_id: string;
       action: 'join' | 'score_update';
@@ -21,6 +21,26 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createServiceClient();
+
+    // JWT app_metadata only gets refreshed when the token is re-minted, so a
+    // freshly-onboarded user (or one whose profile was backfilled) can hit
+    // this endpoint before their next sign-in with no company_id claim. Fall
+    // back to reading the profile row directly via service-role.
+    let companyId = jwtCompanyId;
+    if (!companyId) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      companyId = prof?.company_id ?? undefined;
+    }
+    if (!companyId) {
+      return new Response(
+        JSON.stringify({ error: 'User has no company' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Verify challenge exists and is active
     const { data: challenge } = await supabase
