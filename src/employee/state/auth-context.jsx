@@ -53,7 +53,13 @@ export function AuthProvider({ children }) {
   //   the right tenant on first sign-up.
   const signInWithCode = useCallback(async (code, email, password) => {
     if (isSuperadminEmail(email)) {
-      await signInOrUpWithPassword(email, password);
+      // Attach super-admins to the seed Wellhouse Group tenant so the
+      // handle_new_user() trigger can create a valid profile row
+      // (profiles.company_id is NOT NULL). Without this the employee
+      // portal's onboarding writes fail with "no row to update".
+      await signInOrUpWithPassword(email, password, {
+        company_code: 'WH-4782',
+      });
       return null;
     }
     const v = await verifyCompanyCode(code, email);

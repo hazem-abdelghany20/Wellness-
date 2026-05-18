@@ -136,9 +136,15 @@ export async function getMyCompany() {
 }
 
 export async function updateMyProfile(updates: Record<string, unknown>) {
+  // Supabase rejects UPDATE/DELETE without an explicit filter ("UPDATE
+  // requires a WHERE clause"). RLS would scope it anyway, but the API
+  // demands the filter be present client-side.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
+    .eq('id', user.id)
     .select()
     .single();
   if (error) throw error;

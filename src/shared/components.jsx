@@ -1,4 +1,5 @@
 import React from 'react';
+import { DENSITY } from './tokens.jsx';
 // --- hr-components.jsx ---
 // HR Portal — primitives: Icon, Button, Card, Badge, Sparkline, Trend chart, Avatar, Toggle
 
