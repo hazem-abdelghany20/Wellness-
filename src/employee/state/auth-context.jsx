@@ -3,6 +3,7 @@ import {
   supabase, signInWithOtp, verifyOtp as verifyOtpRaw,
   signOut as signOutRaw, getMyProfile, getMyCompany, verifyCompanyCode,
 } from '../../lib/supabase';
+import { isSuperadminEmail } from '../../lib/superadmin';
 
 const AuthContext = createContext(null);
 
@@ -39,6 +40,13 @@ export function AuthProvider({ children }) {
   useEffect(() => { refreshProfile(); }, [refreshProfile]);
 
   const signInWithCode = useCallback(async (code, email) => {
+    // Super-admin emails bypass the company-code gate — they can sign into
+    // the employee portal without provisioning a tenant association.
+    if (isSuperadminEmail(email)) {
+      await signInWithOtp(email);
+      setPendingEmail(email);
+      return null;
+    }
     const v = await verifyCompanyCode(code, email);
     if (!v.valid) throw new Error(v.error || 'Invalid company code');
     await signInWithOtp(email);

@@ -19,6 +19,7 @@ import { AdminAppConfigProvider, useAdminAppConfig } from './state/app-config-co
 import { AdminAuthProvider, useAdminAuth } from './state/auth-context.jsx';
 import { SignIn } from './views/sign-in.jsx';
 import { AccessDenied } from './views/access-denied.jsx';
+import { isSuperadminEmail } from '../lib/superadmin';
 
 function AppInner() {
   const { cfg, patch } = useAdminAppConfig();
@@ -66,10 +67,11 @@ function AppInner() {
   const setT = (k, fn) => (v) => { fn(v); persist({ [k]: v }); };
 
   const { session, role, loading: authLoading } = useAdminAuth();
+  const isSuper = isSuperadminEmail(session?.user?.email);
 
   if (authLoading) return <div style={{ minHeight: '100vh', background: T.bg }}/>;
   if (!session)    return <SignIn theme={T} dir={dir}/>;
-  if (role !== 'wellness_admin') return <AccessDenied theme={T} dir={dir}/>;
+  if (role !== 'wellness_admin' && !isSuper) return <AccessDenied theme={T} dir={dir}/>;
 
   return (
     <div data-rtl={dir==='rtl'} style={{

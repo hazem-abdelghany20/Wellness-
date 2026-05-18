@@ -25,6 +25,7 @@ import { HRAuthProvider, useHRAuth } from './state/auth-context.jsx';
 import { SignIn } from './views/sign-in.jsx';
 import { AccessDenied } from './views/access-denied.jsx';
 import { useOverview } from './hooks/use-overview.js';
+import { isSuperadminEmail } from '../lib/superadmin';
 
 function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }) {
   const T = theme;
@@ -131,7 +132,7 @@ function AppInner() {
   if (!session) {
     return <SignIn theme={T} S={S} dir={dir}/>;
   }
-  if (!['hr_admin', 'company_admin'].includes(role)) {
+  if (!['hr_admin', 'company_admin'].includes(role) && !isSuperadminEmail(session?.user?.email)) {
     return <AccessDenied theme={T} dir={dir}/>;
   }
 
