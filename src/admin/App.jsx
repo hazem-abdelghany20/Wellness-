@@ -112,8 +112,8 @@ function AppInner() {
           )}
 
           <footer style={{ padding: '16px 0 32px', display: 'flex', justifyContent: 'space-between', color: T.textFaint, fontSize: 11 }}>
-            <span>Wellness+ Admin · v2026.04.29 · region eu-west</span>
-            <span className="mono">build a8d4f10 · {s('signed in as Maya Reyes','مسجَّل كـ Maya Reyes')}</span>
+            <span>Wellness+ Admin</span>
+            <span className="mono">{session?.user?.email ? `${s('signed in as','مسجَّل كـ')} ${session.user.email}` : ''}</span>
           </footer>
         </main>
       </div>

@@ -27,9 +27,11 @@ import { AccessDenied } from './views/access-denied.jsx';
 import { useOverview } from './hooks/use-overview.js';
 import { isSuperadminEmail } from '../lib/superadmin';
 
-function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }) {
+function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam, companyName }) {
   const T = theme;
   const { data: overview, loading: overviewLoading } = useOverview(range);
+  const now = new Date();
+  const lastUpdated = now.toLocaleTimeString(cfg.lang === 'ar' ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
 
   if (overviewLoading && !overview) {
     return (
@@ -48,12 +50,8 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }
             {S.greeting}
           </div>
           <div style={{ fontSize: 14, color: T.textMuted, marginTop: 8 }}>
-            {S.subGreet} <strong style={{ color: T.textMid }}>{S.tenant}</strong> · {range.toUpperCase()} · {S.lastUpdated}: 09:42
+            {S.subGreet} <strong style={{ color: T.textMid }}>{companyName || S.tenant}</strong> · {range.toUpperCase()} · {S.lastUpdated}: {lastUpdated}
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <HRButton theme={T} variant="secondary" icon="calendar">Apr 1 – Apr 30</HRButton>
-          <HRButton theme={T} variant="primary" icon="plus">{S.newChallenge}</HRButton>
         </div>
       </div>
 
@@ -96,7 +94,8 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam }
 
 function AppInner() {
   const { cfg, setCfg } = useHRAppConfig();
-  const { session, role, loading: authLoading } = useHRAuth();
+  const { session, role, loading: authLoading, company } = useHRAuth();
+  const companyName = company?.name;
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [range, setRange] = React.useState('30d');
   const [nav, setNav] = React.useState('dashboard');
@@ -148,7 +147,7 @@ function AppInner() {
 
         <div style={{ padding: `24px ${gap + 10}px ${gap + 10}px` }}>
           {nav === 'dashboard' ? (
-            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam}/>
+            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam} companyName={companyName}/>
           ) : nav === 'teams' ? (
             <HRTeamsPage theme={T} S={S} lang={cfg.lang} density={density} chartStyle={cfg.chartStyle} onOpenTeam={setDrawerTeam}/>
           ) : nav === 'people' ? (
@@ -168,11 +167,11 @@ function AppInner() {
           ) : nav === 'settings' ? (
             <HRSettingsPage theme={T} S={S} lang={cfg.lang} density={density}/>
           ) : (
-            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam}/>
+            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam} companyName={companyName}/>
           )}
 
           <div style={{ textAlign: 'center', padding: '24px 0 10px', fontSize: 11, color: T.textFaint }}>
-            Wellness+ HR Portal · Nile Group · v2.4.1
+            Wellness+ HR Portal{companyName ? ` · ${companyName}` : ''}
           </div>
         </div>
       </div>

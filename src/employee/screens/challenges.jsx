@@ -64,6 +64,13 @@ function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
 
   const { challenges, leaderboard, loading, join } = useChallenges(activeId);
 
+  // Derive the signed-in user's row out of the individual leaderboard if
+  // present — otherwise "0 pts / — rank" while we wait for them to participate.
+  const indvRows = (leaderboard?.individual || []).map(r => normalizeLeaderboardRow(r, 'individual'));
+  const mine = indvRows.find(r => r.you);
+  const myPts = mine?.pts ?? 0;
+  const myRank = mine?.rank ?? null;
+
   // Auto-pick the first challenge to view leaderboard for once data lands.
   React.useEffect(() => {
     if (!activeId && challenges && challenges.length > 0) {
@@ -132,9 +139,9 @@ function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
           </div>
           <div style={{ padding: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ flex: 1, display: 'flex', gap: 16, fontSize: 12, color: T.textMuted }}>
-              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>584</span> <span>pts</span></div>
-              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>14</span> <span>{lang==='ar'?'يوماً':'days'}</span></div>
-              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>3</span> <span>{lang==='ar'?'شارات':'badges'}</span></div>
+              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>{Math.round(myPts)}</span> <span>{lang==='ar'?'نقطة':'pts'}</span></div>
+              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>{challenge.daysLeft}</span> <span>{lang==='ar'?'يوماً':'days'}</span></div>
+              <div><span style={{ color: T.text, fontWeight: 700, fontSize: 16 }}>{myRank ?? '—'}</span> <span>{lang==='ar'?'ترتيب':'rank'}</span></div>
             </div>
             <Button theme={T} size="md" variant={joined ? 'secondary' : 'primary'} onClick={handleJoin} disabled={!challenge.id || joined}>
               {joined ? t('joined') : t('joinNow')}

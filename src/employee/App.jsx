@@ -125,7 +125,7 @@ function AppInner() {
   const [playerItem, setPlayerItem] = React.useState(null);
   const [competitionId, setCompetitionId] = React.useState(null);
   const [avatar, setAvatar] = React.useState(() => localStorage.getItem('wellness-plus-avatar') || 'monogram');
-  const [name, setName] = React.useState(() => localStorage.getItem('wellness-plus-name') || 'Layla');
+  const [name, setName] = React.useState(() => localStorage.getItem('wellness-plus-name') || '');
 
   const tweaksAvailable = import.meta.env.DEV ||
     new URLSearchParams(window.location.search).get('tweaks') === '1';
