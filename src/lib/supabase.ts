@@ -41,7 +41,15 @@ export async function signInWithOtp(email: string) {
   if (isDemoEmail(email)) {
     return { data: {}, error: null };
   }
-  return supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  // Supabase JS does not throw on auth errors — it returns { data, error }.
+  // Surface the error here so the UI doesn't optimistically flip to "Code sent"
+  // when the request actually failed (rate-limit, captcha, signups-disabled, …).
+  const result = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  if (result.error) throw result.error;
+  return result;
 }
 
 export async function verifyOtp(email: string, token: string) {
