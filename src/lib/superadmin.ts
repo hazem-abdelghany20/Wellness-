@@ -3,6 +3,7 @@
 // the Admin, HR, and Employee portals without provisioning separate roles.
 export const SUPERADMIN_EMAILS: ReadonlyArray<string> = [
   'hazemabdelghany43@gmail.com',
+  'hazemabdelghany@gmail.com',
 ];
 
 const normalized = new Set(SUPERADMIN_EMAILS.map((e) => e.toLowerCase().trim()));
