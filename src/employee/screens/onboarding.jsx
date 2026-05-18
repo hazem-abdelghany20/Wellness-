@@ -324,11 +324,13 @@ function ScreenBaseline({ theme, t, onNext, onBack, dir }) {
   const submit = async () => {
     setErr(null); setBusy(true);
     try {
+      // baseline_* columns are SMALLINT (1-10). Sleep uses a 0.5 step so
+      // values like 6.5 must be rounded before hitting Postgres.
       await update({
-        baseline_sleep: vals.sleep,
-        baseline_stress: vals.stress,
-        baseline_energy: vals.energy,
-        baseline_mood: vals.mood,
+        baseline_sleep:  Math.round(vals.sleep),
+        baseline_stress: Math.round(vals.stress),
+        baseline_energy: Math.round(vals.energy),
+        baseline_mood:   Math.round(vals.mood),
       });
       onNext();
     } catch (e) {
