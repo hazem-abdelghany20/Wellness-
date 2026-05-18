@@ -238,20 +238,22 @@ function mapOverviewKpis(overviewKpis) {
   if (!overviewKpis) return null;
   // Map raw RPC keys to the visual KPI cards. Missing keys fall through gracefully.
   const idx    = overviewKpis.wellbeing_index ?? overviewKpis.index ?? null;
-  const active = overviewKpis.weekly_active   ?? overviewKpis.active ?? null;
+  const active = overviewKpis.active_users    ?? overviewKpis.weekly_active ?? overviewKpis.active ?? null;
   const risk   = overviewKpis.at_risk_teams   ?? overviewKpis.risk   ?? null;
   const safety = overviewKpis.safety_flags    ?? overviewKpis.safety ?? null;
+  const dash = (v) => v == null ? '—' : v;
   return [
-    { key: 'index',  label: 'wellbeingIndex', value: idx    ?? 0,   suffix: '/10',   delta: 0, invert: false, spark: [] },
-    { key: 'active', label: 'weeklyActive',   value: active ?? 0,   suffix: '',     delta: 0, invert: false, fmt: (v) => Number(v).toLocaleString(), spark: [] },
-    { key: 'risk',   label: 'atRiskTeams',    value: risk   ?? 0,   suffix: '',     delta: 0, invert: true,  spark: [] },
-    { key: 'safety', label: 'safetyFlags',    value: safety ?? 0,   suffix: ' open', delta: 0, invert: true, spark: [] },
+    { key: 'index',  label: 'wellbeingIndex', value: dash(idx),    suffix: idx == null ? '' : '/10',   delta: 0, invert: false, spark: [] },
+    { key: 'active', label: 'weeklyActive',   value: dash(active), suffix: '',                         delta: 0, invert: false, fmt: (v) => v === '—' ? v : Number(v).toLocaleString(), spark: [] },
+    { key: 'risk',   label: 'atRiskTeams',    value: dash(risk),   suffix: '',                         delta: 0, invert: true,  spark: [] },
+    { key: 'safety', label: 'safetyFlags',    value: dash(safety), suffix: safety == null ? '' : ' open', delta: 0, invert: true,  spark: [] },
   ];
 }
 
 function KpiStrip({ theme, S, density, chartStyle, kpis }) {
   const T = theme;
-  const items = (kpis ? mapOverviewKpis(kpis) : null) || HR_DATA.kpis;
+  // Real RPC data only — no HR_DATA fallback. Empty state shows "—".
+  const items = mapOverviewKpis(kpis) || mapOverviewKpis({});
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: DENSITY[density].gap }}>
       {items.map((k, i) => (
@@ -280,17 +282,22 @@ function KpiStrip({ theme, S, density, chartStyle, kpis }) {
 // ── TRENDS CHART ────────────────────────────────────────────────
 function buildTrendFromOverview(trend) {
   if (!Array.isArray(trend) || trend.length === 0) return null;
+  // New RPC returns daily { date, mood, stress, sleep, energy }; legacy
+  // returns weekly { week_start, avg_mood, avg_stress }. Accept both.
+  const getDate = (r) => r.date ?? r.week_start;
   const labels = trend.map(r => {
-    const d = new Date(r.week_start);
-    return Number.isNaN(d.getTime()) ? String(r.week_start) : `${d.toLocaleString('en', { month: 'short' })} ${d.getDate()}`;
+    const d = new Date(getDate(r));
+    return Number.isNaN(d.getTime()) ? String(getDate(r)) : `${d.toLocaleString('en', { month: 'short' })} ${d.getDate()}`;
   });
   const labelsAr = trend.map(r => {
-    const d = new Date(r.week_start);
-    return Number.isNaN(d.getTime()) ? String(r.week_start) : `${d.getDate()}`;
+    const d = new Date(getDate(r));
+    return Number.isNaN(d.getTime()) ? String(getDate(r)) : `${d.getDate()}`;
   });
   const series = [
-    { key: 'mood',   name: 'Mood',   values: trend.map(r => Number(r.avg_mood)   || 0) },
-    { key: 'stress', name: 'Stress', values: trend.map(r => Number(r.avg_stress) || 0) },
+    { key: 'mood',   name: 'Mood',   values: trend.map(r => Number(r.mood   ?? r.avg_mood)   || 0) },
+    { key: 'stress', name: 'Stress', values: trend.map(r => Number(r.stress ?? r.avg_stress) || 0) },
+    { key: 'sleep',  name: 'Sleep',  values: trend.map(r => Number(r.sleep  ?? r.avg_sleep)  || 0) },
+    { key: 'energy', name: 'Energy', values: trend.map(r => Number(r.energy ?? r.avg_energy) || 0) },
   ];
   return { labels, labelsAr, series };
 }
@@ -298,7 +305,11 @@ function buildTrendFromOverview(trend) {
 function TrendsCard({ theme, S, lang, chartStyle, density, trend }) {
   const T = theme;
   const overviewTrend = buildTrendFromOverview(trend);
-  const trendData = overviewTrend || HR_DATA.trends;
+  // Empty-state placeholder when no real data — no mock fallback.
+  const trendData = overviewTrend || { labels: [], labelsAr: [], series: [
+    { key: 'mood', name: 'Mood', values: [] },
+    { key: 'stress', name: 'Stress', values: [] },
+  ] };
   const initialKeys = trendData.series.map(s => s.key);
   const [active, setActive] = React.useState(new Set(initialKeys));
   React.useEffect(() => { setActive(new Set(trendData.series.map(s => s.key))); /* eslint-disable-next-line */ }, [overviewTrend ? 'live' : 'mock']);
