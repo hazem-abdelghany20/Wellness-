@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
-  supabase, signInWithOtp, verifyOtp as verifyOtpRaw,
+  supabase, signInOrUpWithPassword,
   signOut as signOutRaw, getMyProfile, getMyCompany,
 } from '../../lib/supabase';
 
@@ -11,7 +11,6 @@ export function HRAuthProvider({ children }) {
   const [profile, setProfile]   = useState(null);
   const [company, setCompany]   = useState(null);
   const [loading, setLoading]   = useState(true);
-  const [pendingEmail, setPendingEmail] = useState(null);
 
   const role = session?.user?.app_metadata?.role || null;
 
@@ -38,25 +37,16 @@ export function HRAuthProvider({ children }) {
 
   useEffect(() => { refreshProfile(); }, [refreshProfile]);
 
-  const signIn = useCallback(async (email) => {
-    await signInWithOtp(email);
-    setPendingEmail(email);
+  const signIn = useCallback(async (email, password) => {
+    await signInOrUpWithPassword(email, password);
   }, []);
-
-  const verifyOtp = useCallback(async (token) => {
-    if (!pendingEmail) throw new Error('No pending email');
-    const { data, error } = await verifyOtpRaw(pendingEmail, token);
-    if (error) throw error;
-    setPendingEmail(null);
-    return data;
-  }, [pendingEmail]);
 
   const signOut = useCallback(async () => {
     await signOutRaw();
-    setProfile(null); setCompany(null); setPendingEmail(null);
+    setProfile(null); setCompany(null);
   }, []);
 
-  const value = { session, profile, company, role, loading, pendingEmail, signIn, verifyOtp, signOut, refreshProfile };
+  const value = { session, profile, company, role, loading, signIn, signOut, refreshProfile };
   return <HRAuthContext.Provider value={value}>{children}</HRAuthContext.Provider>;
 }
 

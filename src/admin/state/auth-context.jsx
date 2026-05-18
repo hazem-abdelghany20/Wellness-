@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
-  supabase, signInWithOtp, verifyOtp as verifyOtpRaw,
+  supabase, signInOrUpWithPassword,
   signOut as signOutRaw, getMyProfile,
 } from '../../lib/supabase';
 
@@ -10,7 +10,6 @@ export function AdminAuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pendingEmail, setPendingEmail] = useState(null);
 
   const role = session?.user?.app_metadata?.role || null;
 
@@ -33,25 +32,16 @@ export function AdminAuthProvider({ children }) {
 
   useEffect(() => { refreshProfile(); }, [refreshProfile]);
 
-  const signIn = useCallback(async (email) => {
-    await signInWithOtp(email);
-    setPendingEmail(email);
+  const signIn = useCallback(async (email, password) => {
+    await signInOrUpWithPassword(email, password);
   }, []);
-
-  const verifyOtp = useCallback(async (token) => {
-    if (!pendingEmail) throw new Error('No pending email');
-    const { data, error } = await verifyOtpRaw(pendingEmail, token);
-    if (error) throw error;
-    setPendingEmail(null);
-    return data;
-  }, [pendingEmail]);
 
   const signOut = useCallback(async () => {
     await signOutRaw();
-    setProfile(null); setPendingEmail(null);
+    setProfile(null);
   }, []);
 
-  const value = { session, profile, role, loading, pendingEmail, signIn, verifyOtp, signOut, refreshProfile };
+  const value = { session, profile, role, loading, signIn, signOut, refreshProfile };
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }
 

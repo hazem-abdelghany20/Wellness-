@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
-  supabase, signInWithOtp, verifyOtp as verifyOtpRaw,
+  supabase, signInOrUpWithPassword,
   signOut as signOutRaw, getMyProfile, getMyCompany, verifyCompanyCode,
 } from '../../lib/supabase';
 import { isSuperadminEmail } from '../../lib/superadmin';
@@ -13,7 +13,6 @@ export function AuthProvider({ children }) {
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState(null);
 
   const refreshProfile = useCallback(async () => {
     if (!session) {
@@ -47,37 +46,32 @@ export function AuthProvider({ children }) {
 
   useEffect(() => { refreshProfile(); }, [refreshProfile]);
 
-  const signInWithCode = useCallback(async (code, email) => {
-    // Super-admin emails bypass the company-code gate — they can sign into
-    // the employee portal without provisioning a tenant association.
+  // Unified email + password sign-in for the employee portal.
+  // - Super-admin emails skip the company-code gate.
+  // - Regular emails must present a valid company code; the code is forwarded
+  //   as raw_user_meta_data so handle_new_user() can attach the profile to
+  //   the right tenant on first sign-up.
+  const signInWithCode = useCallback(async (code, email, password) => {
     if (isSuperadminEmail(email)) {
-      await signInWithOtp(email);
-      setPendingEmail(email);
+      await signInOrUpWithPassword(email, password);
       return null;
     }
     const v = await verifyCompanyCode(code, email);
     if (!v.valid) throw new Error(v.error || 'Invalid company code');
-    await signInWithOtp(email);
-    setPendingEmail(email);
+    await signInOrUpWithPassword(email, password, {
+      company_code: (code || '').toUpperCase().trim(),
+    });
     return v.company;
   }, []);
 
-  const verifyOtp = useCallback(async (token) => {
-    if (!pendingEmail) throw new Error('No pending email');
-    const { data, error } = await verifyOtpRaw(pendingEmail, token);
-    if (error) throw error;
-    setPendingEmail(null);
-    return data;
-  }, [pendingEmail]);
-
   const signOut = useCallback(async () => {
     await signOutRaw();
-    setProfile(null); setCompany(null); setPendingEmail(null);
+    setProfile(null); setCompany(null);
   }, []);
 
   const value = {
-    session, profile, company, loading, profileLoaded, pendingEmail,
-    signInWithCode, verifyOtp, signOut, refreshProfile,
+    session, profile, company, loading, profileLoaded,
+    signInWithCode, signOut, refreshProfile,
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

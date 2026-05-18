@@ -37,32 +37,60 @@ function isDemoEmail(email: string) {
   return email.trim().toLowerCase().endsWith(DEMO_EMAIL_SUFFIX);
 }
 
-export async function signInWithOtp(email: string) {
-  if (isDemoEmail(email)) {
-    return { data: {}, error: null };
-  }
-  // Supabase JS does not throw on auth errors — it returns { data, error }.
-  // Surface the error here so the UI doesn't optimistically flip to "Code sent"
-  // when the request actually failed (rate-limit, captcha, signups-disabled, …).
-  const result = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true },
-  });
-  if (result.error) throw result.error;
-  return result;
-}
+// Email + password auth. Try sign-in; if the user doesn't exist, sign them up
+// (which immediately signs them in when "Confirm email" is disabled in
+// Supabase). signUpMetadata is forwarded as raw_user_meta_data so the
+// handle_new_user() trigger can pick up a company_code on first signup.
+export async function signInOrUpWithPassword(
+  email: string,
+  password: string,
+  signUpMetadata?: Record<string, unknown>,
+) {
+  const cleanEmail = email.trim().toLowerCase();
 
-export async function verifyOtp(email: string, token: string) {
-  if (isDemoEmail(email)) {
-    if (!/^\d{6}$/.test(token)) {
-      return { data: null, error: new Error('Invalid code') };
-    }
-    return supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+  // Demo accounts always use the fixed demo password (entered value ignored).
+  if (isDemoEmail(cleanEmail)) {
+    const r = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
       password: DEMO_PASSWORD,
     });
+    if (r.error) throw r.error;
+    return r;
   }
-  return supabase.auth.verifyOtp({ email, token, type: 'email' });
+
+  const signIn = await supabase.auth.signInWithPassword({
+    email: cleanEmail,
+    password,
+  });
+  if (!signIn.error) return signIn;
+
+  const msg = (signIn.error.message || '').toLowerCase();
+  // Only attempt signup when the sign-in failure looks like "no such user / wrong password".
+  // Other errors (rate-limited, captcha, etc.) should surface immediately.
+  if (!msg.includes('invalid') && !msg.includes('credentials') && !msg.includes('not found')) {
+    throw signIn.error;
+  }
+
+  const signUp = await supabase.auth.signUp({
+    email: cleanEmail,
+    password,
+    options: signUpMetadata ? { data: signUpMetadata } : undefined,
+  });
+  if (signUp.error) {
+    // "User already registered" means the email exists but with a different password.
+    if ((signUp.error.message || '').toLowerCase().includes('registered')) {
+      throw new Error(
+        'Wrong password for that email. If this is your first sign-in, delete the user in Supabase Dashboard → Authentication → Users and try again.',
+      );
+    }
+    throw signUp.error;
+  }
+  if (!signUp.data.session) {
+    throw new Error(
+      'Account created but no session — disable "Confirm email" in Supabase Auth settings (Authentication → Providers → Email).',
+    );
+  }
+  return signUp;
 }
 
 export async function signOut() {

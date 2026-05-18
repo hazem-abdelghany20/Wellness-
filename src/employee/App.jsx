@@ -10,7 +10,7 @@ import {
 } from './design-system.jsx';
 import { STRINGS, useT } from './i18n.jsx';
 import {
-  ScreenJoin, ScreenOTP, ScreenConsent, ScreenName, ScreenBaseline,
+  ScreenJoin, ScreenConsent, ScreenName, ScreenBaseline,
   ScreenGoals, ScreenWelcome,
 } from './screens/onboarding.jsx';
 import { ScreenHome } from './screens/home.jsx';
@@ -31,7 +31,7 @@ import { AuthProvider, useAuth } from './state/auth-context.jsx';
 import { Splash } from './screens/splash.jsx';
 import { useNotifications } from './hooks/use-notifications.js';
 
-const ONBOARDING_SCREENS = ['join', 'otp', 'consent', 'name', 'baseline', 'goals', 'welcome'];
+const ONBOARDING_SCREENS = ['join', 'consent', 'name', 'baseline', 'goals', 'welcome'];
 const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'profile', 'mine', 'breathe', 'player', 'notifs', 'competition-path'];
 
 // --- app.jsx ---
@@ -142,14 +142,14 @@ function AppInner() {
     if (authLoading) return;
     if (session && !profileLoaded) return;
     if (!session) {
-      // Unauthenticated users may only sit on join/otp.
-      if (screen !== 'join' && screen !== 'otp') {
+      // Unauthenticated users only sit on join.
+      if (screen !== 'join') {
         setScreen('join');
       }
     } else if (!(profile?.onboarded || profile?.onboarded_at)) {
       // Authenticated but not onboarded — must be on consent/name/baseline/goals/welcome.
-      // If they're on join/otp/null/main, jump them to consent.
-      if (screen === null || screen === 'join' || screen === 'otp' || MAIN_SCREENS.includes(screen)) {
+      // If they're on join/null/main, jump them to consent.
+      if (screen === null || screen === 'join' || MAIN_SCREENS.includes(screen)) {
         setScreen('consent');
       }
     } else {
@@ -232,9 +232,8 @@ function AppInner() {
 
   let content, showTabs = false;
   switch (screen) {
-    case 'join':     content = <ScreenJoin theme={theme} t={t} dir={dir} onNext={() => go('otp')}/>; break;
-    case 'otp':      content = <ScreenOTP theme={theme} t={t} dir={dir} onNext={() => go('consent')} onBack={() => go('join')}/>; break;
-    case 'consent':  content = <ScreenConsent theme={theme} t={t} dir={dir} onNext={() => go('name')} onBack={() => go('otp')}/>; break;
+    case 'join':     content = <ScreenJoin theme={theme} t={t} dir={dir} onNext={() => go('consent')}/>; break;
+    case 'consent':  content = <ScreenConsent theme={theme} t={t} dir={dir} onNext={() => go('name')} onBack={() => go('join')}/>; break;
     case 'name':     content = <ScreenName theme={theme} t={t} dir={dir} state={state} onNext={() => go('baseline')} onBack={() => go('consent')}/>; break;
     case 'baseline': content = <ScreenBaseline theme={theme} t={t} dir={dir} onNext={() => go('goals')} onBack={() => go('name')}/>; break;
     case 'goals':    content = <ScreenGoals theme={theme} t={t} dir={dir} onNext={() => go('welcome')} onBack={() => go('baseline')}/>; break;

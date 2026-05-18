@@ -12,6 +12,7 @@ import { useProfile } from '../hooks/use-profile.js';
 function ScreenJoin({ theme, t, onNext, dir }) {
   const [code, setCode] = React.useState('WH-4782');
   const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState(null);
   const { signInWithCode } = useAuth();
@@ -23,10 +24,16 @@ function ScreenJoin({ theme, t, onNext, dir }) {
       setErr(lang === 'ar' ? 'البريد الإلكتروني مطلوب' : 'Email is required');
       return;
     }
+    if (password.length < 6) {
+      setErr(lang === 'ar' ? 'كلمة المرور ٦ أحرف على الأقل' : 'Password must be at least 6 characters');
+      return;
+    }
     setErr(null); setBusy(true);
     try {
-      await signInWithCode(code, email.trim());
-      onNext();
+      await signInWithCode(code, email.trim(), password);
+      // Auth-driven routing in App.jsx will redirect to the next onboarding
+      // step (or home) once the session lands; onNext is now a no-op.
+      onNext?.();
     } catch (e) {
       setErr(e?.message || (lang === 'ar' ? 'فشل تسجيل الدخول' : 'Sign-in failed'));
     } finally {
@@ -66,6 +73,21 @@ function ScreenJoin({ theme, t, onNext, dir }) {
           <input value={email} onChange={e => setEmail(e.target.value)}
             type="email" inputMode="email" autoComplete="email"
             placeholder={lang === 'ar' ? 'name@company.com' : 'name@company.com'}
+            disabled={busy}
+            style={{
+              width: '100%', height: 54, padding: '0 16px',
+              background: T.surface, border: `1px solid ${T.borderStrong}`,
+              borderRadius: 14, color: T.text, fontSize: 17, fontWeight: 500,
+              fontFamily: typeStyles(T).sansFont, boxSizing: 'border-box', outline: 'none',
+              textAlign: dir === 'rtl' ? 'right' : 'left',
+            }}/>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{lang === 'ar' ? 'كلمة المرور' : 'Password'}</div>
+          <input value={password} onChange={e => setPassword(e.target.value)}
+            type="password" autoComplete="current-password"
+            placeholder={lang === 'ar' ? '٦ أحرف على الأقل' : 'At least 6 characters'}
             disabled={busy}
             style={{
               width: '100%', height: 54, padding: '0 16px',
