@@ -91,35 +91,49 @@ export async function assignContent(contentId: string, scope: 'all' | 'team', te
 // ── Challenges ─────────────────────────────────────────────────
 
 export async function listChallengeTemplates() {
+  // Pull from challenge_templates (catalogue) — was wrongly pulling from
+  // `challenges` which is the runtime/scheduled-instances table, so the
+  // dropdown showed live challenges instead of pickable templates.
   const { data, error } = await supabase
-    .from('challenges')
+    .from('challenge_templates')
     .select('*')
-    .order('start_date', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+    .order('title_en');
+  if (error) {
+    // 42P01 = table missing in older envs → empty list instead of blank screen.
+    if ((error as { code?: string }).code === '42P01') return [];
+    throw error;
+  }
+  // Normalize payload (badge_icon / badge_color / description live in jsonb).
+  return (data ?? []).map((t: any) => ({
+    ...t,
+    description_en: t.payload?.description_en ?? '',
+    description_ar: t.payload?.description_ar ?? '',
+    badge_icon:     t.payload?.badge_icon ?? 'trophy',
+    badge_color:    t.payload?.badge_color ?? '#F5B544',
+    goal_value:     t.target ?? 7,
+  }));
 }
 
-export async function scheduleChallenge(template: any, window: { start: string; end: string }, scope: 'all' | 'team', teamId?: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  const companyId = user?.app_metadata?.company_id as string | undefined;
-  if (!companyId) throw new Error('not_in_company');
-
-  const { data, error } = await supabase.from('challenges').insert({
-    company_id: companyId,
+export async function scheduleChallenge(template: any, window: { start: string; end: string }, _scope: 'all' | 'team', _teamId?: string) {
+  // challenges table has no client-side INSERT policy (only service_role), so
+  // we route through the edge fn which uses the service client and applies
+  // the same super-admin / company-id fallback that update-challenge-activity
+  // and hr-schedule-broadcast use.
+  const payload = {
     title_en:       template.title_en ?? template.title ?? 'New challenge',
     title_ar:       template.title_ar ?? template.title ?? 'New challenge',
     description_en: template.description_en ?? template.description ?? '',
     description_ar: template.description_ar ?? template.description ?? '',
     metric:         template.metric ?? 'checkins',
-    goal_value:     template.goal_value ?? template.target ?? 10,
+    goal_value:     template.goal_value ?? template.target ?? 7,
     start_date:     window.start,
     end_date:       window.end,
     badge_icon:     template.badge_icon ?? 'trophy',
     badge_color:    template.badge_color ?? '#F5B544',
-    active:         true,
-  }).select().single();
+  };
+  const { data, error } = await supabase.functions.invoke('hr-schedule-challenge', { body: payload });
   if (error) throw error;
-  return data;
+  return (data as any).challenge;
 }
 
 export async function getChallengeStatus(challengeId: string) {

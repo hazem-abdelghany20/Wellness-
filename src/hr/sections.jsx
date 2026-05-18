@@ -101,8 +101,8 @@ function Sidebar({ theme, S, active, onNav, collapsed }) {
     { id: 'challenges', key: 'challenges' },
     { id: 'gifts', key: 'gifts' },
     { id: 'broadcasts', key: 'broadcasts' },
-    { id: 'gifts', key: 'gifts' },
     { id: 'reports', key: 'reports' },
+    { id: 'settings', key: 'settings' },
   ];
   const w = collapsed ? 68 : 232;
   return (
@@ -171,7 +171,7 @@ function Sidebar({ theme, S, active, onNav, collapsed }) {
 }
 
 // ── TOP BAR ─────────────────────────────────────────────────────
-function TopBar({ theme, S, dir, range, onRange, onExport, onTweaks }) {
+function TopBar({ theme, S, dir, range, onRange, onExport, onTweaks, userName, userEmail, userRoleLabel, companyName }) {
   const T = theme;
   return (
     <div style={{
@@ -222,10 +222,10 @@ function TopBar({ theme, S, dir, range, onRange, onExport, onTweaks }) {
       </button>
 
       <div onClick={onTweaks} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-        <AvatarMark theme={T} name="Hana El-Masry" size={34}/>
+        <AvatarMark theme={T} name={userName || userEmail || '?'} size={34}/>
         <div style={{ lineHeight: 1.1 }}>
-          <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>Hana El-Masry</div>
-          <div style={{ fontSize: 11, color: T.textMuted }}>HR Director · {S.tenant}</div>
+          <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{userName || userEmail || '—'}</div>
+          <div style={{ fontSize: 11, color: T.textMuted }}>{userRoleLabel || ''}{userRoleLabel && companyName ? ' · ' : ''}{companyName || ''}</div>
         </div>
         <HRIcon name="chevDown" size={14} stroke={T.textMuted}/>
       </div>
