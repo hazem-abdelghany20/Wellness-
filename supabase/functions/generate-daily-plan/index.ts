@@ -8,6 +8,7 @@ interface PlanAction {
   title_en: string;
   title_ar: string;
   content_id?: string;
+  content_kind?: string;
   duration_mins: number;
 }
 
@@ -28,7 +29,8 @@ Deno.serve(async (req) => {
       .eq('plan_date', today)
       .maybeSingle();
 
-    if (existing?.generated) {
+    const existingActions = Array.isArray(existing?.actions) ? existing.actions : [];
+    if (existing?.generated && existingActions.length >= 3) {
       return new Response(
         JSON.stringify({ plan: existing }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -94,21 +96,24 @@ Deno.serve(async (req) => {
           title_en: item.title_en,
           title_ar: item.title_ar ?? item.title_en,
           content_id: item.id,
+          content_kind: item.kind,
           duration_mins: item.duration_mins ?? 5,
         });
       }
     }
 
-    // Fallback: add a featured item if actions < 3
+    // Fallback: add featured items until the Home screen has a full 3-action plan.
     if (actions.length < 3 && contentItems?.length) {
-      const featured = contentItems.find(c => !actions.some(a => a.content_id === c.id));
-      if (featured) {
+      const fallbackItems = contentItems.filter(c => !actions.some(a => a.content_id === c.id));
+      for (const featured of fallbackItems) {
+        if (actions.length >= 3) break;
         actions.push({
           id: `content-${featured.id}`,
           type: 'content',
           title_en: featured.title_en,
           title_ar: featured.title_ar ?? featured.title_en,
           content_id: featured.id,
+          content_kind: featured.kind,
           duration_mins: featured.duration_mins ?? 5,
         });
       }

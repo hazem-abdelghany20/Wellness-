@@ -14,29 +14,41 @@ import { prayerTimes, CAIRO } from '../lib/sun-times.js';
 
 // Defaults to gracefully fall back when the server returns sparse action data.
 const ACTION_DEFAULTS = {
-  breathe: { icon: 'wind',     kind: 'Reset',   label: { en: '2-minute box breathing',     ar: 'تنفس مربع دقيقتان' }, minutes: 2 },
-  stretch: { icon: 'activity', kind: 'Move',    label: { en: 'Desk mobility flow',         ar: 'حركات مكتبية' },        minutes: 4 },
-  journal: { icon: 'book',     kind: 'Reflect', label: { en: 'Evening wind-down journal',  ar: 'يوميات نهاية اليوم' },  minutes: 3 },
+  checkin: { icon: 'smile',    kind: 'Check-in', label: { en: 'Daily check-in',             ar: 'التسجيل اليومي' },       minutes: 1 },
+  'daily-checkin': { icon: 'smile', kind: 'Check-in', label: { en: 'Daily check-in',        ar: 'التسجيل اليومي' },       minutes: 1 },
+  breathe: { icon: 'wind',     kind: 'Reset',    label: { en: '2-minute box breathing',     ar: 'تنفس مربع دقيقتان' },    minutes: 2 },
+  'box-breath': { icon: 'wind', kind: 'Reset',   label: { en: 'Box breathing',              ar: 'تنفس مربع' },            minutes: 4 },
+  content: { icon: 'play',     kind: 'Content',  label: { en: 'Recommended session',        ar: 'جلسة مقترحة' },          minutes: 5 },
+  challenge: { icon: 'trophy', kind: 'Challenge', label: { en: 'Challenge practice',        ar: 'تدريب التحدي' },         minutes: 5 },
+  stretch: { icon: 'activity', kind: 'Move',     label: { en: 'Desk mobility flow',         ar: 'حركات مكتبية' },         minutes: 4 },
+  journal: { icon: 'book',     kind: 'Reflect',  label: { en: 'Evening wind-down journal',  ar: 'يوميات نهاية اليوم' },   minutes: 3 },
 };
 
 function normalizeAction(a) {
-  const fallback = ACTION_DEFAULTS[a?.id] || ACTION_DEFAULTS[a?.kind] || {};
+  const fallback = ACTION_DEFAULTS[a?.id] || ACTION_DEFAULTS[a?.type] || ACTION_DEFAULTS[a?.kind] || {};
   // Server label may be a plain string or already a {en, ar} object.
   let label = a?.label ?? a?.title ?? fallback.label;
+  if (!a?.label && !a?.title && (a?.title_en || a?.title_ar)) {
+    label = { en: a.title_en || a.title_ar, ar: a.title_ar || a.title_en };
+  }
   if (typeof label === 'string') label = { en: label, ar: label };
   return {
     id: a?.id,
+    type: a?.type,
+    content_id: a?.content_id,
     icon: a?.icon || fallback.icon || 'sparkle',
     kind: a?.kind || fallback.kind || '',
     label: label || { en: '', ar: '' },
-    minutes: a?.minutes ?? a?.mins ?? fallback.minutes ?? 0,
+    minutes: a?.minutes ?? a?.mins ?? a?.duration_mins ?? fallback.minutes ?? 0,
   };
 }
 
 function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
-  const greeting = t('goodMorning');
+  const displayName = state.name || '';
+  const firstName = displayName.trim().split(/\s+/)[0] || (lang === 'ar' ? 'هناك' : 'there');
+  const greeting = lang === 'ar' ? `صباح الخير، ${firstName}` : `Good morning, ${firstName}`;
   const streak = state.streak;
 
   const { plan, completedIds, loading, complete } = useDailyPlan();
@@ -66,7 +78,8 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const totalCount = Math.max(actions.length, 1);
 
   const onAction = (a) => {
-    if (a.id === 'breathe') { go('breathe'); return; }
+    if (a.type === 'checkin' || a.id === 'daily-checkin') { go('checkin'); return; }
+    if (a.type === 'breathe' || a.id === 'breathe' || a.id === 'box-breath') { go('breathe'); return; }
     if (!a.done) complete(a.id);
   };
 
@@ -467,4 +480,4 @@ function LayoutAgenda({ theme, t, lang, actions, onAction }) {
   );
 }
 
-export { ScreenHome, IconBtn, LayoutList, LayoutStack, LayoutAgenda };
+export { ScreenHome, IconBtn, LayoutList, LayoutStack, LayoutAgenda, normalizeAction };

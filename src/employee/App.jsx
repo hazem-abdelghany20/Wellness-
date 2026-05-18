@@ -112,7 +112,7 @@ function TabBar({ theme, t, dir, active, onTab }) {
 
 function AppInner() {
   const { cfg, setCfg } = useAppConfig();
-  const { session, profile, loading: authLoading } = useAuth();
+  const { session, profile, loading: authLoading, profileLoaded } = useAuth();
   // App-level subscription — feeds the realtime bell badge.
   const { unreadCount } = useNotifications(session?.user?.id);
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
@@ -140,6 +140,7 @@ function AppInner() {
   // - Fully onboarded: route to main app.
   React.useEffect(() => {
     if (authLoading) return;
+    if (session && !profileLoaded) return;
     if (!session) {
       // Unauthenticated users may only sit on join/otp.
       if (screen !== 'join' && screen !== 'otp') {
@@ -157,9 +158,15 @@ function AppInner() {
         setScreen('home');
       }
     }
-  }, [authLoading, session, profile, screen]);
+  }, [authLoading, session, profile, profileLoaded, screen]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-avatar', avatar); }, [avatar]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-name', name); }, [name]);
+  React.useEffect(() => {
+    if (!profile) return;
+    setStreak(profile.streak_current ?? 0);
+    setName(profile.display_name || session?.user?.email?.split('@')[0] || '');
+    setAvatar(profile.avatar_kind || 'monogram');
+  }, [profile, session?.user?.email]);
 
   // Tweaks edit mode contract
   React.useEffect(() => {
@@ -219,7 +226,7 @@ function AppInner() {
   const setThemeKey = (k) => setCfg({ ...cfg, theme: k });
 
   // Splash while auth bootstraps, or while the routing effect is still resolving the initial screen.
-  if (authLoading || screen === null) {
+  if (authLoading || (session && !profileLoaded) || screen === null) {
     return <Splash theme={theme}/>;
   }
 

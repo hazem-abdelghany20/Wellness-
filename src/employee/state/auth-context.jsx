@@ -12,15 +12,23 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [pendingEmail, setPendingEmail] = useState(null);
 
   const refreshProfile = useCallback(async () => {
-    if (!session) { setProfile(null); setCompany(null); return; }
+    if (!session) {
+      setProfile(null); setCompany(null); setProfileLoaded(false);
+      return;
+    }
+    setProfileLoaded(false);
     try {
       const [p, c] = await Promise.all([getMyProfile(), getMyCompany()]);
       setProfile(p); setCompany(c);
     } catch (e) {
+      setProfile(null); setCompany(null);
       console.warn('[auth] refreshProfile failed', e);
+    } finally {
+      setProfileLoaded(true);
     }
   }, [session]);
 
@@ -68,7 +76,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = {
-    session, profile, company, loading, pendingEmail,
+    session, profile, company, loading, profileLoaded, pendingEmail,
     signInWithCode, verifyOtp, signOut, refreshProfile,
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
