@@ -53,11 +53,12 @@ function HRSafetyPage({ theme, S, lang, density }) {
       <Panel theme={T} density={density} pad={false}>
         <div style={{ padding: '12px 18px', borderBottom: `1px solid ${T.divider}`, display: 'flex', gap: 4 }}>
           {[['open',s('High risk','مرتفع')],['review',s('Watchlist','مراقبة')],['all',s('All','الكل')]].map(([k,l])=>(
-            <button key={k} onClick={()=>setTab(k)} style={{
-              padding: '8px 14px', borderRadius: 8, border: 'none',
+            <button key={k} onClick={()=>setTab(k)} aria-pressed={tab===k} style={{
+              padding: '8px 14px', borderRadius: 8,
               background: tab===k ? T.panelSunk : 'transparent',
               color: tab===k ? T.text : T.textMuted,
-              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              border: `1px solid ${tab===k ? T.borderStrong : 'transparent'}`,
+              fontSize: 12, fontWeight: tab===k ? 700 : 600, cursor: 'pointer',
             }}>{l}</button>
           ))}
         </div>

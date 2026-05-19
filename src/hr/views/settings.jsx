@@ -8,7 +8,7 @@ import { useSettings } from '../hooks/use-settings.js';
 function HRSettingsPage({ theme, S, lang, density }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
-  const { company, loading, update } = useSettings();
+  const { company, loading, error, update, refetch } = useSettings();
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(null);
@@ -17,7 +17,33 @@ function HRSettingsPage({ theme, S, lang, density }) {
     if (company) setForm({ name: company.name || '', settings: company.settings || {} });
   }, [company]);
 
-  if (loading || !form) {
+  if (loading && !form) {
+    return (
+      <div style={{ padding: '80px 0', textAlign: 'center', color: T.textMuted, fontSize: 13 }}>
+        {s('Loading…','جارٍ التحميل…')}
+      </div>
+    );
+  }
+
+  if (error && !form) {
+    const msg = error?.message || String(error);
+    const isNoCompany = /not_in_company/i.test(msg);
+    return (
+      <div style={{ padding: '80px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 20, color: T.text, fontWeight: 700, marginBottom: 8 }}>
+          {isNoCompany ? s('No workspace linked','لا توجد مساحة عمل مرتبطة') : s('Couldn’t load settings','تعذَّر تحميل الإعدادات')}
+        </div>
+        <div style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.6, marginBottom: 18 }}>
+          {isNoCompany
+            ? s('Your profile isn’t yet attached to a company. Ask an admin to provision your account, or sign in again with a company code.', 'حسابك غير مرتبط بشركة بعد. تواصل مع المسؤول أو سجِّل الدخول مع رمز الشركة.')
+            : msg}
+        </div>
+        <HRButton theme={T} variant="primary" onClick={refetch}>{s('Try again','إعادة المحاولة')}</HRButton>
+      </div>
+    );
+  }
+
+  if (!form) {
     return (
       <div style={{ padding: '80px 0', textAlign: 'center', color: T.textMuted, fontSize: 13 }}>
         {s('Loading…','جارٍ التحميل…')}

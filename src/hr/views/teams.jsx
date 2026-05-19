@@ -91,11 +91,13 @@ function HRTeamsPage({ theme, S, lang, density, chartStyle, onOpenTeam }) {
           <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>{s('Filter','تصفية')}</div>
           <div style={{ display: 'flex', gap: 4, background: T.panelSunk, padding: 3, borderRadius: 9, border: `1px solid ${T.border}` }}>
             {[['all',s('All','الكل')],['high',s('High','مرتفع')],['med',s('Med','متوسط')],['low',s('Low','منخفض')]].map(([k,l])=>(
-              <button key={k} onClick={() => setRiskFilter(k)} style={{
-                padding: '6px 12px', borderRadius: 6, border: 'none',
+              <button key={k} onClick={() => setRiskFilter(k)} aria-pressed={riskFilter===k} style={{
+                padding: '6px 12px', borderRadius: 6,
                 background: riskFilter===k ? T.panel : 'transparent',
                 color: riskFilter===k ? T.text : T.textMuted,
-                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${riskFilter===k ? T.borderStrong : 'transparent'}`,
+                fontSize: 12, fontWeight: riskFilter===k ? 700 : 600, cursor: 'pointer',
+                boxShadow: riskFilter===k ? T.shadowSm : 'none',
               }}>{l}</button>
             ))}
           </div>

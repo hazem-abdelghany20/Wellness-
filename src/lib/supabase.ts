@@ -124,7 +124,19 @@ export async function getMyProfile() {
 
 export async function getMyCompany() {
   const { data: { user } } = await supabase.auth.getUser();
-  const companyId = user?.app_metadata?.company_id as string | undefined;
+  if (!user) return null;
+  let companyId = user.app_metadata?.company_id as string | undefined;
+  if (!companyId) {
+    // JWT app_metadata is stale for users whose profile was backfilled out
+    // of band (superadmins, freshly-onboarded). Read straight from the
+    // profile row so the topbar greeting + Settings show the real name.
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+    companyId = prof?.company_id as string | undefined;
+  }
   if (!companyId) return null;
   const { data, error } = await supabase
     .from('companies')

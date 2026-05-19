@@ -98,17 +98,6 @@ function Sidebar({ theme, S, active, onNav, collapsed, safetyCount = 0 }) {
       </div>
 
       <div style={{ flex: 1 }}/>
-      <div style={{ padding: collapsed ? '10px' : '10px 14px', borderTop: '1px solid rgba(245,241,232,0.06)' }}>
-        <button onClick={() => onNav('settings')} style={{
-          width: '100%', padding: collapsed ? '10px 12px' : '9px 12px',
-          display: 'flex', alignItems: 'center', gap: 12, justifyContent: collapsed ? 'center' : 'flex-start',
-          background: 'transparent', color: T.sidebarText, border: 'none', cursor: 'pointer',
-          borderRadius: 10, fontSize: 13, fontWeight: 500,
-        }}>
-          <HRIcon name="settings" size={18}/>
-          {!collapsed && <span>{S.settings}</span>}
-        </button>
-      </div>
     </aside>
   );
 }

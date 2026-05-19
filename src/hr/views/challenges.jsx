@@ -3,6 +3,7 @@ import { DENSITY } from '../../shared/tokens.jsx';
 import { HRIcon, HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useChallenges } from '../hooks/use-challenges.js';
+import { friendlyErrorI18n } from '../../lib/errors';
 
 // ── CHALLENGES PAGE ──────────────────────────────────────────────
 function HRChallengesPage({ theme, S, lang, density }) {
@@ -57,7 +58,7 @@ function HRChallengesPage({ theme, S, lang, density }) {
       setSelectedId(null);
       setStart(''); setEnd('');
     } catch (e) {
-      setFlash({ kind: 'err', message: e?.message });
+      setFlash({ kind: 'err', message: friendlyErrorI18n(e, lang) });
     } finally {
       setBusy(false);
     }
@@ -124,7 +125,7 @@ function HRChallengesPage({ theme, S, lang, density }) {
         </div>
         {flash && (
           <div style={{ marginTop: 12, fontSize: 12, color: flash.kind === 'ok' ? T.positive : T.danger }}>
-            {flash.kind === 'ok' ? s('Challenge scheduled.','تمت جدولة التحدي.') : s('Failed to schedule.','تعذّرت الجدولة.')}
+            {flash.kind === 'ok' ? s('Challenge scheduled.','تمت جدولة التحدي.') : (flash.message || s('Failed to schedule.','تعذّرت الجدولة.'))}
           </div>
         )}
       </Panel></div>

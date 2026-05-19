@@ -12,7 +12,9 @@ export function HRAuthProvider({ children }) {
   const [company, setCompany]   = useState(null);
   const [loading, setLoading]   = useState(true);
 
-  const role = session?.user?.app_metadata?.role || null;
+  // Prefer JWT app_metadata.role for fresh tokens. Fall back to profile.role
+  // for superadmins / backfilled users whose claims haven't been re-minted.
+  const role = session?.user?.app_metadata?.role || profile?.role || null;
 
   const refreshProfile = useCallback(async () => {
     if (!session) { setProfile(null); setCompany(null); return; }

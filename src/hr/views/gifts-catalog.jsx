@@ -3,6 +3,7 @@ import { DENSITY } from '../../shared/tokens.jsx';
 import { HRIcon, HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useGiftCatalog } from '../hooks/use-gift-catalog.js';
+import { friendlyErrorI18n } from '../../lib/errors';
 
 // HR Gift Catalog — v2 Sprint 1.
 // WH Services tab is fully editable. Amazon + Custom are visual stubs
@@ -20,7 +21,14 @@ function HRGiftCatalogPage({ theme, lang, density }) {
   const { byCategory, loading, error, upsert, deactivate } = useGiftCatalog();
   const [tab, setTab] = useState('wh_service');
   const [editing, setEditing] = useState(null); // {} for new, item for edit, null for none
+  const [deactivateError, setDeactivateError] = useState(null);
   const gap = DENSITY[density].gap;
+
+  const handleDeactivate = async (id) => {
+    setDeactivateError(null);
+    try { await deactivate(id); }
+    catch (e) { setDeactivateError(friendlyErrorI18n(e, lang)); }
+  };
 
   if (loading) {
     return (
@@ -107,7 +115,7 @@ function HRGiftCatalogPage({ theme, lang, density }) {
             {items.map(item => (
               <CatalogCard key={item.id} theme={T} lang={lang} item={item}
                 onEdit={() => setEditing(item)}
-                onDeactivate={() => deactivate(item.id)}/>
+                onDeactivate={() => handleDeactivate(item.id)}/>
             ))}
           </div>
         </Panel>
@@ -119,11 +127,20 @@ function HRGiftCatalogPage({ theme, lang, density }) {
           initial={editing}
           onCancel={() => setEditing(null)}
           onSave={async (payload) => {
-            try {
-              await upsert({ ...payload, category: 'wh_service', active: true });
-              setEditing(null);
-            } catch (_e) { /* surfaced via reload */ }
+            // Re-throws so the modal stays open + can render the error.
+            await upsert({ ...payload, category: 'wh_service', active: true });
+            setEditing(null);
           }}/>
+      )}
+      {deactivateError && (
+        <div role="alert" style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 90,
+          padding: '10px 14px', background: T.panel, color: T.danger,
+          border: `1px solid ${T.danger}`, borderRadius: 9, fontSize: 12,
+          boxShadow: T.shadowMd,
+        }}>
+          {deactivateError}
+        </div>
       )}
     </>
   );
@@ -204,12 +221,13 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
   );
   const [currency, setCurrency] = useState(initial.currency || 'EGP');
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const valid = nameEn.trim().length > 0 && /^\d+(\.\d+)?$/.test(valueMajor);
 
   const handleSave = async () => {
     if (!valid || busy) return;
-    setBusy(true);
+    setBusy(true); setSaveError(null);
     try {
       await onSave({
         id: initial.id,
@@ -220,6 +238,8 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
         value_minor: Math.round(parseFloat(valueMajor) * 100),
         currency: currency.toUpperCase(),
       });
+    } catch (e) {
+      setSaveError(friendlyErrorI18n(e, lang));
     } finally { setBusy(false); }
   };
 
@@ -265,6 +285,11 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
           </Field>
         </div>
 
+        {saveError && (
+          <div style={{ marginTop: 10, padding: '8px 12px', background: T.panelSunk, border: `1px solid ${T.danger}`, color: T.danger, borderRadius: 9, fontSize: 12 }}>
+            {saveError}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end' }}>
           <HRButton theme={T} variant="secondary" onClick={onCancel}>
             {s('Cancel', 'إلغاء')}

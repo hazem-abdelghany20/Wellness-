@@ -3,6 +3,7 @@ import { DENSITY } from '../../shared/tokens.jsx';
 import { HRIcon, HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useContent } from '../hooks/use-content.js';
+import { friendlyErrorI18n } from '../../lib/errors';
 
 // ── CONTENT PAGE ─────────────────────────────────────────────────
 function HRContentPage({ theme, S, lang, density }) {
@@ -30,7 +31,11 @@ function HRContentPage({ theme, S, lang, density }) {
     mins:    c.duration_mins ?? 0,
     cat:     c.category || s('General','عام'),
     pinned:  !!c.featured,
-    published: c.published !== false,
+    // The DB tracks publication state in the `status` text column added by
+    // migration 20260514000003 (values: 'published'|'draft'|'archived').
+    // Older rows that predate the column fall back to 'published'.
+    status:  c.status || 'published',
+    published: (c.status || 'published') === 'published',
   }));
 
   const visible = library.filter(c => tab !== 'pinned' || c.pinned);
@@ -38,10 +43,11 @@ function HRContentPage({ theme, S, lang, density }) {
   const handleTogglePublished = async (content) => {
     setBusyId(`publish-${content.id}`); setFlash(null);
     try {
-      await update(content.id, { published: !content.published });
+      const nextStatus = content.published ? 'draft' : 'published';
+      await update(content.id, { status: nextStatus });
       setFlash({ id: content.id, kind: 'ok' });
     } catch (e) {
-      setFlash({ id: content.id, kind: 'err' });
+      setFlash({ id: content.id, kind: 'err', message: friendlyErrorI18n(e, lang) });
     } finally {
       setBusyId(null);
     }
@@ -82,7 +88,7 @@ function HRContentPage({ theme, S, lang, density }) {
             <div style={{ fontSize: 11, color: T.textMuted }}>{c.cat} · {c.mins} {s('min','د')}</div>
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 11, color: flash?.id === c.id ? (flash.kind === 'ok' ? T.positive : T.danger) : T.textFaint }}>
-                {flash?.id === c.id ? (flash.kind === 'ok' ? s('Saved','تم الحفظ') : s('Error','خطأ')) : ''}
+                {flash?.id === c.id ? (flash.kind === 'ok' ? s('Saved','تم الحفظ') : (flash.message || s('Error','خطأ'))) : ''}
               </span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <HRButton theme={T} variant="ghost" size="sm" disabled={busyId === `publish-${c.id}`}

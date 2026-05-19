@@ -4,6 +4,7 @@ import { HRIcon, HRButton, Panel, Toggle } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useTierConfig, TIER_LIST } from '../hooks/use-tier-config.js';
 import { useGiftCatalog } from '../hooks/use-gift-catalog.js';
+import { friendlyErrorI18n } from '../../lib/errors';
 
 // HR per-competition tier configuration — v2 Sprint 2.
 // HR picks a competition then configures Bronze/Silver/Gold:
@@ -131,7 +132,7 @@ function TierCard({ theme, lang, tier, config, catalog, onSave }) {
       });
       setFlash({ kind: 'ok', text: s('Saved', 'تم الحفظ') });
     } catch (e) {
-      setFlash({ kind: 'err', text: e?.message || s('Save failed', 'فشل الحفظ') });
+      setFlash({ kind: 'err', text: friendlyErrorI18n(e, lang) });
     } finally {
       setBusy(false);
     }
