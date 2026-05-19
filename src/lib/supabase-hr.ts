@@ -297,11 +297,23 @@ export async function requestReportExport(kind: 'overview' | 'teams', range: '7d
 
 // ── Settings ───────────────────────────────────────────────────
 
-export async function getCompanySettings() {
+async function resolveCompanyId(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
-  const companyId = user?.app_metadata?.company_id as string | undefined;
-  if (!companyId) throw new Error('not_in_company');
+  if (!user) throw new Error('not_authenticated');
+  const jwtCompany = user.app_metadata?.company_id as string | undefined;
+  if (jwtCompany) return jwtCompany;
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single();
+  const profCompany = prof?.company_id as string | undefined;
+  if (!profCompany) throw new Error('not_in_company');
+  return profCompany;
+}
 
+export async function getCompanySettings() {
+  const companyId = await resolveCompanyId();
   const { data, error } = await supabase
     .from('companies')
     .select('id, name, slug, settings')
@@ -312,10 +324,7 @@ export async function getCompanySettings() {
 }
 
 export async function updateCompanySettings(patch: Record<string, unknown>) {
-  const { data: { user } } = await supabase.auth.getUser();
-  const companyId = user?.app_metadata?.company_id as string | undefined;
-  if (!companyId) throw new Error('not_in_company');
-
+  const companyId = await resolveCompanyId();
   const { data, error } = await supabase
     .from('companies')
     .update(patch)
