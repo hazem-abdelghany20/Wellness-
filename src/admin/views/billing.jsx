@@ -4,14 +4,27 @@ import { HRIcon, HRButton, Panel, PanelHeader, Badge } from '../../shared/compon
 import { useBilling } from '../hooks/use-billing.js';
 import { useTenants } from '../hooks/use-tenants.js';
 
-function BillingEditForm({ theme, lang, onSave, busy }) {
+function BillingEditForm({ theme, lang, onSave, busy, current }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
+  // Prefill from the current billing_state so a Save without edits keeps
+  // the existing values. Without this the form always showed
+  // starter/active/blank/blank and a no-op Save silently downgraded a
+  // tenant from enterprise → starter. The form re-syncs when the picker
+  // changes companies via the dependency on `current`.
   const [mrr, setMrr] = React.useState('');
   const [plan, setPlan] = React.useState('starter');
   const [status, setStatus] = React.useState('active');
   const [seats, setSeats] = React.useState('');
   const [msg, setMsg] = React.useState(null);
+
+  React.useEffect(() => {
+    setMsg(null);
+    setPlan(current?.plan || 'starter');
+    setStatus(current?.status || 'active');
+    setMrr(current?.mrr_cents != null ? String(current.mrr_cents / 100) : '');
+    setSeats(current?.seats != null ? String(current.seats) : '');
+  }, [current?.plan, current?.status, current?.mrr_cents, current?.seats]);
 
   async function submit(e) {
     e.preventDefault();
@@ -159,7 +172,8 @@ function AdminBilling({ theme, density, lang, companyId: companyIdProp }) {
         <PanelHeader theme={T} density={density}
           title={s('Edit billing','تعديل الفوترة')}
           subtitle={s('Update plan, status, MRR, or seat count.','حدِّث الباقة أو الحالة أو الإيراد الشهري أو عدد المقاعد.')}/>
-        <BillingEditForm theme={T} lang={lang} onSave={handleSave} busy={saving}/>
+        <BillingEditForm theme={T} lang={lang} onSave={handleSave} busy={saving}
+          current={(tenants ?? []).find((t) => t.id === companyId)?.billing_state}/>
       </Panel>
 
       <Panel theme={T} density={density} pad={false}>
@@ -204,7 +218,7 @@ function AdminBilling({ theme, density, lang, companyId: companyIdProp }) {
               display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr 1fr 36px',
               padding: `12px ${DENSITY[density].cardPad}px`,
               fontSize: 10, fontWeight: 700, color: T.textMuted, letterSpacing: 0.6, textTransform: 'uppercase',
-              borderBottom: `1px solid ${T.divider}`, background: T.panelSunk,
+              borderBottom: `1px solid ${T.divider}`, background: T.panelSunk, gap: 12,
             }}>
               <div>{s('Invoice','فاتورة')}</div>
               <div style={{ textAlign:'end' }}>{s('Amount','مبلغ')}</div>
@@ -220,7 +234,7 @@ function AdminBilling({ theme, density, lang, companyId: companyIdProp }) {
                 <div key={inv.id || i} style={{
                   display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr 1fr 36px',
                   padding: `${DENSITY[density].cellPadY + 2}px ${DENSITY[density].cardPad}px`,
-                  fontSize: 13, alignItems:'center',
+                  fontSize: 13, alignItems:'center', gap: 12,
                   borderBottom: i < invoices.length - 1 ? `1px solid ${T.divider}` : 'none',
                 }}>
                   <div className="mono" style={{ fontSize: 11, color: T.textMuted }}>{inv.number || inv.id}</div>
