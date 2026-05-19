@@ -4,6 +4,9 @@ import {
   SectionLabel, WellnessMark, Sparkline, Ring,
 } from '../design-system.jsx';
 import { useDailyPlan } from '../hooks/use-daily-plan.js';
+import { useCheckin } from '../hooks/use-checkin.js';
+import { useContent } from '../hooks/use-content.js';
+import { useAuth } from '../state/auth-context.jsx';
 import { tierFor } from '../lib/tiers.js';
 import { listSignatureChallenges } from '../../lib/supabase.js';
 import { useAppConfig } from '../state/app-config-context.jsx';
@@ -13,16 +16,31 @@ import { prayerTimes, CAIRO } from '../lib/sun-times.js';
 // Home / Today feed — 3 layout variants: 'list', 'stack', 'agenda'
 
 // Defaults to gracefully fall back when the server returns sparse action data.
+// The `kind` is stored as a {en, ar} object so the badge translates with
+// the rest of the UI in AR mode.
 const ACTION_DEFAULTS = {
-  checkin: { icon: 'smile',    kind: 'Check-in', label: { en: 'Daily check-in',             ar: 'التسجيل اليومي' },       minutes: 1 },
-  'daily-checkin': { icon: 'smile', kind: 'Check-in', label: { en: 'Daily check-in',        ar: 'التسجيل اليومي' },       minutes: 1 },
-  breathe: { icon: 'wind',     kind: 'Reset',    label: { en: '2-minute box breathing',     ar: 'تنفس مربع دقيقتان' },    minutes: 2 },
-  'box-breath': { icon: 'wind', kind: 'Reset',   label: { en: 'Box breathing',              ar: 'تنفس مربع' },            minutes: 4 },
-  content: { icon: 'play',     kind: 'Content',  label: { en: 'Recommended session',        ar: 'جلسة مقترحة' },          minutes: 5 },
-  challenge: { icon: 'trophy', kind: 'Challenge', label: { en: 'Challenge practice',        ar: 'تدريب التحدي' },         minutes: 5 },
-  stretch: { icon: 'activity', kind: 'Move',     label: { en: 'Desk mobility flow',         ar: 'حركات مكتبية' },         minutes: 4 },
-  journal: { icon: 'book',     kind: 'Reflect',  label: { en: 'Evening wind-down journal',  ar: 'يوميات نهاية اليوم' },   minutes: 3 },
+  checkin:         { icon: 'smile',    kind: { en: 'Check-in', ar: 'تسجيل' },     label: { en: 'Daily check-in',             ar: 'التسجيل اليومي' },       minutes: 1 },
+  'daily-checkin': { icon: 'smile',    kind: { en: 'Check-in', ar: 'تسجيل' },     label: { en: 'Daily check-in',             ar: 'التسجيل اليومي' },       minutes: 1 },
+  breathe:         { icon: 'wind',     kind: { en: 'Reset',    ar: 'استراحة' },   label: { en: '2-minute box breathing',     ar: 'تنفس مربع دقيقتان' },    minutes: 2 },
+  'box-breath':    { icon: 'wind',     kind: { en: 'Reset',    ar: 'استراحة' },   label: { en: 'Box breathing',              ar: 'تنفس مربع' },            minutes: 4 },
+  content:         { icon: 'play',     kind: { en: 'Content',  ar: 'محتوى' },     label: { en: 'Recommended session',        ar: 'جلسة مقترحة' },          minutes: 5 },
+  challenge:       { icon: 'trophy',   kind: { en: 'Challenge', ar: 'تحدٍ' },     label: { en: 'Challenge practice',         ar: 'تدريب التحدي' },         minutes: 5 },
+  stretch:         { icon: 'activity', kind: { en: 'Move',     ar: 'حركة' },      label: { en: 'Desk mobility flow',         ar: 'حركات مكتبية' },         minutes: 4 },
+  journal:         { icon: 'book',     kind: { en: 'Reflect',  ar: 'تأمّل' },     label: { en: 'Evening wind-down journal',  ar: 'يوميات نهاية اليوم' },   minutes: 3 },
 };
+
+// Translate content-item kind chips (AUDIO/VIDEO/ARTICLE) to AR-friendly
+// labels in the home featured strip + library cards. Lives next to home so
+// the home featured card and library can share it.
+function kindLabel(kind, lang) {
+  const map = {
+    audio:   { en: 'AUDIO',   ar: 'صوت' },
+    video:   { en: 'VIDEO',   ar: 'فيديو' },
+    article: { en: 'ARTICLE', ar: 'مقال' },
+  };
+  const m = map[kind] || { en: (kind || '').toUpperCase(), ar: (kind || '') };
+  return m[lang] || m.en;
+}
 
 function normalizeAction(a) {
   const fallback = ACTION_DEFAULTS[a?.id] || ACTION_DEFAULTS[a?.type] || ACTION_DEFAULTS[a?.kind] || {};
@@ -32,12 +50,19 @@ function normalizeAction(a) {
     label = { en: a.title_en || a.title_ar, ar: a.title_ar || a.title_en };
   }
   if (typeof label === 'string') label = { en: label, ar: label };
+  // Kind: keep as a bilingual object so the badge renders in AR mode too.
+  // Server may send a string (legacy) — wrap it; or already an object.
+  let kind = a?.kind ?? fallback.kind ?? '';
+  if (typeof kind === 'string') {
+    const lookup = ACTION_DEFAULTS[kind.toLowerCase?.()];
+    kind = lookup?.kind || { en: kind, ar: kind };
+  }
   return {
     id: a?.id,
     type: a?.type,
     content_id: a?.content_id,
     icon: a?.icon || fallback.icon || 'sparkle',
-    kind: a?.kind || fallback.kind || '',
+    kind,
     label: label || { en: '', ar: '' },
     minutes: a?.minutes ?? a?.mins ?? a?.duration_mins ?? fallback.minutes ?? 0,
   };
@@ -46,12 +71,19 @@ function normalizeAction(a) {
 function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
-  const displayName = state.name || '';
+  const { profile } = useAuth();
+  // In AR mode, prefer display_name_ar so the greeting reads
+  // "صباح الخير، أميرة" instead of leaking the Latin script.
+  const arName = profile?.display_name_ar || '';
+  const enName = state.name || profile?.display_name || '';
+  const displayName = (lang === 'ar' && arName) ? arName : enName;
   const firstName = displayName.trim().split(/\s+/)[0] || (lang === 'ar' ? 'هناك' : 'there');
   const greeting = lang === 'ar' ? `صباح الخير، ${firstName}` : `Good morning, ${firstName}`;
   const streak = state.streak;
 
   const { plan, completedIds, loading, complete } = useDailyPlan();
+  const { history: checkinHistory } = useCheckin(14);
+  const { featured: featuredItems } = useContent(null);
   const { cfg } = useAppConfig();
   const ramadan = cfg?.ramadanMode;
   const times = React.useMemo(() => ramadan ? prayerTimes(new Date(), CAIRO) : null, [ramadan]);
@@ -77,17 +109,24 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const doneCount = actions.filter(a => a.done).length;
   const totalCount = Math.max(actions.length, 1);
 
+  // Live featured-for-you card. Falls back to the most recent featured
+  // content; only renders the strip when we actually have a row.
+  const featured = featuredItems && featuredItems[0] ? featuredItems[0] : null;
+
   const onAction = (a) => {
     if (a.type === 'checkin' || a.id === 'daily-checkin') { go('checkin'); return; }
     if (a.type === 'breathe' || a.id === 'breathe' || a.id === 'box-breath') { go('breathe'); return; }
     if (!a.done) complete(a.id);
   };
 
-  const featured = {
-    tag: { en: 'AUDIO · 6 MIN', ar: 'صوت · 6 د' },
-    title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' },
-    sub: { en: 'Based on your last three check-ins', ar: 'استناداً إلى آخر ثلاث تسجيلات' },
-  };
+  // Build the 7-day sleep sparkline from real check-in history. checkinHistory
+  // comes back newest-first; we want oldest→newest for the line, padded with
+  // 0s if the user has fewer than 7 days yet (the Sparkline handles flatlines).
+  const recent = (checkinHistory || []).slice(0, 7).slice().reverse();
+  const weekSleep = recent.map(r => Number(r?.sleep ?? 0));
+  const weekDelta = (weekSleep.length >= 2)
+    ? weekSleep[weekSleep.length - 1] - weekSleep[0]
+    : null;
 
   return (
     <div style={{
@@ -152,14 +191,15 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
         {variant === 'agenda' && <LayoutAgenda theme={T} t={t} lang={lang} actions={actions} onAction={onAction}/>}
       </div>
 
-      {/* Featured / recommendation */}
+      {/* Featured / recommendation — real row from getFeaturedContent() */}
+      {featured && (
       <div style={{ padding: '24px 16px 0' }}>
         <SectionLabel theme={T} style={{ padding: '0 4px' }} right={
           <button onClick={() => go('library')} style={{ background:'transparent', border:'none', color:T.accent, fontSize:12, fontWeight:600, cursor:'pointer' }}>
             {lang==='ar'?'المكتبة ←':'Library →'}
           </button>
         }>{t('recForYou')}</SectionLabel>
-        <Card theme={T} pad={0} radius={22} onClick={() => go('player', { id: 'sleep-onset' })} style={{ overflow: 'hidden', cursor: 'pointer' }}>
+        <Card theme={T} pad={0} radius={22} onClick={() => go('player', { item: featured })} style={{ overflow: 'hidden', cursor: 'pointer' }}>
           <div style={{
             height: 140, position: 'relative',
             background: `linear-gradient(135deg, ${T.accentSoft}, ${T.surfaceAlt})`,
@@ -181,35 +221,51 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transform: dir === 'rtl' ? 'scale(-1,1)' : 'none',
             }}>
-              <Icon name="play" size={22}/>
+              <Icon name={featured.kind === 'article' ? 'book' : 'play'} size={22}/>
             </div>
             <div style={{ position: 'relative', fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 600 }}>
-              {featured.tag[lang]}
+              {kindLabel(featured.kind, lang)} · {featured.duration_mins || featured.mins || 0} {t('minutes')}
             </div>
           </div>
           <div style={{ padding: '16px 18px 18px' }}>
             <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, letterSpacing: -0.3, color: T.text, lineHeight: 1.2 }}>
-              {featured.title[lang]}
+              {(lang === 'ar' && featured.title_ar) ? featured.title_ar : featured.title_en}
             </div>
-            <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6 }}>{featured.sub[lang]}</div>
           </div>
         </Card>
       </div>
+      )}
 
-      {/* Week glance */}
+      {/* Week glance — real 7-day sleep sparkline */}
+      {weekSleep.length > 0 && (
       <div style={{ padding: '24px 16px 0' }}>
         <SectionLabel theme={T} style={{ padding: '0 4px' }}>{t('yourWeek')}</SectionLabel>
         <Card theme={T} pad={16}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: T.textMuted }}>{lang==='ar'?'النوم':'Sleep'}</div>
-            <div style={{ fontSize: 12, color: T.positive, fontWeight: 600 }}>+0.8h</div>
+            {weekDelta != null && (
+              <div style={{
+                fontSize: 12,
+                color: weekDelta >= 0 ? T.positive : (T.danger || T.warning || T.textMuted),
+                fontWeight: 600,
+              }}>
+                {weekDelta >= 0 ? '+' : ''}{weekDelta.toFixed(1)}h
+              </div>
+            )}
           </div>
-          <Sparkline theme={T} values={[6.2, 6.8, 6.1, 7.2, 6.9, 7.4, 7.1]} height={46}/>
+          <Sparkline theme={T} values={weekSleep} height={46}/>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: T.textFaint, letterSpacing: 0.5 }}>
-            {(lang==='ar'?['س','أ','ث','أر','خ','ج','س']:['M','T','W','T','F','S','S']).map((d,i)=><span key={i}>{d}</span>)}
+            {recent.map((r, i) => {
+              const d = r?.checked_at ? new Date(r.checked_at) : null;
+              const en = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+              const ar = ['أحد','إثن','ثلا','أرب','خمي','جمع','سبت'];
+              const idx = d ? d.getDay() : i;
+              return <span key={i}>{(lang==='ar'?ar:en)[idx]?.[0]}</span>;
+            })}
           </div>
         </Card>
       </div>
+      )}
     </div>
   );
 }
@@ -395,7 +451,7 @@ function LayoutList({ theme, t, lang, actions, onAction }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>{a.done ? <Icon name="check" size={20}/> : <Icon name={a.icon} size={20}/>}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: T.textMuted, fontWeight: 600, marginBottom: 2 }}>{a.kind}</div>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: T.textMuted, fontWeight: 600, marginBottom: 2 }}>{typeof a.kind === 'object' ? (a.kind[lang] || a.kind.en) : a.kind}</div>
             <div style={{
               fontSize: 15, color: T.text, fontWeight: 500,
               textDecoration: a.done ? 'line-through' : 'none',
@@ -425,7 +481,7 @@ function LayoutStack({ theme, t, lang, actions, onAction }) {
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <Icon name={a.icon} size={14} stroke={T.textMuted}/>
-              <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>{a.kind} · {a.minutes} {t('minutes')}</div>
+              <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>{typeof a.kind === 'object' ? (a.kind[lang] || a.kind.en) : a.kind} · {a.minutes} {t('minutes')}</div>
             </div>
             <div style={{ fontSize: 16, color: T.text, fontWeight: 500, lineHeight: 1.3 }}>{a.label[lang]}</div>
           </div>
@@ -441,18 +497,23 @@ function LayoutStack({ theme, t, lang, actions, onAction }) {
   );
 }
 
-// LAYOUT C — agenda with time rail
+// LAYOUT C — agenda with time-of-day rail
 function LayoutAgenda({ theme, t, lang, actions, onAction }) {
   const T = theme;
-  const times = ['09:00', '13:30', '21:00'];
+  // Distribute actions across morning / midday / evening based on their
+  // index — we don't have real scheduled times for daily plan actions,
+  // so we surface a textual time-of-day band instead of a fake clock.
+  const bands = lang === 'ar'
+    ? [{ label: 'صباحاً', clock: '٩:٠٠' }, { label: 'ظهراً', clock: '١:٣٠' }, { label: 'مساءً', clock: '٩:٠٠' }]
+    : [{ label: 'morning', clock: '9 am' }, { label: 'midday', clock: '1:30 pm' }, { label: 'evening', clock: '9 pm' }];
   return (
     <div style={{ paddingLeft: 4, paddingRight: 4 }}>
       {actions.map((a, i) => (
         <div key={a.id} style={{ display: 'flex', gap: 14, paddingBottom: i < actions.length - 1 ? 16 : 0 }}>
           <div style={{ width: 56, flexShrink: 0, paddingTop: 4 }}>
-            <div style={{ fontFamily: typeStyles(T).monoFont, fontSize: 13, color: T.textMuted, fontWeight: 600 }}>{times[i % times.length]}</div>
+            <div style={{ fontFamily: typeStyles(T).monoFont, fontSize: 13, color: T.textMuted, fontWeight: 600 }}>{bands[i % bands.length].clock}</div>
             <div style={{ fontSize: 10, color: T.textFaint, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              {lang==='ar' ? ['صباحاً','ظهراً','مساءً'][i % 3] : ['morning','midday','evening'][i % 3]}
+              {bands[i % bands.length].label}
             </div>
           </div>
           <div style={{ width: 2, background: T.border, borderRadius: 2, position: 'relative' }}>
@@ -462,7 +523,7 @@ function LayoutAgenda({ theme, t, lang, actions, onAction }) {
             onClick={() => onAction(a)}
             style={{ flex: 1, cursor: 'pointer' }}>
             <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600, marginBottom: 4 }}>
-              {a.kind} · {a.minutes} {t('minutes')}
+              {typeof a.kind === 'object' ? (a.kind[lang] || a.kind.en) : a.kind} · {a.minutes} {t('minutes')}
             </div>
             <div style={{ fontSize: 15, color: T.text, fontWeight: 500, lineHeight: 1.3, marginBottom: 10 }}>
               {a.label[lang]}
@@ -480,4 +541,4 @@ function LayoutAgenda({ theme, t, lang, actions, onAction }) {
   );
 }
 
-export { ScreenHome, IconBtn, LayoutList, LayoutStack, LayoutAgenda, normalizeAction };
+export { ScreenHome, IconBtn, LayoutList, LayoutStack, LayoutAgenda, normalizeAction, kindLabel };

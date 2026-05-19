@@ -3,7 +3,7 @@ import {
   typeStyles, Icon, Card, Chip, SectionLabel,
 } from '../design-system.jsx';
 import { TopBack } from './onboarding.jsx';
-import { IconBtn } from './home.jsx';
+import { IconBtn, kindLabel } from './home.jsx';
 import { useContent } from '../hooks/use-content.js';
 
 // --- screens-content.jsx ---
@@ -27,6 +27,7 @@ function normalizeItem(row) {
       kind: row.kind || 'audio',
       mins: row.mins ?? row.duration_mins ?? 0,
       title: row.title,
+      body: row.body || null,
     };
   }
   return {
@@ -35,6 +36,11 @@ function normalizeItem(row) {
     mins: row.duration_mins ?? row.mins ?? 0,
     cat: row.category,
     title: { en: row.title_en || '', ar: row.title_ar || row.title_en || '' },
+    // body_en/body_ar are filled for articles + a short "what to expect"
+    // blurb for audio/video. Falls back to en in ar if ar missing.
+    body: (row.body_en || row.body_ar)
+      ? { en: row.body_en || '', ar: row.body_ar || row.body_en || '' }
+      : null,
   };
 }
 
@@ -96,7 +102,7 @@ function ScreenLibrary({ theme, t, dir, go }) {
             </div>
             <div style={{ padding: '16px 18px 18px' }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
-                {(heroItem.kind || 'audio').toUpperCase()} · {heroItem.mins} {lang==='ar'?'د':'MIN'} · {lang==='ar'?'موصى به':'FOR YOU'}
+                {kindLabel(heroItem.kind, lang)} · {heroItem.mins} {lang==='ar'?'د':'MIN'} · {lang==='ar'?'موصى به':'FOR YOU'}
               </div>
               <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, marginTop: 6, letterSpacing: -0.3, lineHeight: 1.2 }}>
                 {heroItem.title?.[lang] || heroItem.title?.en || ''}
@@ -133,7 +139,7 @@ function ScreenLibrary({ theme, t, dir, go }) {
                 padding: '3px 8px', borderRadius: 999,
                 background: T.bg + 'cc', color: T.text,
                 fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
-              }}>{it.kind}</div>
+              }}>{kindLabel(it.kind, lang)}</div>
               <div style={{
                 position: 'absolute', bottom: 10, right: 10,
                 width: 32, height: 32, borderRadius: 999,
@@ -153,6 +159,36 @@ function ScreenLibrary({ theme, t, dir, go }) {
         ))}
       </div>
       )}
+    </div>
+  );
+}
+
+// Minimal markdown renderer — handles the small subset we use in seeded
+// article bodies: paragraphs separated by blank lines and **bold** inline
+// runs. Anything we don't recognize renders as plain text, which keeps
+// the surface tiny and predictable (no dangerouslySetInnerHTML).
+function ArticleBody({ theme, markdown }) {
+  const T = theme;
+  const paragraphs = String(markdown).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  const renderInline = (text) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((p, i) => {
+      if (/^\*\*[^*]+\*\*$/.test(p)) {
+        return <strong key={i} style={{ color: T.text, fontWeight: 700 }}>{p.slice(2, -2)}</strong>;
+      }
+      return <React.Fragment key={i}>{p}</React.Fragment>;
+    });
+  };
+  return (
+    <div style={{
+      marginTop: 24, color: T.text, fontSize: 16, lineHeight: 1.65,
+      fontFamily: typeStyles(T).sansFont,
+    }}>
+      {paragraphs.map((p, i) => (
+        <p key={i} style={{ margin: i === 0 ? '0 0 14px' : '14px 0' }}>
+          {renderInline(p)}
+        </p>
+      ))}
     </div>
   );
 }
@@ -250,31 +286,28 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
   const isArticle = item.kind === 'article';
 
   if (isArticle) {
+    const articleBody = (item.body && (item.body[lang] || item.body.en)) || '';
     return (
       <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 40, boxSizing: 'border-box' }}>
         <div style={{ padding: '14px 22px 0' }}>
           <TopBack theme={T} onBack={() => go('library')} dir={dir}/>
         </div>
-        <div style={{ padding: '20px 24px 0' }}>
+        <div style={{ padding: '20px 24px 24px' }}>
           <div style={{ fontSize: 11, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
             {lang==='ar'?'مقال · ':'ARTICLE · '}{item.mins} {t('minutes')}
           </div>
           <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 34, color: T.text, marginTop: 10, letterSpacing: -0.5, lineHeight: 1.1 }}>
             {playerTitle(item, lang)}
           </div>
-          <div style={{ marginTop: 24, color: T.text, fontSize: 16, lineHeight: 1.6, fontFamily: typeStyles(T).sansFont }}>
-            {lang==='ar'
-              ? 'روتين الاسترخاء المسائي ليس مجرد طقس. إنه إشارة لدماغك بأن اليوم انتهى. ابدأ بخطوات صغيرة: خفّت الأضواء قبل النوم بساعة، ضع الهاتف خارج الغرفة، ودوّن ثلاثة أشياء سارت بشكل جيد.'
-              : "An evening wind-down isn't ritual for ritual's sake. It's a signal to your brain that the day is done. Start small: dim the lights an hour before bed, put the phone outside the bedroom, and jot down three things that went well."}
-          </div>
-          <div style={{ marginTop: 28, padding: '20px 22px', background: T.surface, borderRadius: 18, border: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: 11, letterSpacing: 1, color: T.accent, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>
-              {lang==='ar'?'جربه الليلة':'Try tonight'}
+          {articleBody ? (
+            <ArticleBody theme={T} markdown={articleBody}/>
+          ) : (
+            <div style={{ marginTop: 24, color: T.textMuted, fontSize: 14, lineHeight: 1.5, fontStyle: 'italic' }}>
+              {lang==='ar'
+                ? 'محتوى هذا المقال قيد التحضير.'
+                : 'This article is being prepared.'}
             </div>
-            <div style={{ fontSize: 16, color: T.text, lineHeight: 1.5 }}>
-              {lang==='ar'?'خفّت الأضواء عند الساعة 9:30، وتنفس مربع لدقيقتين قبل النوم.':'Dim lights at 9:30pm and do 2 minutes of box breathing before bed.'}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     );
@@ -323,7 +356,7 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
 
       <div style={{ padding: '22px 30px 0', textAlign: 'center' }}>
         <div style={{ fontSize: 11, letterSpacing: 1.2, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
-          {(isVideo ? (lang==='ar'?'فيديو':'VIDEO') : (lang==='ar'?'صوت':'AUDIO'))} · {item.mins} {t('minutes')}
+          {kindLabel(item.kind || (isVideo ? 'video' : 'audio'), lang)} · {item.mins} {t('minutes')}
         </div>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text, marginTop: 8, letterSpacing: -0.4, lineHeight: 1.15 }}>
           {playerTitle(item, lang)}

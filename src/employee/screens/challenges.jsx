@@ -6,6 +6,22 @@ import { useChallenges } from '../hooks/use-challenges.js';
 // --- screens-challenge.jsx ---
 // Challenges + leaderboard (2 styles) + join confetti
 
+// Dynamic current-month label so the header doesn't lie about the date
+// (was hardcoded "April 2026" / "أبريل ٢٠٢٦"). Uses Intl.DateTimeFormat
+// for the localized name; falls back to a small static table if Intl
+// can't produce Arabic-Indic numerals for the year.
+function currentMonthLabel(lang) {
+  const now = new Date();
+  try {
+    return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-US', {
+      month: 'long', year: 'numeric',
+    }).format(now);
+  } catch (_) {
+    const monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${monthsEn[now.getMonth()]} ${now.getFullYear()}`;
+  }
+}
+
 // Normalize a server challenge row into the shape the UI expects.
 function normalizeChallenge(c) {
   if (!c) return null;
@@ -112,7 +128,7 @@ function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
       <Confetti theme={T} run={confetti}/>
       <div style={{ padding: '16px 22px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>{t('challengesTitle')}</div>
-        <div style={{ color: T.textMuted, fontSize: 12 }}>{lang==='ar'?'أبريل ٢٠٢٦':'April 2026'}</div>
+        <div style={{ color: T.textMuted, fontSize: 12 }}>{currentMonthLabel(lang)}</div>
       </div>
 
       {/* Active challenge card */}
