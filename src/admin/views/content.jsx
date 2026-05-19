@@ -99,6 +99,19 @@ function AdminContentView({ theme, density, lang }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { items, loading, update } = useContent();
+  const [statusFilter, setStatusFilter] = React.useState('all');
+  const [kindFilter, setKindFilter] = React.useState('all');
+
+  const filtered = items.filter(it =>
+    (statusFilter === 'all' || it.status === statusFilter) &&
+    (kindFilter === 'all' || it.kind === kindFilter)
+  );
+
+  const selectStyle = {
+    height: 32, padding: '0 10px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 12, outline: 'none',
+  };
 
   return (
     <>
@@ -109,22 +122,38 @@ function AdminContentView({ theme, density, lang }) {
           ? s('Loading…','جارٍ التحميل…')
           : `${items.length} ${s('items','عنصر')}`}
         right={<>
-          <HRButton theme={T} variant="secondary" icon="filter">{s('Filter','تصفية')}</HRButton>
-          <HRButton theme={T} icon="plus">{s('Upload','رفع')}</HRButton>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label={s('Status','الحالة')} style={selectStyle}>
+            <option value="all">{s('Status: All','الحالة: الكل')}</option>
+            <option value="draft">{s('Draft','مسودة')}</option>
+            <option value="review">{s('In review','قيد المراجعة')}</option>
+            <option value="published">{s('Published','منشور')}</option>
+          </select>
+          <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value)}
+            aria-label={s('Type','النوع')} style={selectStyle}>
+            <option value="all">{s('Type: All','النوع: الكل')}</option>
+            <option value="audio">{s('Audio','صوت')}</option>
+            <option value="video">{s('Video','فيديو')}</option>
+            <option value="article">{s('Article','مقال')}</option>
+            <option value="breath">{s('Breath','تنفس')}</option>
+          </select>
         </>}/>
 
       <Panel theme={T} density={density} pad={false}>
         <PanelHeader theme={T} density={density}
           title={s('Content catalogue','الكتالوج الكامل')}
-          subtitle={loading ? s('Loading…','جارٍ التحميل…') : `${items.length} ${s('items','عنصر')}`}
-          right={<HRButton theme={T} variant="ghost" size="sm" iconR="chev">{s('All','الكل')}</HRButton>}/>
+          subtitle={loading
+            ? s('Loading…','جارٍ التحميل…')
+            : `${filtered.length} ${s('of','من')} ${items.length} ${s('items','عنصر')}`}/>
         {loading ? (
           <div style={{ padding: 48, display: 'grid', placeItems: 'center', color: T.textMuted, fontSize: 13 }}>
             {s('Loading…','جارٍ التحميل…')}
           </div>
-        ) : items.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div style={{ padding: 32, color: T.textMuted, fontSize: 13, textAlign: 'center' }}>
-            {s('No content yet.','لا يوجد محتوى بعد.')}
+            {items.length === 0
+              ? s('No content yet.','لا يوجد محتوى بعد.')
+              : s('No items match the current filters.','لا توجد عناصر تطابق المرشحات الحالية.')}
           </div>
         ) : (
           <div>
@@ -141,9 +170,9 @@ function AdminContentView({ theme, density, lang }) {
               <div>{s('Status','حالة')}</div>
               <div></div>
             </div>
-            {items.map((item, i) => (
+            {filtered.map((item, i) => (
               <ContentRow key={item.id || i} theme={T} density={density} lang={lang}
-                item={item} isLast={i === items.length - 1} onUpdate={update}/>
+                item={item} isLast={i === filtered.length - 1} onUpdate={update}/>
             ))}
           </div>
         )}
