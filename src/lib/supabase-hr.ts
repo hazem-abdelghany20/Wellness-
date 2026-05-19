@@ -443,9 +443,13 @@ export async function listTierConfigurations(competitionId?: string): Promise<Ti
 export async function upsertTierConfiguration(
   config: Omit<TierConfiguration, 'id' | 'created_at' | 'updated_at'> & { id?: string }
 ): Promise<TierConfiguration> {
+  // The RLS INSERT/UPDATE policy on tier_configurations requires
+  // company_id = current admin's company. UI callers don't track it,
+  // so resolve and inject it before the upsert.
+  const company_id = config.company_id ?? (await resolveCompanyId());
   const { data, error } = await supabase
     .from('tier_configurations')
-    .upsert(config, { onConflict: 'competition_id,tier' })
+    .upsert({ ...config, company_id }, { onConflict: 'competition_id,tier' })
     .select()
     .single();
   if (error) throw error;
