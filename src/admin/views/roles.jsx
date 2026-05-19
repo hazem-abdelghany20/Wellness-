@@ -3,8 +3,11 @@ import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader, Badge, AvatarMark } from '../../shared/components.jsx';
 import { useRoles } from '../hooks/use-roles.js';
+import { useTenants } from '../hooks/use-tenants.js';
+import { inviteCompanyAdmin } from '../../lib/supabase-admin';
+import { friendlyErrorI18n } from '../../lib/errors';
 
-const ROLE_OPTIONS = ['employee', 'hr_admin', 'company_admin', 'wellness_admin'];
+const ROLE_OPTIONS = ['hr_admin', 'company_admin', 'wellness_admin'];
 
 const ROLE_TONES = {
   wellness_admin: 'danger',
@@ -48,15 +51,81 @@ function AdminRow({ theme, density, lang, admin, isLast, onPromote }) {
         </div>
       </div>
       <Badge theme={T} tone={ROLE_TONES[role] || 'neutral'}>{role}</Badge>
-      <select value={role} onChange={(e) => handleChange(e.target.value)} disabled={busy} style={{
-        height: 32, padding: '0 10px', borderRadius: 8,
-        background: T.panelSunk, border: `1px solid ${T.border}`,
-        color: T.text, fontSize: 12, outline: 'none', cursor: busy ? 'wait' : 'pointer',
-      }}>
+      <select value={role} onChange={(e) => handleChange(e.target.value)} disabled={busy}
+        title={s('To demote to employee, use the Tenants flow','للتراجع إلى موظف، استخدم إدارة العملاء')}
+        style={{
+          height: 32, padding: '0 10px', borderRadius: 8,
+          background: T.panelSunk, border: `1px solid ${T.border}`,
+          color: T.text, fontSize: 12, outline: 'none', cursor: busy ? 'wait' : 'pointer',
+        }}>
         {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+        {!ROLE_OPTIONS.includes(role) && <option key={role} value={role}>{role}</option>}
       </select>
       {err && <span style={{ fontSize: 11, color: T.danger }}>{err}</span>}
     </div>
+  );
+}
+
+function InviteTeammateForm({ theme, lang }) {
+  const T = theme;
+  const s = (en, ar) => lang === 'ar' ? ar : en;
+  const { tenants, loading: tenantsLoading } = useTenants();
+  const [email, setEmail] = React.useState('');
+  const [companyId, setCompanyId] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!companyId && tenants && tenants.length > 0) {
+      setCompanyId(tenants[0].id);
+    }
+  }, [tenants, companyId]);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!email.trim() || !companyId) return;
+    setBusy(true); setMsg(null);
+    try {
+      await inviteCompanyAdmin(companyId, email.trim());
+      setMsg({ tone: 'ok', text: s('Invite sent','تم إرسال الدعوة') });
+      setEmail('');
+    } catch (err) {
+      setMsg({ tone: 'err', text: friendlyErrorI18n(err, lang) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const inputStyle = {
+    height: 32, padding: '0 10px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 12, outline: 'none',
+  };
+
+  return (
+    <form onSubmit={submit} style={{
+      display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+      padding: 12, borderTop: `1px solid ${T.divider}`, background: T.panelSunk,
+    }}>
+      <input value={email} onChange={(e) => setEmail(e.target.value)}
+        type="email" placeholder={s('admin@example.com','admin@example.com')}
+        style={{ ...inputStyle, flex: 1, minWidth: 200 }}/>
+      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)}
+        disabled={tenantsLoading || tenants.length === 0}
+        style={{ ...inputStyle, minWidth: 180 }}>
+        {tenantsLoading && <option value="">{s('Loading tenants…','جارٍ تحميل العملاء…')}</option>}
+        {!tenantsLoading && tenants.length === 0 && <option value="">{s('No tenants','لا يوجد عملاء')}</option>}
+        {tenants.map((t) => (
+          <option key={t.id} value={t.id}>{t.name || t.slug || t.id}</option>
+        ))}
+      </select>
+      <HRButton theme={T} type="submit" disabled={busy || !email.trim() || !companyId} icon="mail">
+        {busy ? s('Inviting…','جارٍ الدعوة…') : s('Invite teammate','ادعُ زميلًا')}
+      </HRButton>
+      {msg && (
+        <span style={{ fontSize: 12, color: msg.tone === 'ok' ? T.positive : T.danger }}>{msg.text}</span>
+      )}
+    </form>
   );
 }
 
@@ -72,8 +141,7 @@ function AdminRolesView({ theme, density, lang }) {
         title={s('Internal access','الوصول الداخلي')}
         sub={loading
           ? s('Loading…','جارٍ التحميل…')
-          : `${admins.length} ${s('admins','مسؤول')}`}
-        right={<HRButton theme={T} icon="plus">{s('Invite teammate','ادعُ زميلًا')}</HRButton>}/>
+          : `${admins.length} ${s('admins','مسؤول')}`}/>
 
       <Panel theme={T} density={density} pad={false}>
         <PanelHeader theme={T} density={density}
@@ -95,6 +163,7 @@ function AdminRolesView({ theme, density, lang }) {
             ))}
           </div>
         )}
+        <InviteTeammateForm theme={T} lang={lang}/>
       </Panel>
     </>
   );
