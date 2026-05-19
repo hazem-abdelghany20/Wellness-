@@ -121,8 +121,11 @@ function AdminTenantDetail({ theme, density, lang, tenant: tenantArg, onBack }) 
           </div>
         </div>
         <div style={{ display:'flex', gap: 8 }}>
-          <HRButton theme={T} variant="secondary" icon="mail">{s('Email CSM','مراسلة CSM')}</HRButton>
-          <HRButton theme={T} icon="settings">{s('Manage','إدارة')}</HRButton>
+          <HRButton theme={T} variant="secondary" icon="mail" onClick={() => {
+            const subject = encodeURIComponent(s(`CSM follow-up: ${tenant.name}`, `متابعة CSM: ${tenant.name}`));
+            const body = encodeURIComponent(s(`Re: ${tenant.name}\n\n`, `بخصوص: ${tenant.name}\n\n`));
+            window.location.href = `mailto:csm@wellness.app?subject=${subject}&body=${body}`;
+          }}>{s('Email CSM','مراسلة CSM')}</HRButton>
         </div>
       </div>
 
@@ -153,17 +156,23 @@ function AdminTenantDetail({ theme, density, lang, tenant: tenantArg, onBack }) 
                 {s('No integrations configured.','لا توجد تكاملات.')}
               </div>
             ) : integrations.map((it, i, arr) => {
-              const dot = it.status === 'configured' ? '#6FC79B' : it.status === 'error' ? '#E08A6B' : '#F5B544';
+              const normalisedStatus = it.status === 'ok' ? 'configured' : it.status;
+              const dotColor = normalisedStatus === 'configured' ? '#6FC79B'
+                            : normalisedStatus === 'error'     ? '#E08A6B'
+                            : '#F5B544';
+              const statusLabel = normalisedStatus === 'configured' ? s('configured','مُكوَّن')
+                               : normalisedStatus === 'error'     ? s('error','خطأ')
+                               : s('pending','قيد الإعداد');
               return (
                 <div key={i} style={{
                   padding: `${DENSITY[density].cellPadY + 2}px ${DENSITY[density].cardPad}px`,
                   display:'flex', alignItems:'center', gap:12,
                   borderBottom: i < arr.length - 1 ? `1px solid ${T.divider}` : 'none',
                 }}>
-                  <span style={{ width:8, height:8, borderRadius:999, background:dot, boxShadow:`0 0 0 3px ${dot}22` }}/>
+                  <span style={{ width:8, height:8, borderRadius:999, background:dotColor, boxShadow:`0 0 0 3px ${dotColor}22` }}/>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, color:T.text, fontWeight:600 }}>{it.kind}</div>
-                    <div style={{ fontSize:11, color:T.textMuted }}>{it.status}</div>
+                    <div style={{ fontSize:11, color:T.textMuted }}>{statusLabel}</div>
                   </div>
                 </div>
               );
