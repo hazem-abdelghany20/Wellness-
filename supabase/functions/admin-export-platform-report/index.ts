@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     }
 
     const { kind = 'tenants', range = '30d' } = await req.json() as { kind?: string; range?: string };
-    const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
+    const days = range === '24h' ? 1 : range === '7d' ? 7 : range === '90d' ? 90 : 30;
 
     // Use the service client to bypass per-row RLS — we've already gated
     // at the function entry.
