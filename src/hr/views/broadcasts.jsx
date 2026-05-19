@@ -22,6 +22,7 @@ function HRBroadcastsPage({ theme, S, lang, density }) {
   const [when, setWhen] = useState(''); // datetime-local
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(null);
+  const [cancelError, setCancelError] = useState(null);
 
   if (loading) {
     return (
@@ -63,7 +64,6 @@ function HRBroadcastsPage({ theme, S, lang, density }) {
     }
   };
 
-  const [cancelError, setCancelError] = useState(null);
   const handleCancel = async (id) => {
     setCancelError(null);
     try { await cancel(id); }
