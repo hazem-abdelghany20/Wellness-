@@ -55,6 +55,8 @@ function normalizeChallenge(c) {
 }
 
 // Normalize a leaderboard cache row.
+// challenge_leaderboard_cache.score is the canonical points column;
+// older fixtures sometimes use points / pts so accept all three.
 function normalizeLeaderboardRow(row, kind) {
   if (kind === 'team') {
     const name = typeof row.team_name === 'string'
@@ -63,7 +65,7 @@ function normalizeLeaderboardRow(row, kind) {
     return {
       rank: row.rank,
       name,
-      pts: row.points ?? row.pts ?? 0,
+      pts: row.score ?? row.points ?? row.pts ?? 0,
       delta: row.delta ?? '',
       members: row.member_count ?? row.members ?? 0,
       you: !!row.is_self_team || !!row.you,
@@ -72,7 +74,7 @@ function normalizeLeaderboardRow(row, kind) {
   return {
     rank: row.rank,
     name: row.display_name || row.name || row.user_initials || '—',
-    pts: row.points ?? row.pts ?? 0,
+    pts: row.score ?? row.points ?? row.pts ?? 0,
     streak: row.streak ?? 0,
     you: !!row.is_self || !!row.you,
   };
