@@ -61,6 +61,11 @@ function BillingEditForm({ theme, lang, onSave, busy }) {
   );
 }
 
+function csvEscape(value) {
+  const text = value == null ? '' : String(value);
+  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
 function AdminBilling({ theme, density, lang, companyId: companyIdProp }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
@@ -161,7 +166,30 @@ function AdminBilling({ theme, density, lang, companyId: companyIdProp }) {
         <PanelHeader theme={T} density={density}
           title={s('Invoices','الفواتير')}
           subtitle={loading ? s('Loading…','جارٍ التحميل…') : `${invoices.length} ${s('total','إجمالي')}`}
-          right={<HRButton theme={T} variant="secondary" size="sm" icon="download">{s('Export CSV','تصدير CSV')}</HRButton>}/>
+          right={<HRButton theme={T} variant="secondary" size="sm" icon="download"
+            onClick={invoices.length === 0 ? undefined : () => {
+              // Build a per-tenant invoices CSV client-side. This is the
+              // only export that's tenant-scoped (rest go through the edge
+              // function for cross-tenant aggregates).
+              const headers = ['invoice','amount_usd','period_start','period_end','status','currency'];
+              const rows = invoices.map((inv) => ({
+                invoice: inv.number || inv.id,
+                amount_usd: ((inv.total_cents ?? inv.amount_cents ?? 0) / 100).toFixed(2),
+                period_start: inv.period_start || '',
+                period_end: inv.period_end || '',
+                status: inv.status || '',
+                currency: inv.currency || 'USD',
+              }));
+              const body = [headers.join(','), ...rows.map((r) => headers.map((h) => csvEscape(r[h])).join(','))].join('\n');
+              const tenant = (tenants ?? []).find((t) => t.id === companyId);
+              const slug = (tenant?.slug || tenant?.name || 'tenant').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+              const url = `data:text/csv;charset=utf-8,${encodeURIComponent(body)}`;
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `invoices-${slug}-${new Date().toISOString().slice(0,10)}.csv`;
+              document.body.appendChild(a); a.click(); a.remove();
+            }}
+          >{s('Export CSV','تصدير CSV')}</HRButton>}/>
         {loading ? (
           <div style={{ padding: 48, display: 'grid', placeItems: 'center', color: T.textMuted, fontSize: 13 }}>
             {s('Loading…','جارٍ التحميل…')}
@@ -199,9 +227,9 @@ function AdminBilling({ theme, density, lang, companyId: companyIdProp }) {
                   <div className="mono" style={{ textAlign:'end', color: T.text, fontWeight: 600 }}>${(cents / 100).toLocaleString()}</div>
                   <div style={{ color: T.textMuted, fontSize: 12 }}>{period}</div>
                   <div><Badge theme={T} tone={statusTone[status] || 'neutral'}>{status}</Badge></div>
-                  <button style={{ background:'transparent', border:'none', color: T.textMuted, cursor:'pointer', padding: 6 }}>
-                    <HRIcon name="more" size={16}/>
-                  </button>
+                  {/* Per-row action button removed — invoices are append-only
+                      in this surface; edits happen via the BillingEditForm. */}
+                  <span/>
                 </div>
               );
             })}

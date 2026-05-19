@@ -93,7 +93,7 @@ function AdminChallengeTemplatesView({ theme, density, lang }) {
         sub={loading
           ? s('Loading…','جارٍ التحميل…')
           : `${templates.length} ${s('templates','قالب')}`}
-        right={<HRButton theme={T} icon="plus">{s('New template','قالب جديد')}</HRButton>}/>
+        right={null}/>
 
       {loading ? (
         <Panel theme={T} density={density}>
