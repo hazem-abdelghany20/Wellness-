@@ -473,9 +473,25 @@ export async function upsertGiftPool(
 export async function upsertGiftCatalogItem(
   item: Omit<GiftCatalogItem, 'id' | 'created_at' | 'updated_at'> & { id?: string }
 ): Promise<GiftCatalogItem> {
+  // Use update() when id is present so PostgREST evaluates the UPDATE RLS
+  // policy (which allows editing shared company_id=NULL catalog rows for
+  // HR admins). upsert() goes through INSERT, which requires company_id to
+  // match the caller and blocks edits to the seeded shared catalog.
+  if (item.id) {
+    const { id, ...patch } = item;
+    const { data, error } = await supabase
+      .from('gift_catalog_items')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as GiftCatalogItem;
+  }
+  const companyId = await resolveCompanyId();
   const { data, error } = await supabase
     .from('gift_catalog_items')
-    .upsert(item)
+    .insert({ ...item, company_id: item.company_id ?? companyId })
     .select()
     .single();
   if (error) throw error;
