@@ -130,7 +130,10 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
           <div>
             <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 8 }}>{lang==='ar'?'المظهر':'Theme'}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              {[['brand','Brand'],['light','Light']].map(([k,l]) => (
+              {[
+                ['brand', lang === 'ar' ? 'داكن' : 'Brand'],
+                ['light', lang === 'ar' ? 'فاتح' : 'Light'],
+              ].map(([k,l]) => (
                 <button key={k} onClick={() => setThemeKey(k)} style={{
                   flex: 1, height: 44, borderRadius: 12,
                   background: themeKey === k ? T.accent : T.chipBg,

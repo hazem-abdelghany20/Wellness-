@@ -103,7 +103,10 @@ function ScreenProgress({ theme, t, dir, go }) {
           </div>
           <Sparkline theme={T} values={values.length ? values : [0,0]} height={120} stroke={T.accent}/>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 10, color: T.textFaint, letterSpacing: 0.5 }}>
-            <span>30d</span><span>21d</span><span>14d</span><span>7d</span><span>{lang==='ar'?'اليوم':'today'}</span>
+            {(lang === 'ar'
+              ? ['٣٠ يوماً','٢١ يوماً','١٤ يوماً','٧ أيام','اليوم']
+              : ['30d','21d','14d','7d','today']
+            ).map((s, i) => <span key={i}>{s}</span>)}
           </div>
         </Card>
       </div>

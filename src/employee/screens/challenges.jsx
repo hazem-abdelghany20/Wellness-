@@ -23,12 +23,21 @@ function currentMonthLabel(lang) {
 }
 
 // Normalize a server challenge row into the shape the UI expects.
+// The DB row has title_en / title_ar / description_en / description_ar
+// columns directly (the legacy {title: {en, ar}} object shape is only
+// produced client-side by older test fixtures).
 function normalizeChallenge(c) {
   if (!c) return null;
-  const title = typeof c.title === 'string' ? { en: c.title, ar: c.title_ar || c.title } : (c.title || { en: c.name || '', ar: c.name_ar || c.name || '' });
-  const sub = typeof c.description === 'string'
-    ? { en: c.description, ar: c.description_ar || c.description }
-    : (c.description || { en: '', ar: '' });
+  const title = (typeof c.title === 'object' && c.title)
+    ? c.title
+    : typeof c.title === 'string'
+      ? { en: c.title, ar: c.title_ar || c.title }
+      : { en: c.title_en || c.name || '', ar: c.title_ar || c.name_ar || c.title_en || c.name || '' };
+  const sub = (typeof c.description === 'object' && c.description)
+    ? c.description
+    : typeof c.description === 'string'
+      ? { en: c.description, ar: c.description_ar || c.description }
+      : { en: c.description_en || '', ar: c.description_ar || c.description_en || '' };
   const today = new Date();
   let daysLeft = c.days_left;
   if (daysLeft == null && c.end_date) {
@@ -87,10 +96,14 @@ function ScreenChallenges({ theme, t, dir, go, variant = 'podium', state }) {
   const myPts = mine?.pts ?? 0;
   const myRank = mine?.rank ?? null;
 
-  // Auto-pick the first challenge to view leaderboard for once data lands.
+  // Auto-pick a challenge once data lands. Prefer regular (non-signature)
+  // challenges because the signature paths (Sabr / Niyyah) get their own
+  // strip on Home — the Challenges tab is for the standard leaderboard
+  // challenges. Fall back to whatever's first if no regular ones exist.
   React.useEffect(() => {
     if (!activeId && challenges && challenges.length > 0) {
-      setActiveId(challenges[0].id);
+      const regular = challenges.find(c => !c.theme);
+      setActiveId((regular || challenges[0]).id);
     }
   }, [challenges, activeId]);
 
@@ -313,7 +326,7 @@ function LBList({ theme, rows, lang, kind }) {
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>
-                  {label}{row.you && <span style={{ marginLeft: 6, fontSize: 10, color: T.accent, fontWeight: 700 }}>YOU</span>}
+                  {label}{row.you && <span style={{ marginInlineStart: 6, fontSize: 10, color: T.accent, fontWeight: 700 }}>{lang === 'ar' ? 'أنت' : 'YOU'}</span>}
                 </div>
                 <div style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>{row.pts}</div>
               </div>
@@ -339,7 +352,7 @@ function LBRow({ theme, row, kind, lang, last }) {
     }}>
       <div style={{ width: 22, fontFamily: typeStyles(T).monoFont, fontSize: 12, color: T.textMuted, fontWeight: 700, textAlign: 'center' }}>{row.rank}</div>
       <div style={{ flex: 1, fontSize: 14, color: T.text, fontWeight: 500 }}>
-        {label}{row.you && <span style={{ marginLeft: 6, fontSize: 10, color: T.accent, fontWeight: 700 }}>YOU</span>}
+        {label}{row.you && <span style={{ marginInlineStart: 6, fontSize: 10, color: T.accent, fontWeight: 700 }}>{lang === 'ar' ? 'أنت' : 'YOU'}</span>}
       </div>
       <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{row.pts}</div>
     </div>

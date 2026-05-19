@@ -541,6 +541,7 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const [val, setVal] = React.useState((state && state.name) || '');
+  const [valAr, setValAr] = React.useState('');
   const [avatar, setAvatar] = React.useState((state && state.avatar) || 'monogram');
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState(null);
@@ -549,9 +550,14 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
   const canContinue = val.trim().length >= 2 && !busy;
   const submit = async () => {
     const trimmed = val.trim();
+    const trimmedAr = valAr.trim();
     setErr(null); setBusy(true);
     try {
-      await update({ display_name: trimmed, avatar_kind: avatar });
+      await update({
+        display_name: trimmed,
+        display_name_ar: trimmedAr || null,
+        avatar_kind: avatar,
+      });
       if (state) {
         state.setName && state.setName(trimmed);
         state.setAvatar && state.setAvatar(avatar);
@@ -579,7 +585,7 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
           <AvatarDisplay theme={T} kind={avatar} name={val || '?'} size={96}/>
         </div>
 
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{lang==='ar'?'الاسم':'Name'}</div>
           <input value={val} onChange={e => setVal(e.target.value)} placeholder={lang==='ar'?'اكتب اسمك':'Your name'}
             style={{
@@ -588,6 +594,20 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
               borderRadius: 14, color: T.text, fontSize: 17, fontWeight: 500,
               fontFamily: typeStyles(T).sansFont, boxSizing: 'border-box', outline: 'none',
               textAlign: dir === 'rtl' ? 'right' : 'left',
+            }}/>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>
+            {lang==='ar'?'الاسم بالعربية (اختياري)':'Name in Arabic (optional)'}
+          </div>
+          <input value={valAr} onChange={e => setValAr(e.target.value)} placeholder="اكتب اسمك" dir="rtl"
+            style={{
+              width: '100%', height: 54, padding: '0 16px',
+              background: T.surface, border: `1px solid ${T.borderStrong}`,
+              borderRadius: 14, color: T.text, fontSize: 17, fontWeight: 500,
+              fontFamily: typeStyles(T).sansFont, boxSizing: 'border-box', outline: 'none',
+              textAlign: 'right',
             }}/>
         </div>
 
