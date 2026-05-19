@@ -105,6 +105,72 @@ export async function updateContent(id: string, patch: Record<string, unknown>) 
   return data;
 }
 
+// Upload a file to the public `content-assets` bucket and return its path
+// and public URL. The path layout is `content/<timestamp>-<safe-name>` to
+// avoid collisions while keeping debugging-friendly filenames.
+export async function uploadContentAsset(file: File): Promise<{ path: string; publicUrl: string }> {
+  const sanitized = (file.name || 'upload')
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'upload';
+  const path = `content/${Date.now()}-${sanitized}`;
+
+  const { error: uploadErr } = await supabase
+    .storage
+    .from('content-assets')
+    .upload(path, file, {
+      contentType: file.type || undefined,
+      cacheControl: '3600',
+      upsert: false,
+    });
+  if (uploadErr) throw uploadErr;
+
+  const { data } = supabase.storage.from('content-assets').getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}
+
+// Insert a new content_items row. Caller supplies titles + kind; we fill in
+// the boring defaults (slug from title, status='draft', locale='global').
+export async function createContentItem(payload: {
+  title_en: string;
+  title_ar?: string;
+  kind: string;
+  locale?: string;
+  asset_url?: string;
+  status?: string;
+}) {
+  const baseSlug = (payload.title_en || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'item';
+  // Append a short timestamp suffix so retries don't collide on the
+  // unique slug constraint.
+  const slug = `${baseSlug}-${Date.now().toString(36)}`;
+
+  const status = payload.status ?? 'draft';
+  const row = {
+    slug,
+    kind: payload.kind,
+    title_en: payload.title_en,
+    title_ar: payload.title_ar ?? null,
+    locale: payload.locale ?? 'global',
+    status,
+    published: status === 'published',
+    asset_url: payload.asset_url ?? null,
+    sort_order: 0,
+  };
+
+  const { data, error } = await supabase
+    .from('content_items')
+    .insert(row)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 // ── Integrations ───────────────────────────────────────────────
 
 export async function listIntegrations() {

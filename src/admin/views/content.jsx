@@ -3,6 +3,7 @@ import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRIcon, HRButton, Panel, PanelHeader, Badge } from '../../shared/components.jsx';
 import { useContent } from '../hooks/use-content.js';
+import { friendlyErrorI18n } from '../../lib/errors';
 
 function ContentRow({ theme, density, lang, item, isLast, onUpdate }) {
   const T = theme;
@@ -95,10 +96,82 @@ function ContentRow({ theme, density, lang, item, isLast, onUpdate }) {
   );
 }
 
+function UploadContentForm({ theme, lang, onCreate }) {
+  const T = theme;
+  const s = (en, ar) => lang === 'ar' ? ar : en;
+  const [titleEn, setTitleEn] = React.useState('');
+  const [titleAr, setTitleAr] = React.useState('');
+  const [kind, setKind] = React.useState('audio');
+  const [file, setFile] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const fileInputRef = React.useRef(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!titleEn.trim()) return;
+    setBusy(true); setErr(null);
+    try {
+      await onCreate({
+        title_en: titleEn.trim(),
+        title_ar: titleAr.trim() || undefined,
+        kind,
+        status: 'draft',
+        file: file || undefined,
+      });
+      setTitleEn(''); setTitleAr(''); setKind('audio'); setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (e2) {
+      setErr(friendlyErrorI18n(e2, lang));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const inputStyle = {
+    height: 32, padding: '0 10px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 12, outline: 'none',
+  };
+
+  return (
+    <form onSubmit={submit} style={{
+      display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+      padding: 12, borderTop: `1px solid ${T.divider}`,
+    }}>
+      <input value={titleEn} onChange={(e) => setTitleEn(e.target.value)}
+        placeholder={s('Title (EN)','العنوان (إنجليزي)')}
+        style={{ ...inputStyle, flex: 1, minWidth: 180 }}/>
+      <input value={titleAr} onChange={(e) => setTitleAr(e.target.value)}
+        placeholder={s('Title (AR, optional)','العنوان (عربي، اختياري)')}
+        style={{ ...inputStyle, flex: 1, minWidth: 180 }}/>
+      <select value={kind} onChange={(e) => setKind(e.target.value)} style={inputStyle}>
+        <option value="audio">{s('Audio','صوت')}</option>
+        <option value="video">{s('Video','فيديو')}</option>
+        <option value="article">{s('Article','مقال')}</option>
+        <option value="breath">{s('Breath','تنفس')}</option>
+      </select>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/mpeg,audio/mp4,video/mp4,image/png,image/jpeg,application/pdf,text/plain"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
+        style={{ ...inputStyle, padding: '4px 8px', height: 'auto', minWidth: 220 }}
+      />
+      <HRButton theme={T} type="submit" disabled={busy || !titleEn.trim()} icon="plus">
+        {busy
+          ? s('Uploading…','جارٍ الرفع…')
+          : (file ? s('Upload & create','رفع وإنشاء') : s('Create draft','إنشاء مسودة'))}
+      </HRButton>
+      {err && <span style={{ fontSize: 12, color: T.danger }}>{err}</span>}
+    </form>
+  );
+}
+
 function AdminContentView({ theme, density, lang }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
-  const { items, loading, update } = useContent();
+  const { items, loading, update, create } = useContent();
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [kindFilter, setKindFilter] = React.useState('all');
 
@@ -176,6 +249,7 @@ function AdminContentView({ theme, density, lang }) {
             ))}
           </div>
         )}
+        <UploadContentForm theme={T} lang={lang} onCreate={create}/>
       </Panel>
     </>
   );
