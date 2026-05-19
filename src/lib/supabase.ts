@@ -114,9 +114,15 @@ export async function verifyCompanyCode(code: string, email: string) {
 // ── Profile ───────────────────────────────────────────────────
 
 export async function getMyProfile() {
+  // Explicit id filter — without it, admins (whose RLS now lets them see
+  // every profile in their company) hit "JSON object requested, multiple
+  // (or no) rows returned" because .single() expects exactly 1.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
+    .eq('id', user.id)
     .single();
   if (error) throw error;
   return data;
