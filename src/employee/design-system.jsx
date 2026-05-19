@@ -110,6 +110,7 @@ function Icon({ name, size = 22, stroke, fill = 'none', style = {} }) {
     star: <><path d="M12 3l2.7 6 6.3.6-4.8 4.3 1.4 6.4L12 17l-5.6 3.3L7.8 14 3 9.6l6.3-.6L12 3z" fill="currentColor" stroke="none"/></>,
     chevR: <><path d="M9 6l6 6-6 6"/></>,
     chevL: <><path d="M15 6l-6 6 6 6"/></>,
+    edit:  <><path d="M16 4l4 4-12 12H4v-4L16 4z"/><path d="M14 6l4 4"/></>,
   };
   return (
     <svg viewBox="0 0 24 24" style={s} fill={fill} stroke={stroke || 'currentColor'} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -198,7 +199,7 @@ function AvatarDisplay({ theme, kind = 'monogram', name = '?', size = 64 }) {
     }}>{inner}</div>
   );
 }
-function Button({ children, onClick, variant = 'primary', size = 'lg', theme, style = {}, disabled = false, icon, iconR }) {
+function Button({ children, onClick, variant = 'primary', size = 'lg', theme, style = {}, disabled = false, icon, iconR, title }) {
   const t = theme;
   const sizes = {
     lg: { h: 54, px: 22, fs: 16, r: 16 },
@@ -214,14 +215,21 @@ function Button({ children, onClick, variant = 'primary', size = 'lg', theme, st
     surface: { bg: t.surface, color: t.text, border: `1px solid ${t.border}` },
   };
   const v = variants[variant];
+  // A button passed with no onClick is a v1 placeholder. Auto-disable +
+  // surface "Coming soon" so testers don't think it's broken (mirrors
+  // the HR shared HRButton auto-stub pattern).
+  const isStub = !onClick;
+  const reallyDisabled = disabled || isStub;
   return (
-    <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{
+    <button onClick={reallyDisabled ? undefined : onClick} disabled={reallyDisabled}
+      title={title || (isStub ? 'Coming soon' : undefined)}
+      style={{
       height: s.h, padding: `0 ${s.px}px`, borderRadius: s.r,
       background: v.bg, color: v.color, border: v.border,
       fontFamily: typeStyles(t).sansFont, fontSize: s.fs, fontWeight: 600,
       letterSpacing: -0.1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      gap: 8, cursor: disabled ? 'default' : 'pointer',
-      opacity: disabled ? 0.5 : 1,
+      gap: 8, cursor: reallyDisabled ? 'default' : 'pointer',
+      opacity: reallyDisabled ? 0.5 : 1,
       transition: 'transform .15s ease, background .2s ease',
       ...style,
     }} onMouseDown={(e)=>{e.currentTarget.style.transform='scale(0.98)';}}

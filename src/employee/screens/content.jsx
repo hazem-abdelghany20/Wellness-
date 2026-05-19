@@ -65,7 +65,7 @@ function ScreenLibrary({ theme, t, dir, go }) {
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>
           {lang==='ar' ? 'المكتبة' : 'Library'}
         </div>
-        <IconBtn theme={T} icon="search" onClick={()=>{}}/>
+        <IconBtn theme={T} icon="search"/>
       </div>
 
       <div style={{ padding: '4px 22px 14px', display: 'flex', gap: 8, overflowX: 'auto' }}>

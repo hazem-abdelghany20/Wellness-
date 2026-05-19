@@ -10,9 +10,9 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
   const { signOut, company } = useAuth();
   const { profile, update } = useProfile();
   const [anon, setAnon] = React.useState(true);
-  const [share, setShare] = React.useState(true);
   const [notifs, setNotifs] = React.useState(true);
   const [picker, setPicker] = React.useState(false);
+  const [editingName, setEditingName] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
 
   // Sync from server. Falls back to optimistic defaults when the column
@@ -20,7 +20,6 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
   React.useEffect(() => {
     if (!profile) return;
     setAnon(profile.anon ?? true);
-    setShare(profile.share_aggregate ?? true);
     setNotifs(profile.digest_opt_in ?? true);
   }, [profile]);
 
@@ -66,30 +65,47 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}><Icon name="camera" size={13}/></div>
         </button>
-        <div>
-          <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text, letterSpacing: -0.4, lineHeight: 1 }}>
-            {name}
+        <button onClick={() => setEditingName(true)}
+          aria-label={lang === 'ar' ? 'تعديل الاسم' : 'Edit name'}
+          style={{
+            background: 'transparent', border: 'none', padding: 0,
+            cursor: 'pointer', textAlign: 'start', flex: 1, minWidth: 0,
+            fontFamily: 'inherit',
+          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text,
+              letterSpacing: -0.4, lineHeight: 1,
+            }}>
+              {(lang === 'ar' && profile?.display_name_ar) ? profile.display_name_ar : name}
+            </div>
+            <Icon name="edit" size={14} style={{ color: T.textMuted }}/>
           </div>
           {companyName ? (
             <div style={{ color: T.textMuted, fontSize: 13, marginTop: 4 }}>{companyName}</div>
           ) : null}
-        </div>
+        </button>
       </div>
 
       <SectionLabel theme={T}>{t('privacy')}</SectionLabel>
       <div style={{ padding: '0 16px' }}>
         <Card theme={T} pad={0} radius={20}>
           <ToggleRow theme={T} icon="shield" title={t('anonymous')} sub={t('anonymousSub')} value={anon} onChange={handleAnon}/>
-          <div style={{ height: 1, background: T.border, marginLeft: 62 }}/>
-          <ToggleRow theme={T} icon="chart" title={t('shareAgg')} sub={t('shareAggSub')} value={share} onChange={setShare} disabled/>
         </Card>
+        {/* The old "Aggregated outcomes to HR" row was rendered disabled
+            with a "Required by your plan" caption and no persistence —
+            misleading. The actual aggregation contract is described in
+            the consent screen, so the toggle is dropped here. */}
       </div>
 
       <div style={{ height: 16 }}/>
       <SectionLabel theme={T}>{t('notifs')}</SectionLabel>
       <div style={{ padding: '0 16px' }}>
         <Card theme={T} pad={0} radius={20}>
-          <ToggleRow theme={T} icon="bell" title={lang==='ar'?'تذكير التسجيل اليومي':'Daily check-in reminder'} sub="09:00" value={notifs} onChange={handleNotifs}/>
+          <ToggleRow theme={T} icon="bell"
+            title={lang==='ar'?'تذكير التسجيل اليومي':'Daily check-in reminder'}
+            sub={lang==='ar'?'تنبيه يومي في الصباح':'A nudge each morning'}
+            value={notifs} onChange={handleNotifs}/>
         </Card>
       </div>
 
@@ -134,6 +150,26 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
         </Button>
       </div>
 
+      {editingName && (
+        <NameEditSheet theme={T} lang={lang}
+          initialEn={name || ''}
+          initialAr={profile?.display_name_ar || ''}
+          onCancel={() => setEditingName(false)}
+          onSave={async ({ display_name, display_name_ar }) => {
+            try {
+              await update({
+                display_name,
+                display_name_ar: display_name_ar || null,
+              });
+              if (state?.setName) state.setName(display_name);
+            } catch (e) {
+              console.warn('[profile] name update failed', e);
+            } finally {
+              setEditingName(false);
+            }
+          }}/>
+      )}
+
       {picker && (
         <div onClick={() => setPicker(false)} style={{
           position: 'absolute', inset: 0, background: T.overlay, zIndex: 50,
@@ -171,6 +207,78 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function NameEditSheet({ theme, lang, initialEn, initialAr, onCancel, onSave }) {
+  const T = theme;
+  const [en, setEn] = React.useState(initialEn);
+  const [ar, setAr] = React.useState(initialAr);
+  const [busy, setBusy] = React.useState(false);
+  const canSave = en.trim().length >= 2 && !busy;
+  const submit = async () => {
+    if (!canSave) return;
+    setBusy(true);
+    await onSave({
+      display_name: en.trim(),
+      display_name_ar: ar.trim(),
+    });
+  };
+  const field = (label, value, setValue, placeholder, isAr) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{label}</div>
+      <input value={value} onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        dir={isAr ? 'rtl' : 'ltr'}
+        style={{
+          width: '100%', height: 50, padding: '0 16px', boxSizing: 'border-box',
+          background: T.surface, border: `1px solid ${T.borderStrong}`,
+          borderRadius: 14, color: T.text, fontSize: 16, fontWeight: 500,
+          fontFamily: 'inherit', outline: 'none',
+        }}/>
+    </div>
+  );
+  return (
+    <div onClick={onCancel} style={{
+      position: 'absolute', inset: 0, background: T.overlay, zIndex: 60,
+      display: 'flex', alignItems: 'flex-end',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: '100%', background: T.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+        padding: '20px 22px 28px', border: `1px solid ${T.border}`,
+        animation: 'sheetUp .25s ease both',
+      }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: T.border, margin: '0 auto 18px' }}/>
+        <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, letterSpacing: -0.3, marginBottom: 6 }}>
+          {lang === 'ar' ? 'تعديل الاسم' : 'Edit name'}
+        </div>
+        <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 18 }}>
+          {lang === 'ar'
+            ? 'الاسم يظهر لك فقط. لزملائك تبقى مجهولاً على اللوحات.'
+            : 'Your name is only visible to you. Teammates still see you anonymously on leaderboards.'}
+        </div>
+        {field(
+          lang === 'ar' ? 'الاسم (لاتيني)' : 'Name',
+          en, setEn,
+          lang === 'ar' ? 'Your name' : 'Your name',
+          false,
+        )}
+        {field(
+          lang === 'ar' ? 'الاسم بالعربية' : 'Name in Arabic (optional)',
+          ar, setAr,
+          'اكتب اسمك',
+          true,
+        )}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Button theme={T} variant="secondary" style={{ flex: 1 }} onClick={onCancel}>
+            {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+          </Button>
+          <Button theme={T} variant="primary" style={{ flex: 2 }} disabled={!canSave} onClick={submit}>
+            {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…') : (lang === 'ar' ? 'حفظ' : 'Save')}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

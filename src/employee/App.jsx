@@ -190,22 +190,10 @@ function AppInner() {
     if (s === 'competition-path' && extra?.id) {
       setCompetitionId(extra.id);
     }
-    if (s === 'player' && extra) {
-      // Library now passes a fully-shaped item from the DB row.
-      if (extra.item) {
-        setPlayerItem(extra.item);
-      } else if (extra.id) {
-        // Legacy fallback: hardcoded ids from older callers.
-        const items = {
-          'sleep-onset': { id: 'sleep-onset', kind: 'audio', mins: 6, title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' } },
-          'box-breath': { id: 'box-breath', kind: 'audio', mins: 2, title: { en: 'Box breathing, guided', ar: 'تنفس مربع، موجَّه' } },
-          'desk-mob': { id: 'desk-mob', kind: 'video', mins: 4, title: { en: 'Desk mobility flow', ar: 'حركات مكتبية' } },
-          'reset': { id: 'reset', kind: 'audio', mins: 3, title: { en: 'A 3-minute reset between meetings', ar: 'استراحة 3 دقائق بين الاجتماعات' } },
-          'wind-down': { id: 'wind-down', kind: 'article', mins: 5, title: { en: 'Build an evening wind-down', ar: 'بناء روتين استرخاء مسائي' } },
-          'caffeine': { id: 'caffeine', kind: 'article', mins: 4, title: { en: 'Caffeine cut-off, in plain terms', ar: 'الكافيين بلغة واضحة' } },
-        };
-        setPlayerItem(items[extra.id] || items['sleep-onset']);
-      }
+    if (s === 'player' && extra?.item) {
+      // Library + featured-rec card both pass a fully-shaped DB row.
+      // Legacy id-only callers were dropped in the Phase 3 sweep.
+      setPlayerItem(extra.item);
     }
     setScreen(s);
   };

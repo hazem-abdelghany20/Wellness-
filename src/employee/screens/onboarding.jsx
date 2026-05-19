@@ -109,14 +109,9 @@ function ScreenJoin({ theme, t, onNext, dir }) {
         <Button theme={T} onClick={handleSubmit} iconR="arrow" disabled={busy}>
           {busy ? (lang === 'ar' ? 'جارٍ…' : 'Working…') : t('continue')}
         </Button>
-        <button onClick={() => !busy && handleSubmit()} disabled={busy} style={{
-          marginTop: 14, background: 'transparent', border: 'none',
-          color: T.textMuted, fontFamily: typeStyles(T).sansFont, fontSize: 14,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          height: 44, cursor: busy ? 'default' : 'pointer',
-        }}>
-          <Icon name="qr" size={18}/>{t('scanQR')}
-        </button>
+        {/* "Scan QR instead" was a duplicate of Continue (no QR scanner
+            exists). Dropped in the Phase 3 sweep — onboarding via QR is
+            a future feature that needs its own screen. */}
         <div style={{ flex: 0.6 }} />
       </div>
     </ScreenFrame>

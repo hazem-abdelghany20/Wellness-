@@ -421,14 +421,19 @@ function StreakTierCard({ theme, t, lang, streak }) {
   );
 }
 
-function IconBtn({ theme, icon, onClick, 'aria-label': ariaLabel }) {
+function IconBtn({ theme, icon, onClick, 'aria-label': ariaLabel, title }) {
+  // No onClick = v1 placeholder → auto-disable + Coming soon tooltip
+  // (same pattern as the shared HR HRButton + employee Button).
+  const isStub = !onClick;
   return (
-    <button onClick={onClick} aria-label={ariaLabel}
+    <button onClick={isStub ? undefined : onClick} aria-label={ariaLabel} disabled={isStub}
+      title={title || (isStub ? 'Coming soon' : undefined)}
       style={{
         width: 40, height: 40, borderRadius: 999,
         background: theme.chipBg, border: `1px solid ${theme.border}`,
         color: theme.text, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer',
+        cursor: isStub ? 'default' : 'pointer',
+        opacity: isStub ? 0.45 : 1,
       }}><Icon name={icon} size={18}/></button>
   );
 }
