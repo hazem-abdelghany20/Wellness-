@@ -93,7 +93,7 @@ function AppInner() {
           ) : active === 'billing' ? (
             <AdminBilling theme={T} density={safeDensity} lang={lang} companyId={openTenant?.id}/>
           ) : active === 'tenants' ? (
-            <AdminTenantsView theme={T} density={safeDensity} lang={lang} onOpen={setOpenTenant}/>
+            <AdminTenantsView theme={T} density={safeDensity} lang={lang} range={range} onOpen={setOpenTenant}/>
           ) : active === 'content' ? (
             <AdminContentView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'integrations' ? (
@@ -101,7 +101,7 @@ function AppInner() {
           ) : active === 'flags' ? (
             <AdminFlagsView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'audit' ? (
-            <AdminAuditView theme={T} density={safeDensity} lang={lang}/>
+            <AdminAuditView theme={T} density={safeDensity} lang={lang} range={range}/>
           ) : active === 'roles' ? (
             <AdminRolesView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'localization' ? (

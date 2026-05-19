@@ -6,7 +6,7 @@ import { useAudit } from '../hooks/use-audit.js';
 import { exportPlatformReport } from '../../lib/supabase-admin';
 import { friendlyErrorI18n } from '../../lib/errors';
 
-function AdminAuditView({ theme, density, lang }) {
+function AdminAuditView({ theme, density, lang, range }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { entries, loading } = useAudit();
@@ -14,14 +14,24 @@ function AdminAuditView({ theme, density, lang }) {
   const [exportErr, setExportErr] = React.useState(null);
   const [sevFilter, setSevFilter] = React.useState('all');
   const [actorQuery, setActorQuery] = React.useState('');
+  const reportRange = range && ['24h','7d','30d','90d'].includes(range) ? range : '90d';
+  // The audit edge-fn accepts 7d/30d/90d. 24h collapses to 7d for the
+  // export so the user gets a useful CSV even when they're scoped tight
+  // on the topbar pill.
+  const exportRange = reportRange === '24h' ? '7d' : reportRange;
+  const exportLabel = {
+    '7d': s('Export 7 days','تصدير ٧ أيام'),
+    '30d': s('Export 30 days','تصدير ٣٠ يومًا'),
+    '90d': s('Export 90 days','تصدير ٩٠ يومًا'),
+  }[exportRange] || s('Export','تصدير');
 
   async function handleExport() {
     setExporting(true); setExportErr(null);
     try {
-      const { url } = await exportPlatformReport('audit', '90d');
+      const { url } = await exportPlatformReport('audit', exportRange);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `audit-90d-${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `audit-${exportRange}-${new Date().toISOString().slice(0,10)}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
     } catch (e) {
       setExportErr(friendlyErrorI18n(e, lang));
@@ -61,7 +71,7 @@ function AdminAuditView({ theme, density, lang }) {
           : `${entries.length} ${s('events','حدث')}`}
         right={<>
           <HRButton theme={T} variant="secondary" icon="download" onClick={handleExport} disabled={exporting}>
-            {exporting ? s('Exporting…','جارٍ التصدير…') : s('Export 90 days','تصدير ٩٠ يومًا')}
+            {exporting ? s('Exporting…','جارٍ التصدير…') : exportLabel}
           </HRButton>
           {exportErr && <span style={{ fontSize: 11, color: T.danger, marginInlineStart: 8 }}>{exportErr}</span>}
         </>}/>
