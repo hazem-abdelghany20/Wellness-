@@ -157,11 +157,11 @@ function AdminTenantsView({ theme, density, lang, range, onOpen }) {
   async function handleExport() {
     setExporting(true); setExportErr(null);
     try {
-      // Export honours the topbar range — defaults to 30d when range is
-      // '24h' since the tenants endpoint is currently a snapshot. 7d/30d/
-      // 90d all return the same tenants list but the audit-log export
-      // and usage rollup vary with range, so we keep the param consistent.
-      const { url } = await exportPlatformReport('tenants', reportRange === '24h' ? '7d' : reportRange);
+      // Export honours the topbar range. The tenants list itself is a
+      // snapshot (no date filter) but we pass the raw range through so the
+      // CSV filename + audit-log entry reflect the user's selection. The
+      // edge fn now accepts 24h directly.
+      const { url } = await exportPlatformReport('tenants', reportRange);
       const a = document.createElement('a');
       a.href = url;
       a.download = `tenants-${reportRange}-${new Date().toISOString().slice(0,10)}.csv`;

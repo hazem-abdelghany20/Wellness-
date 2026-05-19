@@ -15,11 +15,11 @@ function AdminAuditView({ theme, density, lang, range }) {
   const [sevFilter, setSevFilter] = React.useState('all');
   const [actorQuery, setActorQuery] = React.useState('');
   const reportRange = range && ['24h','7d','30d','90d'].includes(range) ? range : '90d';
-  // The audit edge-fn accepts 7d/30d/90d. 24h collapses to 7d for the
-  // export so the user gets a useful CSV even when they're scoped tight
-  // on the topbar pill.
-  const exportRange = reportRange === '24h' ? '7d' : reportRange;
+  // The audit edge-fn now accepts 24h/7d/30d/90d directly — pass the
+  // topbar selection through so the CSV scope matches what the user sees.
+  const exportRange = reportRange;
   const exportLabel = {
+    '24h': s('Export 24 hours','تصدير ٢٤ ساعة'),
     '7d': s('Export 7 days','تصدير ٧ أيام'),
     '30d': s('Export 30 days','تصدير ٣٠ يومًا'),
     '90d': s('Export 90 days','تصدير ٩٠ يومًا'),
