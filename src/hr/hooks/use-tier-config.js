@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   listTierConfigurations, upsertTierConfiguration,
-  listChallengeTemplates,
+  listScheduledChallenges,
 } from '../../lib/supabase-hr';
 
 const TIERS = ['bronze', 'silver', 'gold'];
@@ -17,7 +17,9 @@ export function useTierConfig(competitionId) {
     try {
       const [cfgs, comps] = await Promise.all([
         listTierConfigurations(competitionId),
-        listChallengeTemplates(),
+        // Real scheduled challenges, not catalogue templates — the
+        // tier_configurations.competition_id FK points at challenges.id.
+        listScheduledChallenges(),
       ]);
       setConfigs(cfgs);
       setCompetitions(comps || []);

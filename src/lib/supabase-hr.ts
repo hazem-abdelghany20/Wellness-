@@ -133,6 +133,21 @@ export async function scheduleChallenge(template: any, window: { start: string; 
   return (data as any).challenge;
 }
 
+export async function listScheduledChallenges() {
+  // Live challenges (runtime instances) — used by the tier-rewards
+  // competition picker, whose FK targets challenges.id, NOT
+  // challenge_templates.id. Returns active + recently-ended challenges
+  // ordered by start_date desc.
+  const companyId = await resolveCompanyId();
+  const { data, error } = await supabase
+    .from('challenges')
+    .select('id, title_en, title_ar, start_date, end_date, active')
+    .eq('company_id', companyId)
+    .order('start_date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getChallengeStatus(challengeId: string) {
   const { data, error } = await supabase
     .from('challenges')

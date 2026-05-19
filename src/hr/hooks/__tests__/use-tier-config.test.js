@@ -4,18 +4,18 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 vi.mock('../../../lib/supabase-hr', () => ({
   listTierConfigurations: vi.fn(),
   upsertTierConfiguration: vi.fn(),
-  listChallengeTemplates: vi.fn(),
+  listScheduledChallenges: vi.fn(),
 }));
 
 import {
-  listTierConfigurations, upsertTierConfiguration, listChallengeTemplates,
+  listTierConfigurations, upsertTierConfiguration, listScheduledChallenges,
 } from '../../../lib/supabase-hr';
 import { useTierConfig } from '../use-tier-config';
 
 beforeEach(() => {
   vi.clearAllMocks();
   listTierConfigurations.mockResolvedValue([]);
-  listChallengeTemplates.mockResolvedValue([]);
+  listScheduledChallenges.mockResolvedValue([]);
 });
 
 describe('useTierConfig', () => {
@@ -49,7 +49,7 @@ describe('useTierConfig', () => {
   });
 
   it('exposes the competition list for the selector', async () => {
-    listChallengeTemplates.mockResolvedValue([
+    listScheduledChallenges.mockResolvedValue([
       { id: 'c1', title: 'Sleep', active: true },
       { id: 'c2', title: 'Steps', active: false },
     ]);

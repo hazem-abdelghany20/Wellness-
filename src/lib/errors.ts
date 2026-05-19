@@ -35,6 +35,10 @@ export function friendlyError(err: unknown): FriendlyError {
     return { message: 'That already exists — try a different value.', raw };
   }
 
+  if (/foreign key constraint/i.test(raw)) {
+    return { message: 'That referenced item doesn’t exist yet — schedule it first, then try again.', raw };
+  }
+
   if (/Failed to fetch|NetworkError|ECONNREFUSED/i.test(raw)) {
     return { message: 'Network problem — check your connection and try again.', raw };
   }
@@ -57,6 +61,7 @@ export function friendlyErrorI18n(err: unknown, lang: 'en' | 'ar'): string {
     'Your account isn’t linked to a workspace yet.': 'حسابك غير مرتبط بمساحة عمل بعد.',
     'Something went wrong on the server. Please try again.': 'حدث خطأ في الخادم. حاول مرة أخرى.',
     'That already exists — try a different value.': 'موجود مسبقًا — جرّب قيمة مختلفة.',
+    'That referenced item doesn’t exist yet — schedule it first, then try again.': 'العنصر المرتبط غير موجود بعد — قم بجدولته أولاً ثم حاول مرة أخرى.',
     'Network problem — check your connection and try again.': 'مشكلة في الشبكة — تحقق من الاتصال.',
     'Something went wrong.': 'حدث خطأ ما.',
   };
