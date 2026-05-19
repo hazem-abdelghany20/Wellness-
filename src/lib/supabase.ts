@@ -94,6 +94,7 @@ export async function signInOrUpWithPassword(
 }
 
 export async function signOut() {
+  _resetCompanyIdCache();
   return supabase.auth.signOut();
 }
 
@@ -112,6 +113,32 @@ export async function verifyCompanyCode(code: string, email: string) {
 }
 
 // ── Profile ───────────────────────────────────────────────────
+
+// Resolve the caller's company_id with the same fallback the RLS helpers use:
+// JWT first, then profiles.company_id. JWT app_metadata can be empty for a
+// freshly-signed-up user whose claims haven't been refreshed yet — writes
+// that read company_id directly off the JWT fail with a NOT NULL violation.
+// Callers should prefer this helper over `user.app_metadata?.company_id`.
+let _cachedCompanyId: string | null = null;
+export async function resolveMyCompanyId(): Promise<string | null> {
+  if (_cachedCompanyId) return _cachedCompanyId;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const fromJwt = user.app_metadata?.company_id as string | undefined;
+  if (fromJwt) { _cachedCompanyId = fromJwt; return fromJwt; }
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single();
+  const fromProfile = prof?.company_id as string | undefined;
+  if (fromProfile) { _cachedCompanyId = fromProfile; return fromProfile; }
+  return null;
+}
+
+// Reset the cached company_id — called on sign-out so the next user
+// doesn't inherit the previous one.
+export function _resetCompanyIdCache() { _cachedCompanyId = null; }
 
 export async function getMyProfile() {
   // Explicit id filter — without it, admins (whose RLS now lets them see
@@ -182,7 +209,11 @@ export async function submitCheckin(payload: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const companyId = user.app_metadata?.company_id as string;
+  // checkins.sleep/stress/energy/mood are SMALLINT(1-10). The sleep slider
+  // produces 0.5 steps so we round before insert; without this every
+  // half-step lands as 22P02 "invalid input syntax for type smallint".
+  const round = (v: number) => Math.max(1, Math.min(10, Math.round(v)));
+  const companyId = await resolveMyCompanyId();
   const today = new Date().toISOString().split('T')[0];
 
   const { data, error } = await supabase
@@ -192,6 +223,10 @@ export async function submitCheckin(payload: {
       company_id: companyId,
       checked_at: today,
       ...payload,
+      sleep:  round(payload.sleep),
+      stress: round(payload.stress),
+      energy: round(payload.energy),
+      mood:   round(payload.mood),
     }, { onConflict: 'user_id,checked_at' })
     .select()
     .single();
@@ -227,12 +262,13 @@ export async function completeAction(planId: string, actionId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const companyId = await resolveMyCompanyId();
   const { data, error } = await supabase
     .from('daily_plan_completions')
     .upsert({
       plan_id: planId,
       user_id: user.id,
-      company_id: user.app_metadata?.company_id,
+      company_id: companyId,
       action_id: actionId,
     }, { onConflict: 'plan_id,action_id', ignoreDuplicates: true })
     .select()
@@ -274,12 +310,13 @@ export async function saveContentProgress(itemId: string, progressS: number, com
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const companyId = await resolveMyCompanyId();
   const { error } = await supabase
     .from('content_progress')
     .upsert({
       user_id: user.id,
       item_id: itemId,
-      company_id: user.app_metadata?.company_id,
+      company_id: companyId,
       progress_s: progressS,
       completed,
       finished_at: completed ? new Date().toISOString() : null,
@@ -360,10 +397,21 @@ export async function getInsights() {
 }
 
 // ── Realtime subscriptions ────────────────────────────────────
+//
+// Supabase realtime channels are keyed by name: calling `.channel(name)`
+// twice returns the same channel, and `.on()` after `.subscribe()` throws
+// "cannot add callbacks after subscribe". The employee portal mounts the
+// notifications hook in two places (bell badge in App.jsx + ScreenNotifs)
+// which collided and blanked the Notifications screen. Append a random
+// suffix to each channel name so every caller gets its own channel.
+const channelSuffix = () =>
+  (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+    ? crypto.randomUUID().slice(0, 8)
+    : Math.random().toString(36).slice(2, 10);
 
 export function subscribeToLeaderboard(challengeId: string, cb: (payload: unknown) => void) {
   return supabase
-    .channel(`leaderboard:${challengeId}`)
+    .channel(`leaderboard:${challengeId}:${channelSuffix()}`)
     .on('postgres_changes', {
       event: '*',
       schema: 'public',
@@ -375,7 +423,7 @@ export function subscribeToLeaderboard(challengeId: string, cb: (payload: unknow
 
 export function subscribeToNotifications(userId: string, cb: (payload: unknown) => void) {
   return supabase
-    .channel(`notifications:${userId}`)
+    .channel(`notifications:${userId}:${channelSuffix()}`)
     .on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',
@@ -387,7 +435,7 @@ export function subscribeToNotifications(userId: string, cb: (payload: unknown) 
 
 export function subscribeToPlanCompletions(planId: string, cb: (payload: unknown) => void) {
   return supabase
-    .channel(`plan:${planId}`)
+    .channel(`plan:${planId}:${channelSuffix()}`)
     .on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',

@@ -44,7 +44,9 @@ function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
         variant,
       });
       setSaved(true);
-      state.setStreak(state.streak + (state.streak % 1 === 0 ? 0 : 1));
+      // Streak is now refreshed via useCheckin → refreshProfile().
+      // The App.jsx effect that mirrors profile.streak_current into
+      // state.streak will pick up the new value on the next render.
       setTimeout(() => { go('home'); setSaved(false); setStep(0); }, 1800);
     } catch (e) {
       setErr(e?.message || 'Submit failed');
