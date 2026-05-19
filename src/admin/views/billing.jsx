@@ -2,6 +2,7 @@ import React from 'react';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRIcon, HRButton, Panel, PanelHeader, Badge } from '../../shared/components.jsx';
 import { useBilling } from '../hooks/use-billing.js';
+import { useTenants } from '../hooks/use-tenants.js';
 
 function BillingEditForm({ theme, lang, onSave, busy }) {
   const T = theme;
@@ -60,9 +61,21 @@ function BillingEditForm({ theme, lang, onSave, busy }) {
   );
 }
 
-function AdminBilling({ theme, density, lang, companyId }) {
+function AdminBilling({ theme, density, lang, companyId: companyIdProp }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
+  const { tenants, loading: tenantsLoading } = useTenants();
+  const [pickedId, setPickedId] = React.useState(companyIdProp || null);
+
+  // Default the picker to the prop (came in from a tenant row click) or
+  // the first tenant once the list arrives. This makes /billing usable
+  // straight from the sidebar instead of requiring a tenant click first.
+  React.useEffect(() => {
+    if (companyIdProp) { setPickedId(companyIdProp); return; }
+    if (!pickedId && tenants && tenants[0]) setPickedId(tenants[0].id);
+  }, [companyIdProp, tenants, pickedId]);
+
+  const companyId = pickedId;
   const { invoices, loading, update } = useBilling(companyId);
   const [saving, setSaving] = React.useState(false);
 
@@ -70,6 +83,20 @@ function AdminBilling({ theme, density, lang, companyId }) {
     setSaving(true);
     try { await update(patch); } finally { setSaving(false); }
   }
+
+  const pickerInput = {
+    height: 34, padding: '0 12px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 13, outline: 'none', minWidth: 240,
+  };
+
+  const tenantPicker = (
+    <select value={companyId || ''} onChange={(e) => setPickedId(e.target.value)} style={pickerInput}>
+      {(tenants ?? []).map((t) => (
+        <option key={t.id} value={t.id}>{t.name}</option>
+      ))}
+    </select>
+  );
 
   if (!companyId) {
     return (
@@ -84,7 +111,9 @@ function AdminBilling({ theme, density, lang, companyId }) {
         </div>
         <Panel theme={T} density={density}>
           <div style={{ padding: 32, color: T.textMuted, fontSize: 13, textAlign: 'center' }}>
-            {s('Open a tenant from the Tenants list to manage its billing.','اختر عميلًا من قائمة العملاء لإدارة فوترته.')}
+            {tenantsLoading
+              ? s('Loading tenants…','جارٍ تحميل العملاء…')
+              : s('No tenants on the platform yet.','لا يوجد عملاء بعد.')}
           </div>
         </Panel>
       </div>
@@ -98,18 +127,26 @@ function AdminBilling({ theme, density, lang, companyId }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 11, color: T.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
-          {s('Billing & revenue','الفوترة والإيرادات')}
+      <div style={{ marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 11, color: T.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
+            {s('Billing & revenue','الفوترة والإيرادات')}
+          </div>
+          <h1 className="display" style={{ margin: 0, fontSize: 38, color: T.text, letterSpacing: -1, fontWeight: 400 }}>
+            ${(totalPaid / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ color: T.textMuted, fontSize: 22 }}>{s('collected','تم تحصيله')}</span>
+            <span style={{ color: T.accent, marginInlineStart: 8 }}>.</span>
+          </h1>
+          <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6 }}>
+            {loading
+              ? s('Loading invoices…','جارٍ تحميل الفواتير…')
+              : `${invoices.length} ${s('invoices on file','فاتورة في الملف')}`}
+          </div>
         </div>
-        <h1 className="display" style={{ margin: 0, fontSize: 38, color: T.text, letterSpacing: -1, fontWeight: 400 }}>
-          ${(totalPaid / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span style={{ color: T.textMuted, fontSize: 22 }}>{s('collected','تم تحصيله')}</span>
-          <span style={{ color: T.accent, marginInlineStart: 8 }}>.</span>
-        </h1>
-        <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6 }}>
-          {loading
-            ? s('Loading invoices…','جارٍ تحميل الفواتير…')
-            : `${invoices.length} ${s('invoices on file','فاتورة في الملف')}`}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+            {s('Tenant','العميل')}
+          </span>
+          {tenantPicker}
         </div>
       </div>
 

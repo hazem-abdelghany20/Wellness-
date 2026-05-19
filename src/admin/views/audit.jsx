@@ -3,11 +3,30 @@ import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader, Badge } from '../../shared/components.jsx';
 import { useAudit } from '../hooks/use-audit.js';
+import { exportPlatformReport } from '../../lib/supabase-admin';
+import { friendlyErrorI18n } from '../../lib/errors';
 
 function AdminAuditView({ theme, density, lang }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { entries, loading } = useAudit();
+  const [exporting, setExporting] = React.useState(false);
+  const [exportErr, setExportErr] = React.useState(null);
+
+  async function handleExport() {
+    setExporting(true); setExportErr(null);
+    try {
+      const { url } = await exportPlatformReport('audit', '90d');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-90d-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) {
+      setExportErr(friendlyErrorI18n(e, lang));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const tone = { info: 'neutral', warn: 'caution', err: 'danger', error: 'danger' };
 
@@ -19,7 +38,12 @@ function AdminAuditView({ theme, density, lang }) {
         sub={loading
           ? s('Loading…','جارٍ التحميل…')
           : `${entries.length} ${s('events','حدث')}`}
-        right={<HRButton theme={T} variant="secondary" icon="download">{s('Export 90 days','تصدير ٩٠ يومًا')}</HRButton>}/>
+        right={<>
+          <HRButton theme={T} variant="secondary" icon="download" onClick={handleExport} disabled={exporting}>
+            {exporting ? s('Exporting…','جارٍ التصدير…') : s('Export 90 days','تصدير ٩٠ يومًا')}
+          </HRButton>
+          {exportErr && <span style={{ fontSize: 11, color: T.danger, marginInlineStart: 8 }}>{exportErr}</span>}
+        </>}/>
 
       <Panel theme={T} density={density} pad={false}>
         <PanelHeader theme={T} density={density}

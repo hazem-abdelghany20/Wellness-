@@ -3,6 +3,68 @@ import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader, Badge, Toggle } from '../../shared/components.jsx';
 import { useFlags } from '../hooks/use-flags.js';
+import { friendlyErrorI18n } from '../../lib/errors';
+
+function NewFlagForm({ theme, lang, onCreate, busy }) {
+  const T = theme;
+  const s = (en, ar) => lang === 'ar' ? ar : en;
+  const [key, setKey] = React.useState('');
+  const [scope, setScope] = React.useState('global');
+  const [targetId, setTargetId] = React.useState('');
+  const [enabled, setEnabled] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!key.trim()) return;
+    setErr(null);
+    try {
+      await onCreate({
+        key: key.trim(),
+        scope,
+        target_id: scope === 'global' ? null : (targetId.trim() || null),
+        enabled,
+        payload: {},
+      });
+      setKey(''); setTargetId(''); setEnabled(false); setScope('global');
+    } catch (e) {
+      setErr(friendlyErrorI18n(e, lang));
+    }
+  }
+
+  const inputStyle = {
+    height: 32, padding: '0 10px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 12, outline: 'none',
+  };
+
+  return (
+    <form onSubmit={submit} style={{
+      display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+      padding: 12, borderTop: `1px solid ${T.divider}`,
+    }}>
+      <input value={key} onChange={(e) => setKey(e.target.value)}
+        placeholder={s('flag.key (e.g. signup.captcha)','مفتاح')} style={{ ...inputStyle, flex: 1, minWidth: 200 }}/>
+      <select value={scope} onChange={(e) => setScope(e.target.value)} style={inputStyle}>
+        <option value="global">global</option>
+        <option value="company">company</option>
+        <option value="user">user</option>
+      </select>
+      {scope !== 'global' && (
+        <input value={targetId} onChange={(e) => setTargetId(e.target.value)}
+          placeholder={s('target UUID','معرّف الهدف')} style={{ ...inputStyle, width: 280 }}/>
+      )}
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: T.textMid, cursor: 'pointer' }}>
+        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)}/>
+        {s('Enabled','مفعّل')}
+      </label>
+      <HRButton theme={T} type="submit" disabled={busy || !key.trim()} icon="plus">
+        {busy ? s('Creating…','جارٍ الإنشاء…') : s('Create flag','إنشاء')}
+      </HRButton>
+      {err && <span style={{ fontSize: 12, color: T.danger }}>{err}</span>}
+    </form>
+  );
+}
 
 function FlagRow({ theme, density, lang, flag, isLast, onToggle }) {
   const T = theme;
@@ -61,6 +123,12 @@ function AdminFlagsView({ theme, density, lang }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { flags, loading, set } = useFlags();
+  const [busy, setBusy] = React.useState(false);
+
+  async function handleCreate(payload) {
+    setBusy(true);
+    try { await set(payload); } finally { setBusy(false); }
+  }
 
   return (
     <>
@@ -69,8 +137,7 @@ function AdminFlagsView({ theme, density, lang }) {
         title={s('Rollout control','إدارة الإطلاق')}
         sub={loading
           ? s('Loading…','جارٍ التحميل…')
-          : `${flags.length} ${s('flags','خاصية')}`}
-        right={<HRButton theme={T} icon="plus">{s('New flag','خاصية جديدة')}</HRButton>}/>
+          : `${flags.length} ${s('flags','خاصية')}`}/>
 
       <Panel theme={T} density={density} pad={false}>
         <PanelHeader theme={T} density={density}
@@ -93,6 +160,7 @@ function AdminFlagsView({ theme, density, lang }) {
             ))}
           </div>
         )}
+        <NewFlagForm theme={T} lang={lang} onCreate={handleCreate} busy={busy}/>
       </Panel>
     </>
   );

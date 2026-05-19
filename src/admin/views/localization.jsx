@@ -3,6 +3,55 @@ import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader } from '../../shared/components.jsx';
 import { useLocalization } from '../hooks/use-localization.js';
+import { friendlyErrorI18n } from '../../lib/errors';
+
+function NewStringForm({ theme, lang, onCreate, busy }) {
+  const T = theme;
+  const s = (en, ar) => lang === 'ar' ? ar : en;
+  const [key, setKey] = React.useState('');
+  const [langCode, setLang] = React.useState('en');
+  const [value, setValue] = React.useState('');
+  const [err, setErr] = React.useState(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!key.trim() || !langCode.trim()) return;
+    setErr(null);
+    try {
+      await onCreate(key.trim(), langCode.trim(), value);
+      setKey(''); setValue('');
+    } catch (e) {
+      setErr(friendlyErrorI18n(e, lang));
+    }
+  }
+
+  const inputStyle = {
+    height: 32, padding: '0 10px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 12, outline: 'none',
+  };
+
+  return (
+    <form onSubmit={submit} style={{
+      display: 'grid', gridTemplateColumns: '1fr 80px 2fr auto', gap: 8,
+      padding: 12, borderTop: `1px solid ${T.divider}`,
+    }}>
+      <input value={key} onChange={(e) => setKey(e.target.value)}
+        placeholder={s('key (e.g. nav.home)','المفتاح')} style={inputStyle}/>
+      <select value={langCode} onChange={(e) => setLang(e.target.value)} style={inputStyle}>
+        <option value="en">en</option>
+        <option value="ar">ar</option>
+        <option value="fr">fr</option>
+      </select>
+      <input value={value} onChange={(e) => setValue(e.target.value)}
+        placeholder={s('Translated value','القيمة المترجمة')} style={inputStyle}/>
+      <HRButton theme={T} type="submit" disabled={busy || !key.trim()} icon="plus">
+        {busy ? s('Saving…','جارٍ الحفظ…') : s('Add string','إضافة')}
+      </HRButton>
+      {err && <span style={{ gridColumn: '1 / -1', fontSize: 12, color: T.danger }}>{err}</span>}
+    </form>
+  );
+}
 
 function StringRow({ theme, density, lang, str, isLast, onSave }) {
   const T = theme;
@@ -71,6 +120,12 @@ function AdminLocalizationView({ theme, density, lang }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { strings, loading, save } = useLocalization();
+  const [busy, setBusy] = React.useState(false);
+
+  async function handleCreate(key, langCode, value) {
+    setBusy(true);
+    try { await save(key, langCode, value); } finally { setBusy(false); }
+  }
 
   return (
     <>
@@ -79,8 +134,7 @@ function AdminLocalizationView({ theme, density, lang }) {
         title={s('Strings','النصوص')}
         sub={loading
           ? s('Loading…','جارٍ التحميل…')
-          : `${strings.length} ${s('strings','نص')}`}
-        right={<HRButton theme={T} icon="plus">{s('Add string','أضف نصًا')}</HRButton>}/>
+          : `${strings.length} ${s('strings','نص')}`}/>
 
       <Panel theme={T} density={density} pad={false}>
         <PanelHeader theme={T} density={density}
@@ -118,6 +172,7 @@ function AdminLocalizationView({ theme, density, lang }) {
             ))}
           </div>
         )}
+        <NewStringForm theme={T} lang={lang} onCreate={handleCreate} busy={busy}/>
       </Panel>
     </>
   );

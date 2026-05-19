@@ -3,6 +3,63 @@ import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader, Badge } from '../../shared/components.jsx';
 import { useIntegrations } from '../hooks/use-integrations.js';
+import { useTenants } from '../hooks/use-tenants.js';
+import { friendlyErrorI18n } from '../../lib/errors';
+
+function NewIntegrationForm({ theme, lang, tenants, onAdd, busy }) {
+  const T = theme;
+  const s = (en, ar) => lang === 'ar' ? ar : en;
+  const [companyId, setCompanyId] = React.useState('');
+  const [kind, setKind] = React.useState('');
+  const [status, setStatus] = React.useState('pending');
+  const [err, setErr] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!companyId && tenants && tenants[0]) setCompanyId(tenants[0].id);
+  }, [tenants, companyId]);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!companyId || !kind.trim()) return;
+    setErr(null);
+    try {
+      await onAdd(companyId, kind.trim(), status, {});
+      setKind('');
+    } catch (e) {
+      setErr(friendlyErrorI18n(e, lang));
+    }
+  }
+
+  const inputStyle = {
+    height: 32, padding: '0 10px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 12, outline: 'none',
+  };
+
+  return (
+    <form onSubmit={submit} style={{
+      display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+      padding: 12, borderTop: `1px solid ${T.divider}`,
+    }}>
+      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} style={{ ...inputStyle, minWidth: 200 }}>
+        {(tenants ?? []).map((t) => (
+          <option key={t.id} value={t.id}>{t.name}</option>
+        ))}
+      </select>
+      <input value={kind} onChange={(e) => setKind(e.target.value)}
+        placeholder={s('kind (e.g. slack, okta)','النوع')} style={{ ...inputStyle, flex: 1, minWidth: 160 }}/>
+      <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
+        <option value="pending">pending</option>
+        <option value="configured">configured</option>
+        <option value="error">error</option>
+      </select>
+      <HRButton theme={T} type="submit" disabled={busy || !companyId || !kind.trim()} icon="plus">
+        {busy ? s('Saving…','جارٍ الحفظ…') : s('Add integration','إضافة')}
+      </HRButton>
+      {err && <span style={{ fontSize: 12, color: T.danger }}>{err}</span>}
+    </form>
+  );
+}
 
 function IntegrationRow({ theme, density, lang, integration, isLast, onSet }) {
   const T = theme;
@@ -52,6 +109,13 @@ function AdminIntegrationsView({ theme, density, lang }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { integrations, loading, set } = useIntegrations();
+  const { tenants } = useTenants();
+  const [busy, setBusy] = React.useState(false);
+
+  async function handleAdd(companyId, kind, status, config) {
+    setBusy(true);
+    try { await set(companyId, kind, status, config); } finally { setBusy(false); }
+  }
 
   const counts = integrations.reduce((acc, it) => {
     acc[it.status] = (acc[it.status] || 0) + 1;
@@ -65,8 +129,7 @@ function AdminIntegrationsView({ theme, density, lang }) {
         title={s('System health','صحة الأنظمة')}
         sub={loading
           ? s('Loading…','جارٍ التحميل…')
-          : `${integrations.length} ${s('total','إجمالي')}`}
-        right={<HRButton theme={T} icon="plus">{s('Add integration','أضف تكاملًا')}</HRButton>}/>
+          : `${integrations.length} ${s('total','إجمالي')}`}/>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap: DENSITY[density].gap }}>
         {[
@@ -104,6 +167,7 @@ function AdminIntegrationsView({ theme, density, lang }) {
             ))}
           </div>
         )}
+        <NewIntegrationForm theme={T} lang={lang} tenants={tenants} onAdd={handleAdd} busy={busy}/>
       </Panel>
     </>
   );

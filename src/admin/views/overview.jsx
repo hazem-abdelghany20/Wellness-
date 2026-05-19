@@ -1,11 +1,7 @@
 import React from 'react';
 import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
-import { HRButton, Panel, PanelHeader, Badge, AvatarMark, Bullet } from '../../shared/components.jsx';
-import {
-  AdminKpiStrip, DauMauChart, AdminTeam,
-  ContentHealth, IntegrationsStatus, AuditLog, FeatureFlags,
-} from '../sections.jsx';
+import { HRButton, Panel, PanelHeader, Badge, AvatarMark } from '../../shared/components.jsx';
 import { usePlatformOverview } from '../hooks/use-platform-overview.js';
 
 function LoadingFrame({ theme, label }) {
@@ -128,10 +124,7 @@ function AdminOverview({ theme, density, chartStyle, layout, lang, onOpenTenant 
         sub={loading
           ? s('Loading platform metrics…','جارٍ تحميل مقاييس المنصة…')
           : `${totals.tenants} ${s('tenants','عميل')} · ${(totals.seats ?? 0).toLocaleString()} ${s('seats','مقعد')}`}
-        right={<>
-          <HRButton theme={T} variant="secondary" icon="calendar">Apr 2026</HRButton>
-          <HRButton theme={T} variant="secondary" icon="filter"/>
-        </>}/>
+        right={null}/>
 
       {loading ? (
         <Panel theme={T} density={density}>

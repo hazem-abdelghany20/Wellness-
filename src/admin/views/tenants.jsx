@@ -3,6 +3,8 @@ import { AdminPageHeader } from './_header.jsx';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader, Badge, AvatarMark } from '../../shared/components.jsx';
 import { useTenants } from '../hooks/use-tenants.js';
+import { exportPlatformReport } from '../../lib/supabase-admin';
+import { friendlyErrorI18n } from '../../lib/errors';
 
 function NewTenantForm({ theme, lang, onCreate, busy }) {
   const T = theme;
@@ -143,10 +145,27 @@ function AdminTenantsView({ theme, density, lang, onOpen }) {
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { tenants, loading, create } = useTenants();
   const [creating, setCreating] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
+  const [exportErr, setExportErr] = React.useState(null);
 
   async function handleCreate(payload) {
     setCreating(true);
     try { await create(payload); } finally { setCreating(false); }
+  }
+
+  async function handleExport() {
+    setExporting(true); setExportErr(null);
+    try {
+      const { url } = await exportPlatformReport('tenants', '30d');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tenants-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) {
+      setExportErr(friendlyErrorI18n(e, lang));
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -158,7 +177,10 @@ function AdminTenantsView({ theme, density, lang, onOpen }) {
           ? s('Loading…','جارٍ التحميل…')
           : `${tenants.length} ${s('total','إجمالي')}`}
         right={<>
-          <HRButton theme={T} variant="secondary" icon="download">{s('Export','تصدير')}</HRButton>
+          <HRButton theme={T} variant="secondary" icon="download" onClick={handleExport} disabled={exporting}>
+            {exporting ? s('Exporting…','جارٍ التصدير…') : s('Export','تصدير')}
+          </HRButton>
+          {exportErr && <span style={{ fontSize: 11, color: T.danger, marginInlineStart: 8 }}>{exportErr}</span>}
         </>}/>
       {loading ? (
         <Panel theme={T} density={density}>
