@@ -1,5 +1,6 @@
 import React from 'react';
 import { HRIcon, AvatarMark } from '../shared/components.jsx';
+import { useSystemHealth } from './hooks/use-system-health.js';
 
 // Admin Portal — sidebar + topbar primitives. The page bodies render
 // through src/admin/views/*.jsx which read live data via the hooks in
@@ -161,6 +162,25 @@ function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignO
 function AdminTopBar({ theme, lang, dir, range, onRange, onTweaks }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
+  // Live health signal: counts warn + error rows in the audit_log over
+  // the last 24h. Updates once a minute. Renders as a green/yellow/red
+  // pill in the topbar — replaces the previously hardcoded "All systems
+  // normal" string.
+  const { counts, status, loading: healthLoading } = useSystemHealth();
+  const healthColor = status === 'error' ? T.danger : status === 'warn' ? T.caution : T.positive;
+  const healthGlow = status === 'error'
+    ? (T.isDark ? 'rgba(224,138,107,0.20)' : 'rgba(176,67,42,0.18)')
+    : status === 'warn'
+      ? (T.isDark ? 'rgba(245,181,68,0.22)' : 'rgba(176,118,30,0.18)')
+      : (T.isDark ? 'rgba(111,199,155,0.18)' : 'rgba(46,125,94,0.18)');
+  const healthLabel = healthLoading
+    ? s('Checking…','جارٍ الفحص…')
+    : status === 'error'
+      ? `${counts.error} ${s(counts.error === 1 ? 'alert' : 'alerts', 'تنبيه')}`
+      : status === 'warn'
+        ? `${counts.warn} ${s(counts.warn === 1 ? 'warning' : 'warnings', 'تحذير')}`
+        : s('All systems normal','كل الأنظمة طبيعية');
+  const healthTitle = `${counts.total} ${s('audit events in the last 24h','حدث تدقيق في آخر ٢٤ ساعة')}`;
   return (
     <div style={{
       height: 64, borderBottom: `1px solid ${T.border}`, background: T.panel,
@@ -172,14 +192,14 @@ function AdminTopBar({ theme, lang, dir, range, onRange, onTweaks }) {
 
       <div style={{ flex: 1 }}/>
 
-      <div style={{
+      <div title={healthTitle} style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '6px 10px', borderRadius: 10,
-        background: T.isDark ? 'rgba(111,199,155,0.10)' : 'rgba(46,125,94,0.08)',
-        color: T.positive, border: `1px solid ${T.border}`,
+        background: T.isDark ? `${healthColor}1A` : `${healthColor}14`,
+        color: healthColor, border: `1px solid ${T.border}`,
       }}>
-        <span style={{ width: 7, height: 7, borderRadius: 999, background: T.positive, boxShadow: `0 0 0 3px ${T.isDark ? 'rgba(111,199,155,0.18)' : 'rgba(46,125,94,0.18)'}` }}/>
-        <span style={{ fontSize: 12, fontWeight: 600 }}>{s('All systems normal','كل الأنظمة طبيعية')}</span>
+        <span style={{ width: 7, height: 7, borderRadius: 999, background: healthColor, boxShadow: `0 0 0 3px ${healthGlow}` }}/>
+        <span style={{ fontSize: 12, fontWeight: 600 }}>{healthLabel}</span>
       </div>
 
       <div style={{ display: 'flex', background: T.panelSunk, borderRadius: 10, padding: 3, border: `1px solid ${T.border}` }}>
