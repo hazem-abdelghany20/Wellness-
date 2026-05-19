@@ -70,8 +70,8 @@ function AppInner() {
   const isSuper = isSuperadminEmail(session?.user?.email);
 
   if (authLoading) return <div style={{ minHeight: '100vh', background: T.bg }}/>;
-  if (!session)    return <SignIn theme={T} dir={dir}/>;
-  if (role !== 'wellness_admin' && !isSuper) return <AccessDenied theme={T} dir={dir}/>;
+  if (!session)    return <SignIn theme={T} dir={dir} lang={lang}/>;
+  if (role !== 'wellness_admin' && !isSuper) return <AccessDenied theme={T} dir={dir} lang={lang}/>;
 
   return (
     <div data-rtl={dir==='rtl'} style={{
