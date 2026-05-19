@@ -95,7 +95,7 @@ const ADMIN_DATA = {
 };
 
 // ── SIDEBAR ──────────────────────────────────────────────────────
-function AdminSidebar({ theme, active, onNav, lang }) {
+function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignOut }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const items = [
@@ -106,10 +106,27 @@ function AdminSidebar({ theme, active, onNav, lang }) {
     { id: 'challenges', icon: 'challenges',  label: s('Challenge Templates', 'قوالب التحديات') },
     { id: 'integrations', icon: 'globe',     label: s('Integrations', 'التكاملات') },
     { id: 'localization', icon: 'mail',      label: s('Localization', 'التعريب') },
-    { id: 'flags',      icon: 'sparkle',     label: s('Feature Flags', 'الخصائص التجريبية'), badge: 2 },
+    { id: 'flags',      icon: 'sparkle',     label: s('Feature Flags', 'الخصائص التجريبية') },
     { id: 'audit',      icon: 'shield',      label: s('Audit Log', 'سجل التدقيق') },
     { id: 'billing',    icon: 'reports',     label: s('Billing', 'الفوترة') },
   ];
+
+  // Resolve the signed-in identity. Falls back through profile.display_name
+  // → user.email's local-part → 'Admin'. Role label translates the snake_case
+  // database role into a human label.
+  const displayName = profile?.display_name
+    || (user?.email ? user.email.split('@')[0] : null)
+    || s('Admin','مسؤول');
+  const ROLE_LABELS = {
+    wellness_admin: s('Platform admin','مسؤول المنصة'),
+    company_admin:  s('Company admin','مسؤول الشركة'),
+    hr_admin:       s('HR admin','مسؤول الموارد'),
+    manager:        s('Manager','مدير'),
+    employee:       s('Employee','موظف'),
+  };
+  const roleLabel = ROLE_LABELS[role] || s('Admin','مسؤول');
+  const [menuOpen, setMenuOpen] = React.useState(false);
+
   return (
     <aside style={{
       width: 232, flexShrink: 0, background: T.sidebarBg, color: T.sidebarText,
@@ -129,7 +146,8 @@ function AdminSidebar({ theme, active, onNav, lang }) {
         </div>
       </div>
 
-      {/* Env switcher */}
+      {/* Env switcher — display-only. We only ship one env from this UI
+          so the chevron used to imply a non-existent switcher. */}
       <div style={{ padding: '4px 14px 12px' }}>
         <div style={{
           background: 'rgba(245,241,232,0.06)', borderRadius: 10,
@@ -141,7 +159,6 @@ function AdminSidebar({ theme, active, onNav, lang }) {
             <div style={{ fontSize: 11, color: 'rgba(245,241,232,0.55)', letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600 }}>{s('Environment','البيئة')}</div>
             <div style={{ fontSize: 12, color: T.sidebarMark, fontWeight: 600 }}>production · eu-west</div>
           </div>
-          <HRIcon name="chevDown" size={14} stroke="rgba(245,241,232,0.55)"/>
         </div>
       </div>
 
@@ -173,15 +190,55 @@ function AdminSidebar({ theme, active, onNav, lang }) {
         })}
       </div>
       <div style={{ flex: 1 }}/>
-      <div style={{ padding: 14, borderTop: '1px solid rgba(245,241,232,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AvatarMark theme={T} name="Maya Reyes" size={32}/>
+      <div style={{ padding: 14, borderTop: '1px solid rgba(245,241,232,0.06)', position: 'relative' }}>
+        <button
+          type="button"
+          onClick={onSignOut ? () => setMenuOpen((o) => !o) : undefined}
+          aria-haspopup={!!onSignOut}
+          aria-expanded={menuOpen}
+          style={{
+            width: '100%', background: 'transparent', border: 'none',
+            padding: 0, color: T.sidebarText,
+            cursor: onSignOut ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', gap: 10,
+            textAlign: 'start',
+          }}
+          title={onSignOut ? s('Profile menu','قائمة الملف') : undefined}
+        >
+          <AvatarMark theme={T} name={displayName} size={32}/>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: T.sidebarMark, fontWeight: 600 }}>Maya Reyes</div>
-            <div style={{ fontSize: 11, color: 'rgba(245,241,232,0.5)' }}>Platform Lead</div>
+            <div style={{ fontSize: 12, color: T.sidebarMark, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+            <div style={{ fontSize: 11, color: 'rgba(245,241,232,0.5)' }}>{roleLabel}</div>
           </div>
           <HRIcon name="more" size={16} stroke="rgba(245,241,232,0.55)"/>
-        </div>
+        </button>
+        {menuOpen && onSignOut && (
+          <div
+            role="menu"
+            style={{
+              position: 'absolute', insetInlineStart: 14, insetInlineEnd: 14, bottom: 64,
+              background: T.panel, border: `1px solid ${T.border}`, borderRadius: 10,
+              padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,0.35)', zIndex: 20,
+            }}
+            onMouseLeave={() => setMenuOpen(false)}
+          >
+            <div style={{ padding: '8px 10px 6px', fontSize: 11, color: T.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.email}
+            </div>
+            <button
+              type="button"
+              onClick={async () => { setMenuOpen(false); try { await onSignOut(); } catch (e) { console.warn('[admin] signOut failed', e); } }}
+              style={{
+                width: '100%', textAlign: 'start',
+                background: 'transparent', border: 'none',
+                padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
+                color: T.text, fontSize: 12, fontWeight: 600,
+              }}
+            >
+              {s('Sign out','تسجيل الخروج')}
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -196,19 +253,9 @@ function AdminTopBar({ theme, lang, dir, range, onRange, onTweaks }) {
       height: 64, borderBottom: `1px solid ${T.border}`, background: T.panel,
       display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, position: 'sticky', top: 0, zIndex: 5,
     }}>
-      <div style={{
-        flex: 1, maxWidth: 520, height: 38, background: T.panelSunk, borderRadius: 10,
-        border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10,
-      }}>
-        <HRIcon name="search" size={16} stroke={T.textMuted}/>
-        <input placeholder={s('Search tenants, content, audit log…','ابحث في العملاء والمحتوى وسجل التدقيق…')}
-          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: T.text, fontSize: 13,
-            textAlign: dir === 'rtl' ? 'right' : 'left' }}/>
-        <span className="mono" style={{
-          padding: '2px 6px', borderRadius: 5, border: `1px solid ${T.border}`,
-          fontSize: 10, color: T.textMuted,
-        }}>⌘K</span>
-      </div>
+      {/* Global search isn't backed by anything yet — restoring it as
+          a no-op input fooled testers into typing into a dead box. The
+          space is reserved for when search ships. */}
 
       <div style={{ flex: 1 }}/>
 
@@ -233,12 +280,9 @@ function AdminTopBar({ theme, lang, dir, range, onRange, onTweaks }) {
         ))}
       </div>
 
-      <HRButton theme={T} variant="secondary" icon="download">{s('Export','تصدير')}</HRButton>
-
-      <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', color: T.textMid }}>
-        <HRIcon name="bell" size={18}/>
-        <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: 999, background: T.danger }}/>
-      </button>
+      {/* Top-bar Export + notifications bell were wired to nothing —
+          export lives per-page (Tenants, Audit) and we don't have a
+          notifications surface yet. Removed to avoid stub controls. */}
 
       {onTweaks && (
         <button onClick={onTweaks} style={{

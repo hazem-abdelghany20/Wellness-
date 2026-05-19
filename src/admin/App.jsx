@@ -66,7 +66,7 @@ function AppInner() {
   };
   const setT = (k, fn) => (v) => { fn(v); persist({ [k]: v }); };
 
-  const { session, role, loading: authLoading } = useAdminAuth();
+  const { session, role, profile, signOut, loading: authLoading } = useAdminAuth();
   const isSuper = isSuperadminEmail(session?.user?.email);
 
   if (authLoading) return <div style={{ minHeight: '100vh', background: T.bg }}/>;
@@ -78,7 +78,8 @@ function AppInner() {
       minHeight: '100vh', background: T.bg, color: T.text,
       display: 'flex', direction: dir,
     }}>
-      <AdminSidebar theme={T} active={active} onNav={(id) => { setActive(id); setOpenTenant(null); }} lang={lang}/>
+      <AdminSidebar theme={T} active={active} onNav={(id) => { setActive(id); setOpenTenant(null); }} lang={lang}
+        user={session?.user} profile={profile} role={role} onSignOut={signOut}/>
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <AdminTopBar theme={T} lang={lang} dir={dir} range={range} onRange={setRange} onTweaks={tweaksAvailable ? (() => setTweaksOpen(o=>!o)) : undefined}/>

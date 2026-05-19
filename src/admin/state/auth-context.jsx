@@ -3,6 +3,7 @@ import {
   supabase, signInOrUpWithPassword,
   signOut as signOutRaw, getMyProfile,
 } from '../../lib/supabase';
+import { isSuperadminEmail } from '../../lib/superadmin';
 
 const AdminAuthContext = createContext(null);
 
@@ -11,7 +12,14 @@ export function AdminAuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const role = session?.user?.app_metadata?.role || null;
+  // app_metadata.role is unset for any user whose JWT custom-claims hook
+  // hasn't fired (most superadmins, freshly-onboarded users). Fall back
+  // to profiles.role and treat the superadmin allowlist as wellness_admin
+  // so the same identity can hop between Admin / HR / Employee portals
+  // without separate provisioning.
+  const role = isSuperadminEmail(session?.user?.email)
+    ? 'wellness_admin'
+    : (session?.user?.app_metadata?.role || profile?.role || null);
 
   const refreshProfile = useCallback(async () => {
     if (!session) { setProfile(null); return; }
