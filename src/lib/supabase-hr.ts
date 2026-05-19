@@ -15,10 +15,7 @@ export async function getCompanyOverview(range: '7d' | '30d' | '90d' = '30d') {
 // ── Teams ──────────────────────────────────────────────────────
 
 export async function getTeamAggregates() {
-  const { data: { user } } = await supabase.auth.getUser();
-  const companyId = user?.app_metadata?.company_id as string | undefined;
-  if (!companyId) throw new Error('not_in_company');
-
+  const companyId = await resolveCompanyId();
   const { data, error } = await supabase
     .from('hr_team_overview')
     .select('*')
@@ -74,15 +71,15 @@ export async function updateContentItem(contentId: string, patch: Record<string,
 
 export async function assignContent(contentId: string, scope: 'all' | 'team', teamId?: string) {
   const { data: { user } } = await supabase.auth.getUser();
-  const companyId = user?.app_metadata?.company_id as string | undefined;
-  if (!companyId) throw new Error('not_in_company');
+  if (!user) throw new Error('not_authenticated');
+  const companyId = await resolveCompanyId();
 
   const { data, error } = await supabase.from('content_assignments').insert({
     company_id: companyId,
     content_id: contentId,
     scope,
     team_id: scope === 'team' ? teamId : null,
-    assigned_by: user!.id,
+    assigned_by: user.id,
   }).select().single();
   if (error) throw error;
   return data;
@@ -179,10 +176,7 @@ export async function cancelBroadcast(id: string) {
 // ── Gifts ───────────────────────────────────────────────────────
 
 async function getMyCompanyId() {
-  const { data: { user } } = await supabase.auth.getUser();
-  const companyId = user?.app_metadata?.company_id as string | undefined;
-  if (!companyId) throw new Error('not_in_company');
-  return companyId;
+  return resolveCompanyId();
 }
 
 export async function getGiftCatalogItems() {

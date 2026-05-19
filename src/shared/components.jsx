@@ -223,9 +223,17 @@ function TrendChart({ theme, series, labels, height = 260, chartStyle = 'line', 
           <text x={padL - 10} y={yToPx(g) + 4} fontSize="10" fill={T.textFaint} textAnchor="end" fontFamily="IBM Plex Mono">{g}</text>
         </g>
       ))}
-      {labels.map((lab, i) => (
-        <text key={i} x={xToPx(i)} y={height - 10} fontSize="10" fill={T.textFaint} textAnchor="middle">{lab}</text>
-      ))}
+      {(() => {
+        // With many daily labels they overlap into illegible text. Show
+        // at most ~8 ticks, evenly spaced across the series.
+        const maxTicks = 8;
+        const stepLabel = Math.max(1, Math.ceil(n / maxTicks));
+        return labels.map((lab, i) => (
+          (i % stepLabel === 0 || i === labels.length - 1) ? (
+            <text key={i} x={xToPx(i)} y={height - 10} fontSize="10" fill={T.textFaint} textAnchor="middle">{lab}</text>
+          ) : null
+        ));
+      })()}
       {activeSeries.map((s, si) => {
         const color = s.color;
         const pts = s.values.map((v, i) => [xToPx(i), yToPx(v)]);
