@@ -28,7 +28,10 @@ function TeamDrawer({ theme, team, onClose, S, lang, chartStyle }) {
   const teamRisk  = team._risk || team.risk;
 
   // Pull a 30-day mini-trend out of the drilldown rows when available.
-  const drillRows = Array.isArray(drill?.rows) ? drill.rows : [];
+  // hr_team_drilldown returns { range, trend: [...] }; older callers had `rows`.
+  const drillRows = Array.isArray(drill?.trend)
+    ? drill.trend
+    : Array.isArray(drill?.rows) ? drill.rows : [];
   const trend = drillRows.length > 0
     ? drillRows.map(r => Number(r.avg_mood ?? r.mood ?? r.value ?? 0))
     : null;

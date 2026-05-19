@@ -103,13 +103,25 @@ function HRSettingsPage({ theme, S, lang, density }) {
             { l: s('Billing','الفوترة') },
             { l: s('Audit log','سجل التدقيق') },
           ].map((it, i) => (
-            <div key={i} style={{
-              padding: '12px 16px', borderBottom: `1px solid ${T.divider}`,
-              fontSize: 13, fontWeight: it.active ? 700 : 500, cursor: 'pointer',
-              color: it.active ? T.accent : T.textMid,
-              borderInlineStart: it.active ? `3px solid ${T.accent}` : '3px solid transparent',
-              background: it.active ? T.panelSunk : 'transparent',
-            }}>{it.l}</div>
+            <div key={i}
+              title={it.active ? undefined : s('Coming soon','قريباً')}
+              style={{
+                padding: '12px 16px', borderBottom: `1px solid ${T.divider}`,
+                fontSize: 13, fontWeight: it.active ? 700 : 500,
+                cursor: it.active ? 'pointer' : 'not-allowed',
+                color: it.active ? T.accent : T.textFaint,
+                opacity: it.active ? 1 : 0.55,
+                borderInlineStart: it.active ? `3px solid ${T.accent}` : '3px solid transparent',
+                background: it.active ? T.panelSunk : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              }}>
+              <span>{it.l}</span>
+              {!it.active && (
+                <span style={{ fontSize: 9, color: T.textFaint, padding: '2px 6px', borderRadius: 4, border: `1px solid ${T.border}` }}>
+                  {s('soon','قريباً')}
+                </span>
+              )}
+            </div>
           ))}
         </Panel>
 

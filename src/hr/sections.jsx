@@ -541,9 +541,10 @@ function ContentPins({ theme, S, lang, density, items = [] }) {
   const T = theme;
   const iconFor = { audio: 'headphones', video: 'play', article: 'book' };
   // Prefer pinned items first, fall back to published library when nothing
-  // is pinned, then take up to 3.
-  const pinned = items.filter(i => i.pinned);
-  const rows = (pinned.length > 0 ? pinned : items.filter(i => i.status === 'published')).slice(0, 3);
+  // is pinned, then take up to 3. The DB column is `featured`, not `pinned`.
+  const isPinnedRow = (i) => !!(i.pinned ?? i.featured);
+  const pinned = items.filter(isPinnedRow);
+  const rows = (pinned.length > 0 ? pinned : items.filter(i => (i.status ?? 'published') === 'published')).slice(0, 3);
   return (
     <Panel theme={T} density={density} pad={false}>
       <PanelHeader theme={T} density={density} title={S.contentPins} subtitle={lang==='ar'?'محتوى مختار':'Curated for all staff'}
@@ -556,7 +557,7 @@ function ContentPins({ theme, S, lang, density, items = [] }) {
         ) : rows.map((c, i) => {
           const title = (lang==='ar' && c.title_ar) ? c.title_ar : c.title_en;
           const kind = c.kind || 'article';
-          const isPinned = !!c.pinned;
+          const isPinned = isPinnedRow(c);
           return (
             <div key={c.id || i} style={{
               background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 12,
