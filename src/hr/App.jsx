@@ -25,11 +25,21 @@ import { HRAuthProvider, useHRAuth } from './state/auth-context.jsx';
 import { SignIn } from './views/sign-in.jsx';
 import { AccessDenied } from './views/access-denied.jsx';
 import { useOverview } from './hooks/use-overview.js';
+import { useTeams } from './hooks/use-teams.js';
+import { useSafety } from './hooks/use-safety.js';
+import { useBroadcasts } from './hooks/use-broadcasts.js';
+import { useContent } from './hooks/use-content.js';
+import { useChallenges } from './hooks/use-challenges.js';
+import { usePeople } from './hooks/use-people.js';
 import { isSuperadminEmail } from '../lib/superadmin';
 
-function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam, companyName, firstName }) {
+function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam, companyName, firstName, setNav, teams: teamAggs = [] }) {
   const T = theme;
   const { data: overview, loading: overviewLoading } = useOverview(range);
+  const { list: broadcasts } = useBroadcasts();
+  const { items: contentItems } = useContent();
+  const { templates: challengeItems } = useChallenges();
+  const { people: roster } = usePeople();
   const now = new Date();
   const lastUpdated = now.toLocaleTimeString(cfg.lang === 'ar' ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
   const hour = now.getHours();
@@ -71,29 +81,29 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam, 
         gridTemplateColumns: layout === 'wide' ? '1fr' : layout === 'split' ? '1fr 1fr' : 'minmax(0, 2fr) minmax(320px, 1fr)',
         gap, marginBottom: gap,
       }}>
-        <TrendsCard theme={T} S={S} lang={cfg.lang} chartStyle={cfg.chartStyle} density={density} trend={overview?.trend}/>
-        {layout !== 'wide' && <AtRisk theme={T} S={S} lang={cfg.lang} density={density} onOpenTeam={setDrawerTeam}/>}
+        <TrendsCard theme={T} S={S} lang={cfg.lang} chartStyle={cfg.chartStyle} density={density} trend={overview?.trend} range={range}/>
+        {layout !== 'wide' && <AtRisk theme={T} S={S} lang={cfg.lang} density={density} onOpenTeam={setDrawerTeam} teams={teamAggs}/>}
       </div>
 
       {layout === 'wide' && (
         <div style={{ marginBottom: gap }}>
-          <AtRisk theme={T} S={S} lang={cfg.lang} density={density} onOpenTeam={setDrawerTeam}/>
+          <AtRisk theme={T} S={S} lang={cfg.lang} density={density} onOpenTeam={setDrawerTeam} teams={teamAggs}/>
         </div>
       )}
 
       <div style={{ marginBottom: gap }}>
-        <TeamTable theme={T} S={S} lang={cfg.lang} density={density} chartStyle={cfg.chartStyle} onOpenTeam={setDrawerTeam}/>
+        <TeamTable theme={T} S={S} lang={cfg.lang} density={density} chartStyle={cfg.chartStyle} onOpenTeam={setDrawerTeam} teams={teamAggs}/>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap, marginBottom: gap }}>
-        <SafetyQueue theme={T} S={S} lang={cfg.lang} density={density}/>
-        <Broadcasts theme={T} S={S} lang={cfg.lang} density={density}/>
+        <SafetyQueue theme={T} S={S} lang={cfg.lang} density={density} teams={teamAggs}/>
+        <Broadcasts theme={T} S={S} lang={cfg.lang} density={density} list={broadcasts} onNew={() => setNav && setNav('broadcasts')}/>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr 1fr', gap, marginBottom: gap }}>
-        <PeopleYouManage theme={T} S={S} lang={cfg.lang} density={density}/>
-        <ContentPins theme={T} S={S} lang={cfg.lang} density={density}/>
-        <ChallengesCard theme={T} S={S} lang={cfg.lang} density={density}/>
+        <PeopleYouManage theme={T} S={S} lang={cfg.lang} density={density} people={roster}/>
+        <ContentPins theme={T} S={S} lang={cfg.lang} density={density} items={contentItems}/>
+        <ChallengesCard theme={T} S={S} lang={cfg.lang} density={density} items={challengeItems} onNew={() => setNav && setNav('challenges')}/>
       </div>
     </>
   );
@@ -114,6 +124,13 @@ function AppInner() {
   const [range, setRange] = React.useState('30d');
   const [nav, setNav] = React.useState('dashboard');
   const [drawerTeam, setDrawerTeam] = React.useState(null);
+  // Single source of truth for team aggregates: feeds the sidebar safety
+  // badge AND the dashboard panels. Avoids the same RPC firing twice.
+  const { teams: teamAggs } = useTeams();
+  const safetyCount = React.useMemo(
+    () => teamAggs.filter(t => t.has_signal && t.avg_stress != null && t.avg_stress >= 6).length,
+    [teamAggs],
+  );
 
   const tweaksAvailable = import.meta.env.DEV ||
     new URLSearchParams(window.location.search).get('tweaks') === '1';
@@ -154,14 +171,14 @@ function AppInner() {
       minHeight: '100vh', background: T.bg, color: T.text, display: 'flex',
       direction: dir, animation: 'dashIn .3s ease both',
     }}>
-      <Sidebar theme={T} S={S} active={nav} onNav={setNav}/>
+      <Sidebar theme={T} S={S} active={nav} onNav={setNav} safetyCount={safetyCount}/>
 
       <div style={{ flex: 1, minWidth: 0, background: T.page }}>
         <TopBar theme={T} S={S} dir={dir} range={range} onRange={setRange} onExport={() => {}} onTweaks={tweaksAvailable ? () => setTweaksOpen(!tweaksOpen) : undefined} userName={userName} userEmail={userEmail} userRoleLabel={roleLabel} companyName={companyName}/>
 
         <div style={{ padding: `24px ${gap + 10}px ${gap + 10}px` }}>
           {nav === 'dashboard' ? (
-            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam} companyName={companyName} firstName={firstName}/>
+            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam} companyName={companyName} firstName={firstName} setNav={setNav} teams={teamAggs}/>
           ) : nav === 'teams' ? (
             <HRTeamsPage theme={T} S={S} lang={cfg.lang} density={density} chartStyle={cfg.chartStyle} onOpenTeam={setDrawerTeam}/>
           ) : nav === 'people' ? (
@@ -181,7 +198,7 @@ function AppInner() {
           ) : nav === 'settings' ? (
             <HRSettingsPage theme={T} S={S} lang={cfg.lang} density={density}/>
           ) : (
-            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam} companyName={companyName} firstName={firstName}/>
+            <Dashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} layout={layout} range={range} setDrawerTeam={setDrawerTeam} companyName={companyName} firstName={firstName} setNav={setNav} teams={teamAggs}/>
           )}
 
           <div style={{ textAlign: 'center', padding: '24px 0 10px', fontSize: 11, color: T.textFaint }}>

@@ -5,98 +5,41 @@ import { HRIcon, HRButton, Panel, PanelHeader, Badge, Delta, Spark, TrendChart, 
 // HR Portal sections: KPI strip, trends chart, at-risk teams, team breakdown, safety queue,
 // broadcasts, content pins, active challenges, sidebar, topbar, people drawer.
 
-// ── DATA ─────────────────────────────────────────────────────────
-const HR_DATA = {
-  kpis: [
-    { key: 'index',  label: 'wellbeingIndex', value: 6.8, suffix: '/10', delta: 0.4, invert: false,
-      spark: [6.1, 6.2, 6.0, 6.3, 6.5, 6.6, 6.8] },
-    { key: 'active', label: 'weeklyActive',   value: 1284, suffix: '',  delta: 2.3, invert: false, fmt: (v) => v.toLocaleString(),
-      spark: [1180, 1210, 1165, 1220, 1245, 1260, 1284] },
-    { key: 'risk',   label: 'atRiskTeams',    value: 4, suffix: '',  delta: -1, invert: true,
-      spark: [6, 5, 6, 5, 5, 5, 4] },
-    { key: 'safety', label: 'safetyFlags',    value: 7, suffix: ' open', delta: 2, invert: true,
-      spark: [3, 4, 4, 5, 6, 6, 7] },
-  ],
-  trends: {
-    labels: ['Apr 1','Apr 4','Apr 7','Apr 10','Apr 13','Apr 16','Apr 19','Apr 22'],
-    labelsAr: ['١ إبريل','٤','٧','١٠','١٣','١٦','١٩','٢٢ إبريل'],
-    series: [
-      { key: 'sleep',  name: 'Sleep',  values: [6.3, 6.5, 6.2, 6.6, 6.8, 6.7, 7.0, 7.1] },
-      { key: 'stress', name: 'Stress', values: [6.2, 6.4, 6.5, 6.8, 6.3, 6.0, 5.7, 5.5] },
-      { key: 'energy', name: 'Energy', values: [5.8, 5.9, 6.0, 6.2, 6.3, 6.5, 6.6, 6.7] },
-      { key: 'mood',   name: 'Mood',   values: [6.4, 6.5, 6.6, 6.5, 6.7, 6.8, 6.9, 7.0] },
-    ],
-  },
-  atRisk: [
-    { team: 'Customer Ops — Tier 2', head: 'Marwan El-Sayed', size: 28, index: 4.6, trend: -0.8, risk: 'high',
-      reason: { en: 'Elevated stress × 3 weeks', ar: 'توتر مرتفع لـ 3 أسابيع' } },
-    { team: 'Finance — Accounts Payable', head: 'Farida Hassan', size: 16, index: 5.1, trend: -0.4, risk: 'high',
-      reason: { en: 'Sleep dropped 1.2h', ar: 'انخفاض النوم 1.2س' } },
-    { team: 'Field Sales — Delta', head: 'Khaled Ibrahim', size: 22, index: 5.4, trend: -0.2, risk: 'med',
-      reason: { en: 'Engagement down 18%', ar: 'انخفاض المشاركة 18%' } },
-    { team: 'Logistics — Night shift', head: 'Rania Nour', size: 19, index: 5.5, trend: -0.3, risk: 'med',
-      reason: { en: 'Low recovery score', ar: 'انخفاض التعافي' } },
-  ],
-  teams: [
-    { team: 'Engineering — Platform', dept: 'Tech',       head: 'Yousef Kamal',  size: 42, index: 7.4, trend: 0.3, risk: 'low',
-      sleep: 7.2, stress: 4.9, energy: 6.8, mood: 7.1 },
-    { team: 'Engineering — Mobile',   dept: 'Tech',       head: 'Dina Abbas',    size: 18, index: 6.9, trend: 0.1, risk: 'low',
-      sleep: 6.8, stress: 5.4, energy: 6.6, mood: 7.0 },
-    { team: 'Customer Ops — Tier 1',  dept: 'Support',    head: 'Omar Fathy',    size: 31, index: 6.1, trend: -0.1, risk: 'med',
-      sleep: 6.1, stress: 6.6, energy: 5.8, mood: 6.4 },
-    { team: 'Customer Ops — Tier 2',  dept: 'Support',    head: 'Marwan El-Sayed', size: 28, index: 4.6, trend: -0.8, risk: 'high',
-      sleep: 5.2, stress: 7.8, energy: 4.9, mood: 5.1 },
-    { team: 'Finance — Accounts Payable', dept: 'Finance', head: 'Farida Hassan', size: 16, index: 5.1, trend: -0.4, risk: 'high',
-      sleep: 5.4, stress: 7.2, energy: 5.2, mood: 5.6 },
-    { team: 'Finance — FP&A',          dept: 'Finance',    head: 'Sara Mansour',  size: 12, index: 6.8, trend: 0.2, risk: 'low',
-      sleep: 6.8, stress: 5.6, energy: 6.6, mood: 6.9 },
-    { team: 'Field Sales — Delta',     dept: 'Sales',      head: 'Khaled Ibrahim', size: 22, index: 5.4, trend: -0.2, risk: 'med',
-      sleep: 5.8, stress: 6.8, energy: 5.4, mood: 5.6 },
-    { team: 'Logistics — Day',         dept: 'Ops',        head: 'Hossam El-Din', size: 35, index: 6.4, trend: 0.1, risk: 'low',
-      sleep: 6.4, stress: 6.0, energy: 6.2, mood: 6.5 },
-    { team: 'Logistics — Night shift', dept: 'Ops',        head: 'Rania Nour',    size: 19, index: 5.5, trend: -0.3, risk: 'med',
-      sleep: 5.3, stress: 6.7, energy: 5.4, mood: 5.8 },
-    { team: 'People & Culture',        dept: 'HR',         head: 'Hana El-Masry', size: 9,  index: 7.8, trend: 0.4, risk: 'low',
-      sleep: 7.4, stress: 4.6, energy: 7.2, mood: 7.6 },
-  ],
-  people: [
-    { name: 'Amira Mostafa', role: 'Senior Analyst', team: 'Finance — Accounts Payable', index: 4.8, trend: -0.6, last: '2d ago', flag: false },
-    { name: 'Mahmoud Fayed', role: 'Support Lead',   team: 'Customer Ops — Tier 2',       index: 5.2, trend: -0.4, last: '1d ago', flag: true  },
-    { name: 'Nour Saeed',    role: 'Account Mgr',    team: 'Field Sales — Delta',         index: 5.6, trend: -0.2, last: 'Today',  flag: false },
-    { name: 'Tariq Helmy',   role: 'Engineer II',    team: 'Engineering — Platform',      index: 7.1, trend: 0.2,  last: 'Today',  flag: false },
-    { name: 'Laila Adib',    role: 'FP&A Analyst',   team: 'Finance — FP&A',              index: 6.9, trend: 0.1,  last: 'Today',  flag: false },
-  ],
-  safety: [
-    { id: 'SF-204', who: 'Anonymous · Tier 2', severity: 'high',   opened: '2h ago', note: { en: 'Self-reported burnout — asked to speak to someone', ar: 'إرهاق مُبلَّغ ذاتياً — طلب التحدث مع شخص ما' }, status: 'open' },
-    { id: 'SF-203', who: 'Anonymous · Logistics Night', severity: 'high', opened: '5h ago', note: { en: 'Three consecutive nights < 4h sleep', ar: 'ثلاث ليالٍ متتالية < 4س نوم' }, status: 'open' },
-    { id: 'SF-201', who: 'Anonymous · Support',    severity: 'med', opened: 'Yesterday', note: { en: 'Stress spike after schedule change', ar: 'ارتفاع التوتر بعد تغيير الجدول' }, status: 'review' },
-    { id: 'SF-199', who: 'Anonymous · Sales Delta', severity: 'med', opened: '2d ago',   note: { en: 'Low mood pattern × 2 weeks', ar: 'نمط مزاج منخفض لـ أسبوعين' }, status: 'review' },
-  ],
-  broadcasts: [
-    { id: 1, title: { en: 'Ramadan wind-down tips', ar: 'نصائح الاسترخاء الرمضانية' }, segment: { en: 'All staff', ar: 'كل الموظفين' }, opens: '78%', sent: 'Mon · 09:00' },
-    { id: 2, title: { en: 'Mindfulness week starts Monday', ar: 'أسبوع اليقظة يبدأ الإثنين' }, segment: { en: 'Egypt · all depts', ar: 'مصر · كل الأقسام' }, opens: '64%', sent: 'Apr 15' },
-    { id: 3, title: { en: 'Reach out — Support Tier 2', ar: 'تواصل — دعم المستوى 2' }, segment: { en: 'Team · 28 people', ar: 'الفريق · 28 شخصاً' }, opens: '—', sent: 'Draft' },
-  ],
-  content: [
-    { kind: 'audio',   title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' }, mins: 6, pinned: true },
-    { kind: 'video',   title: { en: 'Desk mobility flow',               ar: 'حركات مكتبية' }, mins: 4, pinned: true },
-    { kind: 'article', title: { en: 'Build an evening wind-down',      ar: 'بناء روتين استرخاء مسائي' }, mins: 5, pinned: false },
-  ],
-  challenges: [
-    { title: { en: 'Move April',         ar: 'تحرَّك أبريل' },       joined: 412, target: '150k steps · team',  end: '8 days left' },
-    { title: { en: 'Lights out by 11',   ar: 'النوم قبل الـ11' },     joined: 287, target: '21 days · individual', end: '14 days left' },
-    { title: { en: '3-min reset daily',   ar: 'استراحة 3 دقائق يوميًا' }, joined: 198, target: '30 days · team',    end: '20 days left' },
-  ],
-};
+// ── EMPTY-STATE HELPER ───────────────────────────────────────────
+function EmptyRow({ theme, density, text }) {
+  return (
+    <div style={{
+      padding: `${DENSITY[density].cardPad}px`,
+      fontSize: 12, color: theme.textMuted, textAlign: 'center',
+    }}>{text}</div>
+  );
+}
+
+// Derive a wellbeing index from per-metric averages (0–10 each, stress inverted).
+function deriveIndex(row) {
+  if (!row || !row.has_signal) return null;
+  const { avg_mood: m, avg_stress: s, avg_sleep: sl, avg_energy: e } = row;
+  if (m == null || s == null || sl == null || e == null) return null;
+  return Math.round(((m + (10 - s) + sl + e) / 4) * 10) / 10;
+}
+
+function deriveRisk(row) {
+  if (!row || !row.has_signal) return 'low';
+  const s = row.avg_stress;
+  if (s == null) return 'low';
+  if (s >= 7) return 'high';
+  if (s >= 6) return 'med';
+  return 'low';
+}
 
 // ── SIDEBAR ──────────────────────────────────────────────────────
-function Sidebar({ theme, S, active, onNav, collapsed }) {
+function Sidebar({ theme, S, active, onNav, collapsed, safetyCount = 0 }) {
   const T = theme;
   const items = [
     { id: 'dashboard', key: 'dashboard' },
     { id: 'teams', key: 'teams' },
     { id: 'people', key: 'people' },
-    { id: 'safety', key: 'safety', badge: 7 },
+    { id: 'safety', key: 'safety', badge: safetyCount > 0 ? safetyCount : undefined },
     { id: 'content', key: 'content' },
     { id: 'challenges', key: 'challenges' },
     { id: 'gifts', key: 'gifts' },
@@ -302,7 +245,7 @@ function buildTrendFromOverview(trend) {
   return { labels, labelsAr, series };
 }
 
-function TrendsCard({ theme, S, lang, chartStyle, density, trend }) {
+function TrendsCard({ theme, S, lang, chartStyle, density, trend, range = '30d' }) {
   const T = theme;
   const overviewTrend = buildTrendFromOverview(trend);
   // Empty-state placeholder when no real data — no mock fallback.
@@ -319,7 +262,7 @@ function TrendsCard({ theme, S, lang, chartStyle, density, trend }) {
   };
   return (
     <Panel theme={T} density={density} pad={false}>
-      <PanelHeader theme={T} density={density} title={S.wellbeingTrends} subtitle={`${S.vsPrior} · ${lang==='ar'?'الفترة السابقة':'prior 30d'}`}
+      <PanelHeader theme={T} density={density} title={S.wellbeingTrends} subtitle={`${S.vsPrior} · ${lang==='ar'?`الفترة السابقة ${range}`:`prior ${range}`}`}
         right={
           <div style={{ display: 'flex', gap: 8 }}>
             {series.map(s => (
@@ -346,27 +289,35 @@ function TrendsCard({ theme, S, lang, chartStyle, density, trend }) {
 }
 
 // ── AT-RISK TEAMS (right rail) ──────────────────────────────────
-function AtRisk({ theme, S, lang, density, onOpenTeam }) {
+function AtRisk({ theme, S, lang, density, onOpenTeam, teams = [] }) {
   const T = theme;
+  const rows = teams
+    .filter(t => t.has_signal)
+    .map(t => ({ ...t, _idx: deriveIndex(t), _risk: deriveRisk(t) }))
+    .filter(t => t._risk === 'high' || t._risk === 'med')
+    .sort((a, b) => (a._idx ?? 99) - (b._idx ?? 99))
+    .slice(0, 4);
   return (
     <Panel theme={T} density={density} pad={false}>
       <PanelHeader theme={T} density={density} title={S.atRiskTeams} subtitle={lang==='ar'?'بحاجة لاهتمام':'Needs attention'}
         right={<HRButton theme={T} variant="ghost" size="sm" iconR="chev">{S.viewAll}</HRButton>}/>
       <div>
-        {HR_DATA.atRisk.map((t, i) => (
-          <div key={i} onClick={() => onOpenTeam(t)} style={{
+        {rows.length === 0 ? (
+          <EmptyRow theme={T} density={density} text={lang==='ar'?'لا توجد فرق بحاجة لاهتمام':'No teams need attention'}/>
+        ) : rows.map((t, i) => (
+          <div key={t.team_id || i} onClick={() => onOpenTeam && onOpenTeam(t)} style={{
             padding: `${DENSITY[density].cellPadY + 4}px ${DENSITY[density].cardPad}px`,
             display: 'flex', alignItems: 'center', gap: 12,
-            borderBottom: i < HR_DATA.atRisk.length - 1 ? `1px solid ${T.divider}` : 'none',
+            borderBottom: i < rows.length - 1 ? `1px solid ${T.divider}` : 'none',
             cursor: 'pointer',
           }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{t.team}</div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t.reason[lang]} · {t.size} {lang==='ar'?'أعضاء':'members'}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{t.team_name}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t.department || ''} · {t.member_count} {lang==='ar'?'أعضاء':'members'}</div>
             </div>
-            <div className="mono" style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{t.index}</div>
-            <Badge theme={T} tone={t.risk === 'high' ? 'danger' : 'caution'} dot>
-              {t.risk === 'high' ? S.high : S.med}
+            <div className="mono" style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{t._idx ?? '—'}</div>
+            <Badge theme={T} tone={t._risk === 'high' ? 'danger' : 'caution'} dot>
+              {t._risk === 'high' ? S.high : S.med}
             </Badge>
           </div>
         ))}
@@ -376,15 +327,30 @@ function AtRisk({ theme, S, lang, density, onOpenTeam }) {
 }
 
 // ── TEAM BREAKDOWN TABLE ────────────────────────────────────────
-function TeamTable({ theme, S, lang, density, chartStyle, onOpenTeam }) {
+function TeamTable({ theme, S, lang, density, chartStyle, onOpenTeam, teams: rawTeams = [] }) {
   const T = theme;
   const d = DENSITY[density];
   const [filter, setFilter] = React.useState('all');
   const [sort, setSort] = React.useState('index');
-  const depts = ['all', ...Array.from(new Set(HR_DATA.teams.map(t => t.dept)))];
-  const filtered = HR_DATA.teams.filter(t => filter === 'all' || t.dept === filter);
+  const teams = React.useMemo(() => rawTeams.map(t => ({
+    team_id: t.team_id,
+    team: t.team_name,
+    dept: t.department || '—',
+    head: t.head_display_name || '—',
+    size: t.member_count ?? 0,
+    sleep:  t.has_signal ? t.avg_sleep  : null,
+    stress: t.has_signal ? t.avg_stress : null,
+    energy: t.has_signal ? t.avg_energy : null,
+    mood:   t.has_signal ? t.avg_mood   : null,
+    index:  deriveIndex(t),
+    trend:  0,
+    risk:   deriveRisk(t),
+    suppressed: !t.has_signal,
+  })), [rawTeams]);
+  const depts = ['all', ...Array.from(new Set(teams.map(t => t.dept).filter(d => d && d !== '—')))];
+  const filtered = teams.filter(t => filter === 'all' || t.dept === filter);
   const sorted = [...filtered].sort((a, b) => {
-    if (sort === 'index') return a.index - b.index;
+    if (sort === 'index') return (a.index ?? 99) - (b.index ?? 99);
     if (sort === 'size')  return b.size - a.size;
     if (sort === 'trend') return a.trend - b.trend;
     return 0;
@@ -433,8 +399,15 @@ function TeamTable({ theme, S, lang, density, chartStyle, onOpenTeam }) {
             </tr>
           </thead>
           <tbody>
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={10} style={{ padding: `${d.cardPad}px`, textAlign: 'center', color: T.textMuted, fontSize: 12 }}>
+                  {lang==='ar'?'لا توجد فرق':'No teams yet'}
+                </td>
+              </tr>
+            )}
             {sorted.map((t, i) => (
-              <tr key={i} onClick={() => onOpenTeam(t)} style={{
+              <tr key={t.team_id || i} onClick={() => onOpenTeam && onOpenTeam(t)} style={{
                 borderBottom: `1px solid ${T.divider}`, cursor: 'pointer',
               }}
                   onMouseEnter={e => e.currentTarget.style.background = T.panelAlt}
@@ -452,14 +425,18 @@ function TeamTable({ theme, S, lang, density, chartStyle, onOpenTeam }) {
                 <td className="mono" style={{ padding: `${d.cellPadY}px ${d.cardPad}px`, textAlign: 'end', color: T.textMid, fontSize: 12 }}>{t.size}</td>
                 {['sleep','stress','energy','mood'].map(m => (
                   <td key={m} style={{ padding: `${d.cellPadY}px ${d.cardPad}px`, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                      <span className="mono" style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{t[m].toFixed(1)}</span>
-                      <div style={{ width: 58 }}><Bullet theme={T} value={t[m]} max={10}
-                        color={t[m] >= 6.5 ? T.positive : t[m] >= 5 ? T.caution : T.danger}/></div>
-                    </div>
+                    {t[m] == null ? (
+                      <span className="mono" style={{ fontSize: 11, color: T.textFaint }}>—</span>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                        <span className="mono" style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{t[m].toFixed(1)}</span>
+                        <div style={{ width: 58 }}><Bullet theme={T} value={t[m]} max={10}
+                          color={t[m] >= 6.5 ? T.positive : t[m] >= 5 ? T.caution : T.danger}/></div>
+                      </div>
+                    )}
                   </td>
                 ))}
-                <td className="mono" style={{ padding: `${d.cellPadY}px ${d.cardPad}px`, textAlign: 'end', fontSize: 14, color: T.text, fontWeight: 700 }}>{t.index}</td>
+                <td className="mono" style={{ padding: `${d.cellPadY}px ${d.cardPad}px`, textAlign: 'end', fontSize: 14, color: T.text, fontWeight: 700 }}>{t.index ?? '—'}</td>
                 <td style={{ padding: `${d.cellPadY}px ${d.cardPad}px`, textAlign: 'end' }}>
                   <Delta theme={T} value={t.trend}/>
                 </td>
@@ -476,20 +453,36 @@ function TeamTable({ theme, S, lang, density, chartStyle, onOpenTeam }) {
 }
 
 // ── SAFETY QUEUE ────────────────────────────────────────────────
-function SafetyQueue({ theme, S, lang, density }) {
+// Displays high-stress teams as a proxy for escalation queue while the
+// safety_flags table is still on the v2 roadmap. Each "item" is one team
+// over the privacy floor with elevated stress.
+function SafetyQueue({ theme, S, lang, density, teams = [] }) {
   const T = theme;
-  const sevTone = { high: 'danger', med: 'caution', low: 'info' };
-  const sevLabel = { high: S.high, med: S.med, low: S.low };
-  const statusLabel = { open: S.open, review: S.review, resolved: S.resolved };
+  const sevTone = { high: 'danger', med: 'caution' };
+  const sevLabel = { high: S.high, med: S.med };
+  const rows = teams
+    .filter(t => t.has_signal && t.avg_stress != null && t.avg_stress >= 6)
+    .map(t => ({
+      id: t.team_id,
+      severity: t.avg_stress >= 7 ? 'high' : 'med',
+      team_name: t.team_name,
+      department: t.department,
+      avg_stress: t.avg_stress,
+      group_size: t.group_size,
+    }))
+    .sort((a, b) => b.avg_stress - a.avg_stress)
+    .slice(0, 6);
   return (
     <Panel theme={T} density={density} pad={false}>
-      <PanelHeader theme={T} density={density} title={S.safetyQueue} subtitle={`${HR_DATA.safety.filter(s=>s.status!=='resolved').length} ${lang==='ar'?'مفتوحة':'open'}`}
+      <PanelHeader theme={T} density={density} title={S.safetyQueue} subtitle={`${rows.length} ${lang==='ar'?'مفتوحة':'open'}`}
         right={<HRButton theme={T} variant="ghost" size="sm" iconR="chev">{S.viewAll}</HRButton>}/>
       <div>
-        {HR_DATA.safety.map((s, i) => (
+        {rows.length === 0 ? (
+          <EmptyRow theme={T} density={density} text={lang==='ar'?'لا توجد تنبيهات':'No open escalations'}/>
+        ) : rows.map((s, i) => (
           <div key={s.id} style={{
             padding: `${DENSITY[density].cellPadY + 4}px ${DENSITY[density].cardPad}px`,
-            borderBottom: i < HR_DATA.safety.length - 1 ? `1px solid ${T.divider}` : 'none',
+            borderBottom: i < rows.length - 1 ? `1px solid ${T.divider}` : 'none',
             display: 'flex', gap: 12, alignItems: 'flex-start',
           }}>
             <div style={{
@@ -500,13 +493,13 @@ function SafetyQueue({ theme, S, lang, density }) {
             }}><HRIcon name="flag" size={16}/></div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <span className="mono" style={{ fontSize: 11, color: T.textMuted, fontWeight: 600 }}>{s.id}</span>
                 <Badge theme={T} tone={sevTone[s.severity]} dot>{sevLabel[s.severity]}</Badge>
-                <Badge theme={T} tone="neutral">{statusLabel[s.status]}</Badge>
-                <span style={{ fontSize: 11, color: T.textFaint, marginInlineStart: 'auto' }}>{s.opened}</span>
+                <span style={{ fontSize: 11, color: T.textFaint, marginInlineStart: 'auto' }}>{lang==='ar'?'الآن':'now'}</span>
               </div>
-              <div style={{ fontSize: 13, color: T.text, lineHeight: 1.4 }}>{s.note[lang]}</div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>{s.who}</div>
+              <div style={{ fontSize: 13, color: T.text, lineHeight: 1.4 }}>
+                {s.team_name} — {lang==='ar'?'متوسط توتر':'avg stress'} {s.avg_stress.toFixed(1)}
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>{s.department || ''} · {s.group_size} {lang==='ar'?'مشاركين':'reporting'}</div>
             </div>
           </div>
         ))}
@@ -516,127 +509,36 @@ function SafetyQueue({ theme, S, lang, density }) {
 }
 
 // ── BROADCASTS ──────────────────────────────────────────────────
-function Broadcasts({ theme, S, lang, density }) {
+function Broadcasts({ theme, S, lang, density, onNew, list = [] }) {
   const T = theme;
+  const rows = list.slice(0, 4);
+  const statusLabel = (st) => st === 'sent' ? (lang==='ar'?'مُرسل':'Sent')
+                       : st === 'scheduled' ? (lang==='ar'?'مجدول':'Scheduled')
+                       : st === 'cancelled' ? (lang==='ar'?'ملغي':'Cancelled')
+                       : st;
   return (
     <Panel theme={T} density={density} pad={false}>
       <PanelHeader theme={T} density={density} title={S.activeBroadcasts} subtitle={lang==='ar'?'حملات نشطة':'Last 30 days'}
-        right={<HRButton theme={T} size="sm" icon="plus">{S.draftPost}</HRButton>}/>
+        right={<HRButton theme={T} size="sm" icon="plus" onClick={onNew}>{S.draftPost}</HRButton>}/>
       <div>
-        {HR_DATA.broadcasts.map((b, i) => (
-          <div key={b.id} style={{
-            padding: `${DENSITY[density].cellPadY + 4}px ${DENSITY[density].cardPad}px`,
-            borderBottom: i < HR_DATA.broadcasts.length - 1 ? `1px solid ${T.divider}` : 'none',
-            display: 'flex', alignItems: 'center', gap: 12,
-          }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{b.title[lang]}</div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{b.segment[lang]} · {b.sent}</div>
-            </div>
-            <div style={{ textAlign: 'end' }}>
-              <div className="mono" style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>{b.opens}</div>
-              <div style={{ fontSize: 10, color: T.textFaint, marginTop: 2 }}>{lang==='ar'?'معدل الفتح':'open rate'}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-// ── CONTENT + CHALLENGES ────────────────────────────────────────
-function ContentPins({ theme, S, lang, density }) {
-  const T = theme;
-  const iconFor = { audio: 'headphones', video: 'play', article: 'book' };
-  return (
-    <Panel theme={T} density={density} pad={false}>
-      <PanelHeader theme={T} density={density} title={S.contentPins} subtitle={lang==='ar'?'محتوى مختار':'Curated for all staff'}
-        right={<HRButton theme={T} variant="ghost" size="sm" iconR="chev">{S.viewAll}</HRButton>}/>
-      <div style={{ padding: `${DENSITY[density].cardPad - 4}px ${DENSITY[density].cardPad}px`, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-        {HR_DATA.content.map((c, i) => (
-          <div key={i} style={{
-            background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 12,
-            padding: 14, position: 'relative', overflow: 'hidden',
-          }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8, marginBottom: 10,
-              background: T.accentSoft, color: T.accent,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}><HRIcon name={iconFor[c.kind]} size={16}/></div>
-            <div style={{ fontSize: 12, color: T.text, fontWeight: 600, lineHeight: 1.35, marginBottom: 6 }}>{c.title[lang]}</div>
-            <div style={{ fontSize: 11, color: T.textMuted, display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{c.kind}</span>
-              · {c.mins} {lang==='ar'?'د':'min'}
-              {c.pinned && <Badge theme={T} tone="caution" style={{ marginInlineStart: 'auto' }}>{lang==='ar'?'مثبَّت':'Pinned'}</Badge>}
-            </div>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-function ChallengesCard({ theme, S, lang, density }) {
-  const T = theme;
-  return (
-    <Panel theme={T} density={density} pad={false}>
-      <PanelHeader theme={T} density={density} title={S.activeChallenges} subtitle={`${HR_DATA.challenges.length} ${lang==='ar'?'نشطة':'running'}`}
-        right={<HRButton theme={T} size="sm" icon="plus">{S.newChallenge}</HRButton>}/>
-      <div>
-        {HR_DATA.challenges.map((c, i) => (
-          <div key={i} style={{
-            padding: `${DENSITY[density].cellPadY + 4}px ${DENSITY[density].cardPad}px`,
-            borderBottom: i < HR_DATA.challenges.length - 1 ? `1px solid ${T.divider}` : 'none',
-            display: 'flex', alignItems: 'center', gap: 12,
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: T.warmSoft, color: T.warm, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}><HRIcon name="challenges" size={18}/></div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{c.title[lang]}</div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{c.target} · {c.end}</div>
-            </div>
-            <div className="mono" style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>{c.joined}</div>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-// ── PEOPLE YOU MANAGE ───────────────────────────────────────────
-function PeopleYouManage({ theme, S, lang, density }) {
-  const T = theme;
-  return (
-    <Panel theme={T} density={density} pad={false}>
-      <PanelHeader theme={T} density={density} title={S.peopleYouManage}
-        subtitle={lang==='ar'?'أشخاص مسؤول عنهم مباشرةً':'Direct reports (permission scope)'}
-        right={<HRButton theme={T} variant="ghost" size="sm" iconR="chev">{S.viewAll}</HRButton>}/>
-      <div>
-        {HR_DATA.people.map((p, i) => {
-          const tone = p.index >= 6.5 ? 'positive' : p.index >= 5 ? 'caution' : 'danger';
+        {rows.length === 0 ? (
+          <EmptyRow theme={T} density={density} text={lang==='ar'?'لا توجد إعلانات':'No broadcasts yet'}/>
+        ) : rows.map((b, i) => {
+          const when = b.scheduled_at ? new Date(b.scheduled_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB', { month: 'short', day: 'numeric' }) : '';
+          const title = (lang==='ar' && b.title_ar) ? b.title_ar : b.title_en;
           return (
-            <div key={i} style={{
+            <div key={b.id || i} style={{
               padding: `${DENSITY[density].cellPadY + 4}px ${DENSITY[density].cardPad}px`,
-              borderBottom: i < HR_DATA.people.length - 1 ? `1px solid ${T.divider}` : 'none',
+              borderBottom: i < rows.length - 1 ? `1px solid ${T.divider}` : 'none',
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
-              <AvatarMark theme={T} name={p.name} size={36}/>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{p.name}</span>
-                  {p.flag && <Badge theme={T} tone="danger" dot>{lang==='ar'?'تنبيه':'Flagged'}</Badge>}
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
+                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
+                  {b.scope === 'team' ? (lang==='ar'?'فريق':'Team') : (lang==='ar'?'كل الموظفين':'All staff')} · {when}
                 </div>
-                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{p.role} · {p.team}</div>
               </div>
-              <div style={{ textAlign: 'end', minWidth: 60 }}>
-                <div className="mono" style={{ fontSize: 14, color: T.text, fontWeight: 700 }}>{p.index}</div>
-                <Delta theme={T} value={p.trend}/>
-              </div>
-              <Badge theme={T} tone={tone} dot>{lang==='ar' ? (p.index>=6.5?S.low:p.index>=5?S.med:S.high) : (p.index>=6.5?'Stable':p.index>=5?'Watch':'At risk')}</Badge>
-              <HRButton theme={T} variant="ghost" size="sm" icon="more"/>
+              <Badge theme={T} tone={b.status === 'sent' ? 'positive' : b.status === 'cancelled' ? 'neutral' : 'info'}>{statusLabel(b.status)}</Badge>
             </div>
           );
         })}
@@ -645,4 +547,130 @@ function PeopleYouManage({ theme, S, lang, density }) {
   );
 }
 
-export { HR_DATA, Sidebar, TopBar, KpiStrip, TrendsCard, AtRisk, TeamTable, SafetyQueue, Broadcasts, ContentPins, ChallengesCard, PeopleYouManage };
+// ── CONTENT + CHALLENGES ────────────────────────────────────────
+function ContentPins({ theme, S, lang, density, items = [] }) {
+  const T = theme;
+  const iconFor = { audio: 'headphones', video: 'play', article: 'book' };
+  // Prefer pinned items first, fall back to published library when nothing
+  // is pinned, then take up to 3.
+  const pinned = items.filter(i => i.pinned);
+  const rows = (pinned.length > 0 ? pinned : items.filter(i => i.status === 'published')).slice(0, 3);
+  return (
+    <Panel theme={T} density={density} pad={false}>
+      <PanelHeader theme={T} density={density} title={S.contentPins} subtitle={lang==='ar'?'محتوى مختار':'Curated for all staff'}
+        right={<HRButton theme={T} variant="ghost" size="sm" iconR="chev">{S.viewAll}</HRButton>}/>
+      <div style={{ padding: `${DENSITY[density].cardPad - 4}px ${DENSITY[density].cardPad}px`, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        {rows.length === 0 ? (
+          <div style={{ gridColumn: '1 / -1' }}>
+            <EmptyRow theme={T} density={density} text={lang==='ar'?'لا يوجد محتوى':'Library is empty'}/>
+          </div>
+        ) : rows.map((c, i) => {
+          const title = (lang==='ar' && c.title_ar) ? c.title_ar : c.title_en;
+          const kind = c.kind || 'article';
+          const isPinned = !!c.pinned;
+          return (
+            <div key={c.id || i} style={{
+              background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 12,
+              padding: 14, position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8, marginBottom: 10,
+                background: T.accentSoft, color: T.accent,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><HRIcon name={iconFor[kind] || 'book'} size={16}/></div>
+              <div style={{ fontSize: 12, color: T.text, fontWeight: 600, lineHeight: 1.35, marginBottom: 6 }}>{title}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{kind}</span>
+                {c.duration_mins != null && <>· {c.duration_mins} {lang==='ar'?'د':'min'}</>}
+                {isPinned && <Badge theme={T} tone="caution" style={{ marginInlineStart: 'auto' }}>{lang==='ar'?'مثبَّت':'Pinned'}</Badge>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+function ChallengesCard({ theme, S, lang, density, onNew, items = [] }) {
+  const T = theme;
+  // Filter to ones that look active: start_date <= today <= end_date.
+  const today = new Date().toISOString().slice(0, 10);
+  const active = items.filter(c => {
+    if (!c.start_date || !c.end_date) return false;
+    return c.start_date <= today && c.end_date >= today;
+  }).slice(0, 4);
+  return (
+    <Panel theme={T} density={density} pad={false}>
+      <PanelHeader theme={T} density={density} title={S.activeChallenges} subtitle={`${active.length} ${lang==='ar'?'نشطة':'running'}`}
+        right={<HRButton theme={T} size="sm" icon="plus" onClick={onNew}>{S.newChallenge}</HRButton>}/>
+      <div>
+        {active.length === 0 ? (
+          <EmptyRow theme={T} density={density} text={lang==='ar'?'لا توجد تحديات نشطة':'No active challenges'}/>
+        ) : active.map((c, i) => {
+          const title = (lang==='ar' && c.title_ar) ? c.title_ar : c.title_en;
+          const end = new Date(c.end_date);
+          const daysLeft = Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
+          return (
+            <div key={c.id || i} style={{
+              padding: `${DENSITY[density].cellPadY + 4}px ${DENSITY[density].cardPad}px`,
+              borderBottom: i < active.length - 1 ? `1px solid ${T.divider}` : 'none',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: T.warmSoft, color: T.warm, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><HRIcon name="challenges" size={18}/></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
+                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
+                  {c.metric || ''} · {daysLeft} {lang==='ar'?'يوم متبقي':'days left'}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+// ── PEOPLE YOU MANAGE ───────────────────────────────────────────
+function PeopleYouManage({ theme, S, lang, density, people = [] }) {
+  const T = theme;
+  const rows = people.slice(0, 5);
+  return (
+    <Panel theme={T} density={density} pad={false}>
+      <PanelHeader theme={T} density={density} title={S.peopleYouManage}
+        subtitle={lang==='ar'?'أشخاص مسؤول عنهم مباشرةً':'Direct reports (permission scope)'}
+        right={<HRButton theme={T} variant="ghost" size="sm" iconR="chev">{S.viewAll}</HRButton>}/>
+      <div>
+        {rows.length === 0 ? (
+          <EmptyRow theme={T} density={density} text={lang==='ar'?'لا يوجد موظفون':'No employees yet'}/>
+        ) : rows.map((p, i) => {
+          const teamLabel = p.teams?.name || (lang==='ar'?'بدون فريق':'No team');
+          const roleLabel = (p.role || 'employee').replace(/_/g, ' ');
+          return (
+            <div key={p.id || i} style={{
+              padding: `${DENSITY[density].cellPadY + 4}px ${DENSITY[density].cardPad}px`,
+              borderBottom: i < rows.length - 1 ? `1px solid ${T.divider}` : 'none',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <AvatarMark theme={T} name={p.display_name || ''} size={36}/>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{p.display_name || '—'}</span>
+                </div>
+                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, textTransform: 'capitalize' }}>{roleLabel} · {teamLabel}</div>
+              </div>
+              <Badge theme={T} tone="neutral">{roleLabel}</Badge>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+export { Sidebar, TopBar, KpiStrip, TrendsCard, AtRisk, TeamTable, SafetyQueue, Broadcasts, ContentPins, ChallengesCard, PeopleYouManage };
