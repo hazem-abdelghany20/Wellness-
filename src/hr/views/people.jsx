@@ -27,8 +27,15 @@ function HRPeoplePage({ theme, S, lang, density }) {
     team:  p.teams?.name || p.team_name || '',
     dept:  p.teams?.department || '',
   }));
+  const teams = React.useMemo(() => {
+    const set = new Set();
+    for (const p of roster) {
+      if (p.team) set.add(p.team);
+    }
+    return Array.from(set).sort();
+  }, [roster]);
   const filtered = roster.filter(p =>
-    (filter === 'all' /* role-based filters could be added later */) &&
+    (filter === 'all' || p.team === filter) &&
     (search === '' || p.name.toLowerCase().includes(search.toLowerCase()) || (p.team || '').toLowerCase().includes(search.toLowerCase()))
   );
   return (
@@ -46,13 +53,14 @@ function HRPeoplePage({ theme, S, lang, density }) {
             <input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder={s('Search people or teams…','ابحث عن أشخاص أو فرق…')}
               style={{ flex: 1, background: 'transparent', border: 'none', color: T.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}/>
           </div>
-          <div style={{ display: 'flex', gap: 4, background: T.panelSunk, padding: 3, borderRadius: 9, border: `1px solid ${T.border}` }}>
-            {[['all',s('All','الكل')]].map(([k,l])=>(
+          <div style={{ display: 'flex', gap: 4, background: T.panelSunk, padding: 3, borderRadius: 9, border: `1px solid ${T.border}`, flexWrap: 'wrap', maxWidth: '60%' }}>
+            {[['all', s('All','الكل')], ...teams.map(t => [t, t])].map(([k, l]) => (
               <button key={k} onClick={()=>setFilter(k)} style={{
                 padding: '6px 12px', borderRadius: 6, border: 'none',
                 background: filter===k ? T.panel : 'transparent',
                 color: filter===k ? T.text : T.textMuted,
                 fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}>{l}</button>
             ))}
           </div>
