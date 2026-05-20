@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getContentItems, getFeaturedContent, saveContentProgress } from '../../lib/supabase';
+import { getContentItems, getFeaturedContent, saveContentProgress, getContentProgress } from '../../lib/supabase';
 
 export function useContent(category) {
   const [items, setItems] = useState([]);
@@ -24,5 +24,7 @@ export function useContent(category) {
   const saveProgress = useCallback((id, progressS, completed = false) =>
     saveContentProgress(id, progressS, completed), []);
 
-  return { items, featured, loading, error, saveProgress, refetch };
+  const getProgress = useCallback((id) => getContentProgress(id), []);
+
+  return { items, featured, loading, error, saveProgress, getProgress, refetch };
 }

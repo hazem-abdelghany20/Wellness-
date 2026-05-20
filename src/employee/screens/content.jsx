@@ -216,7 +216,7 @@ function ContentLoading({ theme, dir }) {
 function ScreenPlayer({ theme, t, dir, go, state }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
-  const { saveProgress } = useContent();
+  const { saveProgress, getProgress } = useContent();
   const item = state.playerItem || { id: 'sleep-onset', kind: 'audio', mins: 6, title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' } };
   const [playing, setPlaying] = React.useState(true);
   const [pos, setPos] = React.useState(0);
@@ -231,6 +231,21 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
   // Only save progress for real DB-backed items (UUID-shaped ids). Legacy
   // hardcoded slugs like 'sleep-onset' have no row in content_items.
   const isDbItem = typeof item?.id === 'string' && /^[0-9a-f-]{32,}$/i.test(item.id);
+
+  // Resume from saved progress for DB-backed items only. Legacy slug-id
+  // items have no content_progress row and always start at 0.
+  React.useEffect(() => {
+    if (!isDbItem) return;
+    let cancelled = false;
+    getProgress(item.id).then(savedSecs => {
+      if (cancelled) return;
+      if (typeof savedSecs === 'number' && savedSecs > 0 && savedSecs < dur) {
+        setPos(savedSecs);
+        posRef.current = savedSecs;
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [isDbItem, item.id, dur, getProgress]);
 
   const writeProgress = React.useCallback(async (completed = false) => {
     if (!isDbItem) return;

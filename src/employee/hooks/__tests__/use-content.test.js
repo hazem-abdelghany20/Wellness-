@@ -5,6 +5,7 @@ vi.mock('../../../lib/supabase', () => ({
   getContentItems: vi.fn(),
   getFeaturedContent: vi.fn(),
   saveContentProgress: vi.fn(),
+  getContentProgress: vi.fn().mockResolvedValue(0),
 }));
 
 import { getContentItems, getFeaturedContent, saveContentProgress } from '../../../lib/supabase';
