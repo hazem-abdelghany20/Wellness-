@@ -469,6 +469,10 @@ export function subscribeToPlanCompletions(planId: string, cb: (payload: unknown
 /**
  * Realtime subscription on awarded_rewards for the current employee.
  * Caller invokes cb on any change; refetch is the simplest reaction.
+ *
+ * `profileId` is the same UUID as `auth.uid()` — the handle_new_user()
+ * trigger provisions `profiles.id = auth.users.id` (migration
+ * 20240101000002), so callers pass `session.user.id` directly.
  */
 export function subscribeToAwardedRewards(profileId: string, cb: (payload: unknown) => void) {
   return supabase
