@@ -81,8 +81,8 @@ URL: <https://main.d1c79md4n000h6.amplifyapp.com/>
     **See:** Info-only state — does not re-trigger claim.
 15. **Action:** Sign out → sign in as `omar.sami@…` → Mine tab.
     **See:** Empty state ("Nothing here yet — keep showing up"), not blank.
-
-> ⚠️ **Known gap:** new rewards awarded by HR will **not** appear in real time. You need to leave Mine and come back, or refresh the page. (Notifications and challenge leaderboard do update live; the wallet doesn't yet.)
+16. **Action:** With Mine open in one tab, have HR award a new reward to this user in another tab.
+    **See:** The new row appears in Mine **without** a refresh.
 
 ## 5. Signature competitions
 
@@ -98,9 +98,7 @@ URL: <https://main.d1c79md4n000h6.amplifyapp.com/>
 19. **Action:** Tap the **Library** tab.
     **See:** Featured rail at top, categories below (All / Sleep / Stress / Move / Focus).
 20. **Action:** Open "Sleep onset — a cue for tonight" → play for 10s → use the player back button → reopen.
-    **See:** Player opens. Progress is saved to the server every 5 seconds.
-
-> ⚠️ **Known gap:** the reopened player currently restarts at `0:00` rather than resuming from your saved position. The progress is being recorded — the resume read is not wired yet.
+    **See:** Player resumes from your saved position (not back at 0:00). Progress is saved every 5 seconds while playing.
 
 ## 7. Notifications
 
@@ -117,8 +115,8 @@ URL: <https://main.d1c79md4n000h6.amplifyapp.com/>
     **See:** Toggles persist.
 25. **Action:** Flip Language to العربية.
     **See:** UI flips to Arabic, layout mirrors to RTL.
-
-> ⚠️ **Known gap:** there is no "Delete my account" button yet. The backend endpoint exists; the UI is not wired. Account deletion in v1 is handled out-of-band.
+26. **Action:** Below Sign out, tap **Delete my account** → confirm with **Yes, delete everything**.
+    **See:** Two-step confirm card (don't actually delete the demo user — Cancel restores the initial state). On confirm, account is purged and you're signed out.
 
 ## 9. Arabic / RTL pass 🔥
 
@@ -159,8 +157,8 @@ Sign in as `sara.hr@demo.wellhouse.test` with the same password `WellnessDemo!20
    **See:** All 8 profiles in Wellhouse with role + team + department tags. Sara Anwar at the bottom.
 5. **Action:** Use the search box "ابحث / Search people or teams…" → type `lina`.
    **See:** Only Lina Farouk's row.
-
-> ⚠️ **Known gap:** the People page has search and an "All" chip, but **no team-filter dropdown**. To narrow by Engineering / Finance / People & Ops, type the team name into the search box.
+6. **Action:** Clear the search → tap the **Engineering** team chip beside the search box.
+   **See:** Only Engineering team members remain (Amira, Yusuf, Hazem). Click **All** to restore.
 
 ## 3. Gifts → Overview 🔥
 
@@ -203,11 +201,11 @@ Sign in as `sara.hr@demo.wellhouse.test` with the same password `WellnessDemo!20
 ## 6. Challenges
 
 19. **Action:** Click **Challenges** in the left nav.
-    **See:** "Schedule a challenge" form (Template / Start / End / Scope) + a list of 7 past templates (Energy Boost, Stress Less, Sleep Sprint, Check-in Streak, Mood Lift, Niyyah, Sabr).
+    **See:** "Schedule a challenge" form (Template / Start / End / Scope) + a list of 7 past templates (Energy Boost, Stress Less, Sleep Sprint, Check-in Streak, Mood Lift, Niyyah, Sabr). Header CTA reads **"Schedule challenge"**.
 20. **Action:** Pick a template → set dates → Schedule.
     **See:** Saves; appears in the Active list.
 
-> ⚠️ **Known gap:** in this build you schedule **from existing templates only** — there's no free-form challenge editor. New template authoring is done from the Admin console. The "+ New challenge" button just focuses the template dropdown.
+> ℹ️ HR schedules from existing templates only. New template authoring happens in the Admin console (Challenge templates section).
 
 ## 7. Content
 
@@ -238,8 +236,8 @@ Sign in as `sara.hr@demo.wellhouse.test` with the same password `WellnessDemo!20
     **See:** Edits persist after reload.
 29. **Action:** Try Minimum cohort size buttons (3 / 5 / 10 / 20).
     **See:** Selection saves; controls the privacy floor on aggregates.
-
-> ⚠️ **Known gap:** the locale toggle (EN ↔ AR) for HR is not in Settings yet — it lives in the dev-only Tweaks panel (append `?tweaks=1` to the URL). Most localization controls (the Localization sub-tab) are marked `soon`.
+30. **Action:** Scroll to the **Language** panel → tap **العربية**.
+    **See:** Entire HR portal flips to Arabic, layout mirrors to RTL. Tap **English** to flip back.
 
 ---
 
@@ -281,12 +279,11 @@ Sign in as the platform admin (creds provided separately — Sara/Amira do **not
 These prove the three portals actually talk to each other.
 
 1. **Realtime notification.** Send a broadcast from HR. Amira's bell badge increments live, no refresh.
-2. **Catalog → employee picker.** Toggle a WH Services item to *active = false* in HR. As Amira, open the matching gold reward — that option should be gone after refresh.
-3. **Sub-5 floor (privacy).** In HR Team breakdown, any team with <5 active users this week should show suppressed metrics — never raw numbers.
-4. **Cross-tenant isolation.** Sign up a brand-new user with code `NG-9130` (Nile Group). They should land in Nile Group and see **none** of Wellhouse's data.
-5. **HR scope.** Sara (HR, Wellhouse) should see Wellhouse profiles only — never Nile Group.
-
-> ⚠️ **Known gap:** awarded rewards do **not** propagate to the Mine tab in real time. Refresh to see new awards. (Notifications + challenge leaderboard do propagate live.)
+2. **Realtime wallet.** Award a reward to Amira from HR Gifts. With Amira's Mine tab already open, the new row should appear live without refresh.
+3. **Catalog → employee picker.** Toggle a WH Services item to *active = false* in HR. As Amira, open the matching gold reward — that option should be gone after refresh.
+4. **Sub-5 floor (privacy).** In HR Team breakdown, any team with <5 active users this week should show suppressed metrics — never raw numbers.
+5. **Cross-tenant isolation.** Sign up a brand-new user with code `NG-9130` (Nile Group). They should land in Nile Group and see **none** of Wellhouse's data.
+6. **HR scope.** Sara (HR, Wellhouse) should see Wellhouse profiles only — never Nile Group.
 
 ---
 
@@ -309,12 +306,7 @@ These prove the three portals actually talk to each other.
 
 These are intentional or known-incomplete in this build — flag them only if you think they're a release blocker:
 
-- **Employee — Profile** has no "Delete my account" button (backend exists; UI not wired)
-- **Employee — Content player** restarts at 0:00 instead of resuming saved position
-- **Employee — Mine tab** doesn't update in real time when HR awards a reward (refresh required)
-- **HR — People** has no team-filter chips (use search instead)
-- **HR — Challenges** can only schedule existing templates (no free-form editor in HR)
-- **HR — Settings** locale toggle lives in dev-only Tweaks panel, not Settings
+- **HR — Challenges** can only schedule existing templates; new template authoring is in the Admin console
 - **HR — Settings sub-tabs** Notifications, Roles & permissions, Integrations, Localization, Billing, Audit log all marked `soon`
 - **HR — Gifts → Pools** tab labeled `soon`
 - **HR — Gifts → Catalog** Amazon + Custom tabs are stubs (Tremendous integration is post-pilot)
