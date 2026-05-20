@@ -3,11 +3,13 @@ import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, Toggle } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useSettings } from '../hooks/use-settings.js';
+import { useHRAppConfig } from '../state/app-config-context.jsx';
 
 // ── SETTINGS PAGE ────────────────────────────────────────────────
 function HRSettingsPage({ theme, S, lang, density }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
+  const { cfg, patch } = useHRAppConfig();
   const { company, loading, error, update, refetch } = useSettings();
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -133,6 +135,31 @@ function HRSettingsPage({ theme, S, lang, density }) {
               background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 9,
               color: T.text, fontSize: 14, fontFamily: 'inherit', outline: 'none',
             }}/>
+          </Panel>
+
+          <Panel theme={T} density={density}>
+            <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>
+              {s('Language','اللغة')}
+            </div>
+            <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 12 }}>
+              {s('Switch the HR portal interface between English and Arabic. Applies only to your account.',
+                 'بدّل واجهة بوابة الموارد البشرية بين الإنجليزية والعربية. يسري فقط على حسابك.')}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[['en','English'],['ar','العربية']].map(([k, l]) => {
+                const active = cfg.lang === k;
+                return (
+                  <button key={k} onClick={() => patch({ lang: k })} style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 9,
+                    background: active ? T.accent : T.panelSunk,
+                    color: active ? T.accentInk : T.text,
+                    border: `1px solid ${active ? 'transparent' : T.border}`,
+                    fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                    cursor: 'pointer',
+                  }}>{l}</button>
+                );
+              })}
+            </div>
           </Panel>
 
           <Panel theme={T} density={density}>
