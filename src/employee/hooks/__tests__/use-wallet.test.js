@@ -4,6 +4,11 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 vi.mock('../../../lib/supabase', () => ({
   listMyAwardedRewards: vi.fn(),
   claimMyReward: vi.fn(),
+  subscribeToAwardedRewards: vi.fn(() => ({ unsubscribe: vi.fn() })),
+}));
+
+vi.mock('../../state/auth-context.jsx', () => ({
+  useAuth: vi.fn(() => ({ session: { user: { id: 'u1' } } })),
 }));
 
 import { listMyAwardedRewards, claimMyReward } from '../../../lib/supabase';
