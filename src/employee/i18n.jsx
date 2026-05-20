@@ -111,6 +111,12 @@ const STRINGS = {
     notifs: 'Notifications',
     language: 'Language',
     signOut: 'Sign out',
+    deleteAccount:      'Delete my account',
+    deleteConfirmTitle: 'Permanently delete your account?',
+    deleteConfirmBody:  'This removes your check-ins, rewards, and notifications. This cannot be undone.',
+    deleteConfirmYes:   'Yes, delete everything',
+    deleteCancel:       'Cancel',
+    deleteError:        'Could not delete account. Please try again.',
 
     // Misc
     next: 'Next',
@@ -218,6 +224,12 @@ const STRINGS = {
     notifs: 'الإشعارات',
     language: 'اللغة',
     signOut: 'تسجيل الخروج',
+    deleteAccount:      'حذف حسابي',
+    deleteConfirmTitle: 'حذف حسابك نهائيًا؟',
+    deleteConfirmBody:  'سيؤدي ذلك إلى حذف تسجيلاتك ومكافآتك وإشعاراتك. لا يمكن التراجع.',
+    deleteConfirmYes:   'نعم، احذف كل شيء',
+    deleteCancel:       'إلغاء',
+    deleteError:        'تعذّر حذف الحساب. حاول مرة أخرى.',
 
     next: 'التالي',
     skip: 'تخطي',

@@ -3,6 +3,7 @@ import {
   typeStyles, Icon, AvatarDisplay, AVATAR_OPTIONS, Button, Card, SectionLabel,
 } from '../design-system.jsx';
 import { useAuth } from '../state/auth-context.jsx';
+import { deleteMyAccount } from '../../lib/supabase';
 import { useProfile } from '../hooks/use-profile.js';
 
 function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey, state }) {
@@ -14,6 +15,9 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
   const [picker, setPicker] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
+  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteErr, setDeleteErr] = React.useState(null);
 
   // Sync from server. Falls back to optimistic defaults when the column
   // is missing (e.g. before migration 0015 lands on the project).
@@ -48,6 +52,19 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
     setSigningOut(true);
     try { await signOut(); }
     catch (e) { console.warn('[profile] signOut failed', e); setSigningOut(false); }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleting) return;
+    setDeleting(true); setDeleteErr(null);
+    try {
+      await deleteMyAccount();
+      await signOut();
+    } catch (e) {
+      console.warn('[profile] deleteAccount failed', e);
+      setDeleteErr(e?.message || t('deleteError'));
+      setDeleting(false);
+    }
   };
 
   return (
@@ -147,10 +164,62 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
         </Card>
       </div>
 
-      <div style={{ padding: '22px 16px 20px' }}>
+      <div style={{ padding: '22px 16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Button theme={T} variant="secondary" style={{ width: '100%' }} onClick={handleSignOut} disabled={signingOut}>
           {signingOut ? (lang==='ar'?'…':'…') : t('signOut')}
         </Button>
+
+        {!confirmingDelete && (
+          <button
+            onClick={() => { setDeleteErr(null); setConfirmingDelete(true); }}
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 12,
+              background: 'transparent', border: `1px solid ${T.border}`,
+              color: T.textMuted, fontSize: 13, fontWeight: 500,
+              fontFamily: 'inherit', cursor: 'pointer',
+            }}>
+            {t('deleteAccount')}
+          </button>
+        )}
+
+        {confirmingDelete && (
+          <Card theme={T} pad={16} style={{
+            border: '1px solid rgba(220, 80, 80, 0.45)',
+            background: 'rgba(220, 80, 80, 0.06)',
+            display: 'flex', flexDirection: 'column', gap: 10,
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{t('deleteConfirmTitle')}</div>
+            <div style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.4 }}>{t('deleteConfirmBody')}</div>
+            {deleteErr && (
+              <div style={{ fontSize: 12, color: '#E26C6C' }}>{deleteErr}</div>
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button
+                onClick={() => { setConfirmingDelete(false); setDeleteErr(null); }}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 10,
+                  background: 'transparent', border: `1px solid ${T.border}`,
+                  color: T.text, fontSize: 13, fontWeight: 600,
+                  fontFamily: 'inherit', cursor: 'pointer',
+                }}>
+                {t('deleteCancel')}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 10,
+                  background: '#C04848', border: 'none',
+                  color: '#FFFFFF', fontSize: 13, fontWeight: 700,
+                  fontFamily: 'inherit', cursor: deleting ? 'wait' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                }}>
+                {deleting ? '…' : t('deleteConfirmYes')}
+              </button>
+            </div>
+          </Card>
+        )}
       </div>
 
       {editingName && (
