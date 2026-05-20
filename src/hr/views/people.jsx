@@ -11,6 +11,16 @@ function HRPeoplePage({ theme, S, lang, density }) {
   const { people, loading } = usePeople();
   const [search, setSearch] = React.useState('');
   const [filter, setFilter] = React.useState('all');
+  // Memoise team chip list directly from `people` so the hook order is
+  // stable across the loading early-return below.
+  const teams = React.useMemo(() => {
+    const set = new Set();
+    for (const p of (people || [])) {
+      const t = p.teams?.name || p.team_name || '';
+      if (t) set.add(t);
+    }
+    return Array.from(set).sort();
+  }, [people]);
 
   if (loading) {
     return (
@@ -27,13 +37,6 @@ function HRPeoplePage({ theme, S, lang, density }) {
     team:  p.teams?.name || p.team_name || '',
     dept:  p.teams?.department || '',
   }));
-  const teams = React.useMemo(() => {
-    const set = new Set();
-    for (const p of roster) {
-      if (p.team) set.add(p.team);
-    }
-    return Array.from(set).sort();
-  }, [roster]);
   const filtered = roster.filter(p =>
     (filter === 'all' || p.team === filter) &&
     (search === '' || p.name.toLowerCase().includes(search.toLowerCase()) || (p.team || '').toLowerCase().includes(search.toLowerCase()))
