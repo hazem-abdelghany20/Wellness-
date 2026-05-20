@@ -325,6 +325,24 @@ export async function saveContentProgress(itemId: string, progressS: number, com
   if (error) throw error;
 }
 
+/**
+ * Read the saved play position for a content item.
+ * Returns 0 when:
+ *   - no row exists yet,
+ *   - the row is marked completed (re-open replays from start),
+ *   - any error occurs (player falls back to start).
+ */
+export async function getContentProgress(itemId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('content_progress')
+    .select('progress_s, completed')
+    .eq('item_id', itemId)
+    .maybeSingle();
+  if (error || !data) return 0;
+  if (data.completed) return 0;
+  return data.progress_s ?? 0;
+}
+
 // ── Challenges ────────────────────────────────────────────────
 
 export async function getActiveChallenges() {
@@ -441,6 +459,22 @@ export function subscribeToPlanCompletions(planId: string, cb: (payload: unknown
       schema: 'public',
       table: 'daily_plan_completions',
       filter: `plan_id=eq.${planId}`,
+    }, cb)
+    .subscribe();
+}
+
+/**
+ * Realtime subscription on awarded_rewards for the current employee.
+ * Caller invokes cb on any change; refetch is the simplest reaction.
+ */
+export function subscribeToAwardedRewards(profileId: string, cb: (payload: unknown) => void) {
+  return supabase
+    .channel(`awarded_rewards:${profileId}:${channelSuffix()}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'awarded_rewards',
+      filter: `profile_id=eq.${profileId}`,
     }, cb)
     .subscribe();
 }
@@ -669,4 +703,16 @@ export async function completePracticeDay(
     .single();
   if (error) throw error;
   return data as PracticeCompletion;
+}
+
+// ── Account management ────────────────────────────────────────
+
+/**
+ * Invoke the `delete-account` edge function to permanently remove the
+ * current user. Caller is responsible for signing out after success.
+ */
+export async function deleteMyAccount() {
+  const { data, error } = await supabase.functions.invoke('delete-account');
+  if (error) throw error;
+  return data;
 }
