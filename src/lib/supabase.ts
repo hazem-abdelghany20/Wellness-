@@ -333,9 +333,12 @@ export async function saveContentProgress(itemId: string, progressS: number, com
  *   - any error occurs (player falls back to start).
  */
 export async function getContentProgress(itemId: string): Promise<number> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
   const { data, error } = await supabase
     .from('content_progress')
     .select('progress_s, completed')
+    .eq('user_id', user.id)
     .eq('item_id', itemId)
     .maybeSingle();
   if (error || !data) return 0;
