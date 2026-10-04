@@ -1,11 +1,13 @@
 -- Library content: 10 Wellness House articles (EN + AR) from the
--- "Wellness House Articles" Drive folder, text kept verbatim.
+-- "Wellness House Articles" Drive folder. Text is the authors' own, with
+-- spelling/grammar typos corrected (e.g. «تسمسها» → «تلمسها»,
+-- "a intentional" → "an intentional").
 --
--- Audio items are retired from the library: the player has no real audio
--- playback (content.jsx advances a timer) and none of them has an asset_url.
--- They are unpublished, not deleted, so they can come back with real files.
--- seed.sql repeats the audio UPDATE because it inserts those rows after
--- migrations run.
+-- Audio and video items are retired from the library: the player has no
+-- real media playback (content.jsx advances a timer) and none of them has
+-- an asset_url. They are unpublished, not deleted, so they can come back
+-- with real files. seed.sql repeats the UPDATE because it inserts those
+-- rows after migrations run.
 
 INSERT INTO public.content_items (slug, kind, category, status, locale, published, featured, sort_order, duration_mins, title_en, title_ar, description_en, description_ar, body_en, body_ar, tags) VALUES
 ($wh$heavy-day$wh$,'article',$wh$stress$wh$,'published','global',true,true,1,6,$wh$A Heavy Day Is Not a Malfunction: Why You Need the Dips as Much as the Surges$wh$,$wh$اليوم الثقيل ليس عطلاً: لماذا تحتاج إلى الانخفاض بقدر ما تحتاج إلى الاندفاع؟$wh$,$wh$You go through days when you feel at your best, working and thinking and moving with ease, and then one morning you wake to a heaviness with no visible cause, decide something in you has broken, and set off hunting for a quick repair. In this article, we look at why rising and falling are a cycle rather than a verdict, why each does a job the other cannot, and where you should be standing so that you do not become a servant of your own mood.$wh$,$wh$تمر بأيام تشعر فيها بأنك في أفضل حالاتك، تنجز وتفكر وتتحرك بخفة، ثم تستيقظ ذات صباح على ثقل بلا سبب ظاهر، فتظن أن شيئاً فيك تعطل وتبدأ رحلة البحث عن إصلاح سريع. في هذا المقال، نتحدث عن أن الارتفاع والانخفاض دورة لا حكم، وأن لكل منهما وظيفة لا يؤديها الآخر، وعن الموضع الذي ينبغي أن تقف فيه أنت حتى لا تصير تابعاً لمزاجك.$wh$,$wh$In brief: You go through days when you feel at your best, working and thinking and moving with ease, and then one morning you wake to a heaviness with no visible cause, decide something in you has broken, and set off hunting for a quick repair. In this article, we look at why rising and falling are a cycle rather than a verdict, why each does a job the other cannot, and where you should be standing so that you do not become a servant of your own mood.
@@ -420,7 +422,7 @@ True peace of mind does not come from controlling every outcome. It comes from o
 
 **١ · الواقع المشهود: عندما يتحول التخطيط إلى عبء ذهني دائم**
 
-نعيش في بيئة متسارعة تشجعنا باستمرار على استشراف المستقبل، ووضع الاحتمالات البديلة، وحساب كافة الخطوات القادمة في العمل والحياة الشخصية. ومع أن التخطيط المنظم أمر صحي وضروري، إلا أنه يتحول تدريجياً وبشكل خفي إلى عاد ذهن أليمة تُعرف بـ التفكير المفرط (Overthinking).
+نعيش في بيئة متسارعة تشجعنا باستمرار على استشراف المستقبل، ووضع الاحتمالات البديلة، وحساب كافة الخطوات القادمة في العمل والحياة الشخصية. ومع أن التخطيط المنظم أمر صحي وضروري، إلا أنه يتحول تدريجياً وبشكل خفي إلى عادة ذهنية أليمة تُعرف بـ التفكير المفرط (Overthinking).
 
 في هذه الحالة:
 
@@ -462,7 +464,7 @@ True peace of mind does not come from controlling every outcome. It comes from o
 
 **١. رسم دائرة التحكم (Circle of Control)**
 
-عندما يغمرك التفكير المفرط، احضر ورقة وقلم ورسم دائرتين متداخلتين:
+عندما يغمرك التفكير المفرط، احضر ورقة وقلماً وارسم دائرتين متداخلتين:
 
 • الدائرة الداخلية: اكتب فيها الأمور التي تملكها كلياً الآن (قرارك، خطواتك اليومية، طريقة رد فعلك).
 
@@ -476,7 +478,7 @@ True peace of mind does not come from controlling every outcome. It comes from o
 
 • حدد ١٥ دقيقة فقط في اليوم (مثلاً في الخامسة مساءً) لتسجيل كل ما يقلقك والتفكير فيه.
 
-• إذا ظهرت فكرة مقلقة في الصباح، قل لنفسك هدوء: «سأناقش هذه الفكرة في الوقت المخصص لها مساءً»، وعد لتركيزك في عملك الحالي.
+• إذا ظهرت فكرة مقلقة في الصباح، قل لنفسك بهدوء: «سأناقش هذه الفكرة في الوقت المخصص لها مساءً»، وعد لتركيزك في عملك الحالي.
 
 **٣. تمرين التخلي الواعي (Releasing Practice)**
 
@@ -484,7 +486,7 @@ True peace of mind does not come from controlling every outcome. It comes from o
 
 **٤. تهدئة الجسد لتهدئة العقل**
 
-التفكير المفرط يزيد من تشنج الجسم، والعكس صحيح. ممارسة بعض التمددات البسيطة، أو المشي الخفيف بدون هاتف لمدة ٢٠ دقيقة، يبعث بإشارات أمان للجهاز العصبي تخفف حاسبة القلق تلقائياً.
+التفكير المفرط يزيد من تشنج الجسم، والعكس صحيح. ممارسة بعض التمددات البسيطة، أو المشي الخفيف بدون هاتف لمدة ٢٠ دقيقة، يبعث بإشارات أمان للجهاز العصبي تخفف حدة القلق تلقائياً.
 
 **٥ · أسئلة بسيطة للتأمل مع نفسك**
 
@@ -647,10 +649,7 @@ Real peace of mind doesn't come from living an error-free life. It comes from tr
 
 **كلمة أخيرة من Wellness House**
 
-السكينة النفسية الحقيقية لا تأتي من حياة خالية تماماً من الأخطاء، بل تأتي عندما تقبل نفسك وتقف معها وتتعلم من كل تجربة بهدوء ورحمة.$wh$,'{}')
-ON CONFLICT (slug) DO UPDATE SET kind=EXCLUDED.kind, category=EXCLUDED.category, status=EXCLUDED.status, published=EXCLUDED.published, featured=EXCLUDED.featured, sort_order=EXCLUDED.sort_order, duration_mins=EXCLUDED.duration_mins, title_en=EXCLUDED.title_en, title_ar=EXCLUDED.title_ar, description_en=EXCLUDED.description_en, description_ar=EXCLUDED.description_ar, body_en=EXCLUDED.body_en, body_ar=EXCLUDED.body_ar;
-
-INSERT INTO public.content_items (slug, kind, category, status, locale, published, featured, sort_order, duration_mins, title_en, title_ar, description_en, description_ar, body_en, body_ar, tags) VALUES
+السكينة النفسية الحقيقية لا تأتي من حياة خالية تماماً من الأخطاء، بل تأتي عندما تقبل نفسك وتقف معها وتتعلم من كل تجربة بهدوء ورحمة.$wh$,'{}'),
 ($wh$catastrophic-thinking$wh$,'article',$wh$stress$wh$,'published','global',true,false,5,4,$wh$Overcoming Catastrophic Thinking: How to Stop Overthinking and Quiet Future Anxiety$wh$,$wh$فخ السيناريوهات الكارثية: كيف تتغلب على الخوف من المستقبل واستنزاف التفكير المفرط؟$wh$,$wh$Do you frequently catch your mind creating worst-case scenarios and worst-outcome predictions about events that haven't even happened? In this article, we break down the psychological mechanics of catastrophic overthinking and share practical tools to restore mental calm and stay grounded in the present.$wh$,$wh$هل تجد عقلك ينشغل بانتظام في صناعة افتراضات مأساوية وشكوك حول المستقبل لم تحدث بعد، مما يغمرك بتوتر متواصل ويعطل قدرتك على اتخاذ القرارات؟ في هذا المقال، نتعرف على الآلية النفسية للتفكير الكارثي، وكيف نهدئ أوهام الخوف ونستعيد الحضور والسلام الداخلي.$wh$,$wh$Quick Takeaway: Do you frequently catch your mind creating worst-case scenarios and worst-outcome predictions about events that haven't even happened? In this article, we break down the psychological mechanics of catastrophic overthinking and share practical tools to restore mental calm and stay grounded in the present.
 
 **1. The Reality Check: When the Mind Builds Fortresses of Imaginary Fear**
@@ -763,7 +762,7 @@ True emotional well-being doesn't come from having every detail of tomorrow figu
 
 **٣ · الحل البسيط: تفكيك الوهم واستعادة الوعي بالحاضر**
 
-لكي تستعيد هدوءك وتتخلص من ثقل التفكير المفرط، تحتاج إلى التمييز الحاسمي بين «الأفكار الافتراضية» وبين «الواقع المشهود».
+لكي تستعيد هدوءك وتتخلص من ثقل التفكير المفرط، تحتاج إلى التمييز الحاسم بين «الأفكار الافتراضية» وبين «الواقع المشهود».
 
 عندما تبدأ في مراقبة أفكارك بحيادية ووعي:
 
@@ -801,7 +800,7 @@ True emotional well-being doesn't come from having every detail of tomorrow figu
 
 **٤. ممارسة التواجد الجسدي (Somatic Grounding)**
 
-عندما تلاحظ تسارع أفكارك، أخرج من رأسك وعد إلى جسدك عبر السير لبضع دقائق، أو التركيز على ٥ أشياء تراها وتسمسها وتسمعها حولك الآن لقطع سلسلة التفكير القهري.
+عندما تلاحظ تسارع أفكارك، أخرج من رأسك وعد إلى جسدك عبر السير لبضع دقائق، أو التركيز على ٥ أشياء تراها وتلمسها وتسمعها حولك الآن لقطع سلسلة التفكير القهري.
 
 **٥ · أسئلة بسيطة للتأمل مع نفسك**
 
@@ -868,7 +867,7 @@ Obsessively checking analytics, numbers, or progress metrics increases stress ho
 
 **Habit 4: Rest Instead of Quitting**
 
-If you feel drained by the waiting process, do not give up or abandon your goals. Take a intentional break, recharge through physical movement, good sleep, or quality time with loved ones, and then return with fresh clarity.
+If you feel drained by the waiting process, do not give up or abandon your goals. Take an intentional break, recharge through physical movement, good sleep, or quality time with loved ones, and then return with fresh clarity.
 
 **5. Reflection & Journaling Prompts**
 
@@ -886,7 +885,7 @@ Remember that the strongest trees take the longest time to establish their roots
 
 **١ · المشكلة: فخ التوقعات السريعة في عالم يحب الفورية**
 
-نعيش في بيئة اعترت عقولنا فيها أساليب الاستجابة الفورية: كل شيء متاح بنقرة زر، من الوجبات إلى الترفيه والمعلومات. ومن دون أن نشعر، نقلنا هذا التوقع الفوري إلى أهداف حياتنا الكبيرة:
+نعيش في بيئة اعتادت فيها عقولنا على أساليب الاستجابة الفورية: كل شيء متاح بنقرة زر، من الوجبات إلى الترفيه والمعلومات. ومن دون أن نشعر، نقلنا هذا التوقع الفوري إلى أهداف حياتنا الكبيرة:
 
 • نضع خُططاً ونبذل الجهد، ونتوقع أن ترى نتائجنا النور في تاريخ محدد بالدقيقة.
 
@@ -946,7 +945,7 @@ Remember that the strongest trees take the longest time to establish their roots
 
 ٣. كيف سيختلف يومي لو ركزت على إتقان الخطوة الحالية فقط دون التفكير في توقيت الوصول النهائي؟
 
-**كلمة أخيره من Wellness House**
+**كلمة أخيرة من Wellness House**
 
 تذكر دائماً أن الأشجار الأكثر ثباتاً وقوة هي التي تأخذ أطول وقت في تكوين جذورها. كن صبوراً مع نفسك، واثقاً في سعيك، ودع النتائج تنضج في وقتها المناسب.$wh$,'{}'),
 ($wh$perfect-tomorrow$wh$,'article',$wh$mindfulness$wh$,'published','global',true,false,7,4,$wh$The Illusion of the Perfect Tomorrow: How to Overcome Procrastination and Start Now$wh$,$wh$فخ "سأبدأ عندما أفرغ": كيف نتغلب على التسويف ووهم الوقت المثالي؟$wh$,$wh$Are you constantly postponing your health, personal projects, or self-care until "things slow down"? In this article, we explore why the myth of future free time keeps us trapped in procrastination—and how to build momentum right in the middle of a busy schedule.$wh$,$wh$هل تنتظر دائماً أن تهدأ مشاغلك أو تتفرغ كلياً حتى تبدأ في العناية بصحتك أو بمشروعك الشغوف؟ في هذا المقال نكشف خدعة التسويف ووهم الفراغ المستقبلي، وكيف تبدأ الآن بأصغر خطوة ممكنة وسط زحام حياتك.$wh$,$wh$Quick Takeaway: Are you constantly postponing your health, personal projects, or self-care until "things slow down"? In this article, we explore why the myth of future free time keeps us trapped in procrastination—and how to build momentum right in the middle of a busy schedule.
@@ -1035,7 +1034,7 @@ The "perfect time" is a myth invented by procrastination to keep you from enjoyi
 
 **٢ · السبب: ليه العقل بيحب خدعة التأجيل؟**
 
-التسويف ليس مجرد كسول أو سوء تنظيم للوقت، بل هو «آلية دفاعية لحماية العقل من التوتر» (Emotional Regulation Issue).
+التسويف ليس مجرد كسل أو سوء تنظيم للوقت، بل هو «آلية دفاعية لحماية العقل من التوتر» (Emotional Regulation Issue).
 
 عندما تفكر في ابتكار عادة جديدة أو مشروع جديد، يرسم عقلك صورة ضخمة ومجهدة للمهمة:
 
@@ -1055,7 +1054,7 @@ The "perfect time" is a myth invented by procrastination to keep you from enjoyi
 
 • يقل حاجز المقاومة النفسية، وتصبح الخطوة الأولى سهلة ومتاحة في أي وقت خلال يومك.
 
-• تبدأ في بناء «الزخم النفسي» (Momentum)؛ حيث يولد الإنجاز الصغير اليومي شعوراً بالإنجاز يدفك للاستمرار.
+• تبدأ في بناء «الزخم النفسي» (Momentum)؛ حيث يولد الإنجاز الصغير اليومي شعوراً بالإنجاز يدفعك للاستمرار.
 
 **٤ · خطوات عملية للتغلب على التسويف والتأجيل**
 
@@ -1089,10 +1088,7 @@ The "perfect time" is a myth invented by procrastination to keep you from enjoyi
 
 **كلمة أخيرة من Wellness House**
 
-الوقت المثالي هو خرافة صاغها التسويف لحرمتك من ثمار محاولاتك. الحاضر الشاخص بظروفه المتاحة وزحامه هو الميدان الوحيد الذي تملكه حقيقة لبناء حياتك وعاداتك بحب ومرونة.$wh$,'{}')
-ON CONFLICT (slug) DO UPDATE SET kind=EXCLUDED.kind, category=EXCLUDED.category, status=EXCLUDED.status, published=EXCLUDED.published, featured=EXCLUDED.featured, sort_order=EXCLUDED.sort_order, duration_mins=EXCLUDED.duration_mins, title_en=EXCLUDED.title_en, title_ar=EXCLUDED.title_ar, description_en=EXCLUDED.description_en, description_ar=EXCLUDED.description_ar, body_en=EXCLUDED.body_en, body_ar=EXCLUDED.body_ar;
-
-INSERT INTO public.content_items (slug, kind, category, status, locale, published, featured, sort_order, duration_mins, title_en, title_ar, description_en, description_ar, body_en, body_ar, tags) VALUES
+الوقت المثالي هو خرافة صاغها التسويف ليحرمك من ثمار محاولاتك. الحاضر الشاخص بظروفه المتاحة وزحامه هو الميدان الوحيد الذي تملكه حقيقة لبناء حياتك وعاداتك بحب ومرونة.$wh$,'{}'),
 ($wh$quiet-solitude$wh$,'article',$wh$mindfulness$wh$,'published','global',true,true,8,4,$wh$The Power of Quiet Solitude: How Digital Detox Restores Cognitive Clarity and Inner Calm$wh$,$wh$كيف تستعيد صفاء ذهنك في عالم مزدحم بالضوضاء؟ قوة العزلة الرقمية والتفكر العميق$wh$,$wh$In a world where notifications, emails, and news streams never stop, quiet moments have become a rare luxury. In this article, we explore the restorative power of "intentional solitude"—how stepping away from digital noise helps clear cognitive fatigue, restores mental clarity, and cultivates lasting inner peace.$wh$,$wh$في عالم لا تتوقف فيه التنبيهات والرسائل والمعلومات المتدفقة على مدار الساعة، أصبحت اللحظات الهادئة عملة نادرة. في هذا المقال، نتعرف على الأثر الشفائي لـ «العزلة الإيجابية»، وكيف يساعدك اقتطاع مساحة هادئة بعيداً عن ضوضاء الشاشات على تخفيف الإرهاق الذهني، واستعادة صفاء تفكيرك، وبناء سلام داخلي حقيقي.$wh$,$wh$Quick Takeaway: In a world where notifications, emails, and news streams never stop, quiet moments have become a rare luxury. In this article, we explore the restorative power of "intentional solitude"—how stepping away from digital noise helps clear cognitive fatigue, restores mental clarity, and cultivates lasting inner peace.
 
 **1. The Reality Check: Cognitive Fatigue in a Hyper-Connected World**
@@ -1193,7 +1189,7 @@ Mental clarity is not something a noisy world hands to us; it is a conscious cho
 
 ٣. تترتب الأفكار وتتضح الرؤية: في الصمت، تتساقط الشوائب والضوضاء السطحية، ليبقى فقط ما هو مهم وأساسي بالنسبة لك.
 
-العزلة الإيجابية ليست انسحاباً من الحياة أو انطواءً سلبياً، بل هي مساحة صيانة ضرورية لجديد طاقتك الذهنية والروحية.
+العزلة الإيجابية ليست انسحاباً من الحياة أو انطواءً سلبياً، بل هي مساحة صيانة ضرورية لتجديد طاقتك الذهنية والروحية.
 
 **٣ · الحل المعرفي: اقتطاع مساحة هادئة لاستعادة الذات**
 
@@ -1338,7 +1334,7 @@ Emotional resilience doesn't mean being endlessly motivated; it means caring for
 
 ١. تثبيت المسار العصبي (Neural Pathways): كل مرة تمارس فيها عادتك حتى لو بقدر بسيط جداً، أنت ترسل إشارة لدماغك تؤكد فيها أن «هذا السلوك جزء من هويتي»، مما يقوي المسار العصبي لهذه العادة.
 
-٢. تجاوز فخ المقاومة النفسية: التوقف الكامل يجعل العودة أمر شاقاً ويحتاج إلى طاقة إرادة هائلة. بينما الحفاظ على أدنى حد من الممارسة يمنع تكون الجليد والمقاومة النفسية للبدء من جديد.
+٢. تجاوز فخ المقاومة النفسية: التوقف الكامل يجعل العودة أمراً شاقاً ويحتاج إلى طاقة إرادة هائلة. بينما الحفاظ على أدنى حد من الممارسة يمنع تكون الجليد والمقاومة النفسية للبدء من جديد.
 
 ٣. الانتقال من الاعتماد على الشغف إلى الاعتماد على النظام: الانضباط الحقيقي هو أن تفعل الشيء المفيد لصحتك ونفسيتك لأنك اخترته بوعي، وليس لأن مزاجك اللحظي يرغب فيه الآن.
 
@@ -1397,7 +1393,7 @@ Emotional resilience doesn't mean being endlessly motivated; it means caring for
 **كلمة أخيرة من Wellness House**
 
 المرونة النفسية لا تتطلب منك أن تكون مفعماً بالشغف طوال الوقت، بل تنبع من قدرتك على العناية بنفسك والاستمرار بهدوء وبساطة في كل الفصول.$wh$,'{}'),
-($wh$inside-out-performance$wh$,'article',$wh$mindfulness$wh$,'published','global',true,false,10,3,$wh$Inside-Out Performance: Why Mental Well-being Is the True Secret to Sustainable Productivity$wh$,$wh$من أين يبدأ الإبداع الحقيقي؟ كيف تنمي راحتك النفسية لتصل إلى أعلى مستويات الإنتاجية؟$wh$,$wh$When searching for high performance and creative breakthroughs, we usually obsess over external tools, time hacks, and output metrics. But the deeper psychological truth is that external excellence is a direct result of internal clarity. In this article, we explore how investing in your mental well-being is the ultimate fuel for sustainable productivity.$wh$,$wh$عندما نبحث عن تميز أدوائنا في العمل أو الحياة، نركز غالباً على الأدوات الخارجية وإدارة الوقت والمقاييس الظاهرة. لكن الحقيقة النفسية الأكثر عمقاً هي أن جودة مخرجاتك الخارجية هي نتيجة مباشرة لصفاء حالتك الداخلية. في هذا المقال، نتعرف على كيفية الاستثمار في صحتك النفسية وراحتك الذهنية بوصفهما الوقود الأول للإنتاجية المستدامة والإبداع الحقيقي.$wh$,$wh$Quick Takeaway: When searching for high performance and creative breakthroughs, we usually obsess over external tools, time hacks, and output metrics. But the deeper psychological truth is that external excellence is a direct result of internal clarity. In this article, we explore how investing in your mental well-being is the ultimate fuel for sustainable productivity.
+($wh$inside-out-performance$wh$,'article',$wh$mindfulness$wh$,'published','global',true,false,10,3,$wh$Inside-Out Performance: Why Mental Well-being Is the True Secret to Sustainable Productivity$wh$,$wh$من أين يبدأ الإبداع الحقيقي؟ كيف تنمي راحتك النفسية لتصل إلى أعلى مستويات الإنتاجية؟$wh$,$wh$When searching for high performance and creative breakthroughs, we usually obsess over external tools, time hacks, and output metrics. But the deeper psychological truth is that external excellence is a direct result of internal clarity. In this article, we explore how investing in your mental well-being is the ultimate fuel for sustainable productivity.$wh$,$wh$عندما نبحث عن تميز أدائنا في العمل أو الحياة، نركز غالباً على الأدوات الخارجية وإدارة الوقت والمقاييس الظاهرة. لكن الحقيقة النفسية الأكثر عمقاً هي أن جودة مخرجاتك الخارجية هي نتيجة مباشرة لصفاء حالتك الداخلية. في هذا المقال، نتعرف على كيفية الاستثمار في صحتك النفسية وراحتك الذهنية بوصفهما الوقود الأول للإنتاجية المستدامة والإبداع الحقيقي.$wh$,$wh$Quick Takeaway: When searching for high performance and creative breakthroughs, we usually obsess over external tools, time hacks, and output metrics. But the deeper psychological truth is that external excellence is a direct result of internal clarity. In this article, we explore how investing in your mental well-being is the ultimate fuel for sustainable productivity.
 
 **1. The Pitfall: Obsessing Over Output While Ignoring the Engine**
 
@@ -1467,7 +1463,7 @@ Take a moment to reflect on these questions:
 
 **A Closing Note from Wellness House**
 
-True excellence isn't built on constant strain; it flourishes naturally from a well-nourished, clear, and balanced mind. Take care of your inner state, and your external results will follow.$wh$,$wh$في اختصار شديد: عندما نبحث عن تميز أدوائنا في العمل أو الحياة، نركز غالباً على الأدوات الخارجية وإدارة الوقت والمقاييس الظاهرة. لكن الحقيقة النفسية الأكثر عمقاً هي أن جودة مخرجاتك الخارجية هي نتيجة مباشرة لصفاء حالتك الداخلية. في هذا المقال، نتعرف على كيفية الاستثمار في صحتك النفسية وراحتك الذهنية بوصفهما الوقود الأول للإنتاجية المستدامة والإبداع الحقيقي.
+True excellence isn't built on constant strain; it flourishes naturally from a well-nourished, clear, and balanced mind. Take care of your inner state, and your external results will follow.$wh$,$wh$في اختصار شديد: عندما نبحث عن تميز أدائنا في العمل أو الحياة، نركز غالباً على الأدوات الخارجية وإدارة الوقت والمقاييس الظاهرة. لكن الحقيقة النفسية الأكثر عمقاً هي أن جودة مخرجاتك الخارجية هي نتيجة مباشرة لصفاء حالتك الداخلية. في هذا المقال، نتعرف على كيفية الاستثمار في صحتك النفسية وراحتك الذهنية بوصفهما الوقود الأول للإنتاجية المستدامة والإبداع الحقيقي.
 
 **١ · المشكلة: فخ التركيز على المخرجات وإهمال المحرك الداخلي**
 
@@ -1489,7 +1485,7 @@ True excellence isn't built on constant strain; it flourishes naturally from a w
 
 ٣. الاستقرار النفسي يبني الروتين المتين: كلما كانت خلفيتك الذهنية هادئة وواضحة، أصبحت قدرتك على اتخاذ القرارات وحل المشكلات أكثر ثباتاً وحكمة.
 
-إن محاولة تحسين النتائج الخارجية دون العناية بالحالة الداخلية هي محاولة لمعالجة الأقسام دون النظر إلى الجذور.
+إن محاولة تحسين النتائج الخارجية دون العناية بالحالة الداخلية هي محاولة لمعالجة الأوراق دون النظر إلى الجذور.
 
 **٣ · الحل البسيط: جودة أفكارك من جودة صحتك النفسية**
 
@@ -1515,7 +1511,7 @@ True excellence isn't built on constant strain; it flourishes naturally from a w
 
 **٢. تقنية فترات التعافي المجدولة (Micro-Rest Cycles)**
 
-لا تنتظر حتى تصل إلى مرحلة الإنهيار لترتاح. أدخل فترات راحة قصيرة (من ٣ إلى ٥ دقائق) بين مهامك اليومية، لتفريغ الشحنات العصبية واستعادة توازنك قبل الانتقال للمهمة التالية.
+لا تنتظر حتى تصل إلى مرحلة الانهيار لترتاح. أدخل فترات راحة قصيرة (من ٣ إلى ٥ دقائق) بين مهامك اليومية، لتفريغ الشحنات العصبية واستعادة توازنك قبل الانتقال للمهمة التالية.
 
 **٣. حماية البيئة النفسية الداعمة**
 
@@ -1533,13 +1529,13 @@ True excellence isn't built on constant strain; it flourishes naturally from a w
 
 ٢. ما هي العادة اليومية التي تستهلك طاقاتي الذهنية دون فائدة حقيقية؟ وكيف أستطيع تقليلها؟
 
-٣. كيف سيختلف شكل أدائي وقراراتي اليوم لو بدأت يهتم براحتي النفسية أولاً؟
+٣. كيف سيختلف شكل أدائي وقراراتي اليوم لو بدأت أهتم براحتي النفسية أولاً؟
 
 **كلمة أخيرة من Wellness House**
 
-شجرة الإنجاز الحقيقي لا تكتمل ثمارها إلا عندما تعتني بجذورها الباطنية. اعتني برتاحتك وصحتك النفسية، وستلاحظ كيف تنمو نتائجك وتزهر حياتك تلقائياً.$wh$,'{}')
+شجرة الإنجاز الحقيقي لا تكتمل ثمارها إلا عندما تعتني بجذورها الباطنية. اعتنِ براحتك وصحتك النفسية، وستلاحظ كيف تنمو نتائجك وتزهر حياتك تلقائياً.$wh$,'{}')
 ON CONFLICT (slug) DO UPDATE SET kind=EXCLUDED.kind, category=EXCLUDED.category, status=EXCLUDED.status, published=EXCLUDED.published, featured=EXCLUDED.featured, sort_order=EXCLUDED.sort_order, duration_mins=EXCLUDED.duration_mins, title_en=EXCLUDED.title_en, title_ar=EXCLUDED.title_ar, description_en=EXCLUDED.description_en, description_ar=EXCLUDED.description_ar, body_en=EXCLUDED.body_en, body_ar=EXCLUDED.body_ar;
 
 UPDATE public.content_items
    SET published = false, featured = false, status = 'draft'
- WHERE kind = 'audio';
+ WHERE kind IN ('audio', 'video');
