@@ -378,6 +378,49 @@ export async function getLeaderboard(challengeId: string) {
   return data ?? [];
 }
 
+// ── Habit challenges (weekly, HR-scheduled) ───────────────────
+
+export interface HabitChallengeState {
+  status: 'active' | 'upcoming' | 'none';
+  challenge?: {
+    id: string; title_en: string; title_ar: string | null;
+    start_date: string; end_date: string; team_id: string | null;
+    payload: Record<string, any>;
+  };
+  target_date?: string;
+  can_log?: boolean;
+  logged_target?: boolean;
+  my_dates?: string[];
+  my_count?: number;
+  success_days?: number;
+  days_total?: number;
+  elapsed?: number;
+  team_pct?: number | null;
+}
+
+export async function getMyHabitChallenge(): Promise<HabitChallengeState> {
+  const { data, error } = await supabase.rpc('my_habit_challenge');
+  if (error) throw error;
+  return (data ?? { status: 'none' }) as HabitChallengeState;
+}
+
+export async function logHabit(challengeId: string, done = true): Promise<HabitChallengeState> {
+  const { data, error } = await supabase.rpc('log_habit', { p_challenge_id: challengeId, p_done: done });
+  if (error) throw error;
+  return data as HabitChallengeState;
+}
+
+export async function getContentBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from('content_items')
+    .select('*')
+    .eq('slug', slug)
+    .eq('published', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 // ── Notifications ─────────────────────────────────────────────
 
 export async function getNotifications() {

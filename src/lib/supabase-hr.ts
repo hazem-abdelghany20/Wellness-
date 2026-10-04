@@ -85,52 +85,46 @@ export async function assignContent(contentId: string, scope: 'all' | 'team', te
   return data;
 }
 
-// ── Challenges ─────────────────────────────────────────────────
+// ── Challenges (weekly habit challenges) ─────────────────────
 
-export async function listChallengeTemplates() {
-  // Pull from challenge_templates (catalogue) — was wrongly pulling from
-  // `challenges` which is the runtime/scheduled-instances table, so the
-  // dropdown showed live challenges instead of pickable templates.
+export async function listHabitTemplates() {
   const { data, error } = await supabase
     .from('challenge_templates')
-    .select('*')
+    .select('id, slug, title_en, title_ar, target, payload')
+    .eq('kind', 'habit')
     .order('title_en');
-  if (error) {
-    // 42P01 = table missing in older envs → empty list instead of blank screen.
-    if ((error as { code?: string }).code === '42P01') return [];
-    throw error;
-  }
-  // Normalize payload (badge_icon / badge_color / description live in jsonb).
-  return (data ?? []).map((t: any) => ({
-    ...t,
-    description_en: t.payload?.description_en ?? '',
-    description_ar: t.payload?.description_ar ?? '',
-    badge_icon:     t.payload?.badge_icon ?? 'trophy',
-    badge_color:    t.payload?.badge_color ?? '#F5B544',
-    goal_value:     t.target ?? 7,
-  }));
+  if (error) throw error;
+  return data ?? [];
 }
 
-export async function scheduleChallenge(template: any, window: { start: string; end: string }, _scope: 'all' | 'team', _teamId?: string) {
-  // challenges table has no client-side INSERT policy (only service_role), so
-  // we route through the edge fn which uses the service client and applies
-  // the same super-admin / company-id fallback that update-challenge-activity
-  // and hr-schedule-broadcast use.
-  const payload = {
-    title_en:       template.title_en ?? template.title ?? 'New challenge',
-    title_ar:       template.title_ar ?? template.title ?? 'New challenge',
-    description_en: template.description_en ?? template.description ?? '',
-    description_ar: template.description_ar ?? template.description ?? '',
-    metric:         template.metric ?? 'checkins',
-    goal_value:     template.goal_value ?? template.target ?? 7,
-    start_date:     window.start,
-    end_date:       window.end,
-    badge_icon:     template.badge_icon ?? 'trophy',
-    badge_color:    template.badge_color ?? '#F5B544',
-  };
-  const { data, error } = await supabase.functions.invoke('hr-schedule-challenge', { body: payload });
+export async function listHabitChallenges() {
+  const { data, error } = await supabase.rpc('hr_habit_challenges');
   if (error) throw error;
-  return (data as any).challenge;
+  return data ?? [];
+}
+
+export async function scheduleHabitChallenge(templateId: string, weekStart: string, teamId?: string | null) {
+  const { data, error } = await supabase.rpc('hr_schedule_habit_challenge', {
+    p_template_id: templateId, p_week_start: weekStart, p_team_id: teamId || null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function cancelHabitChallenge(challengeId: string) {
+  const { error } = await supabase.rpc('hr_cancel_habit_challenge', { p_challenge_id: challengeId });
+  if (error) throw error;
+}
+
+export async function listCompanyTeams() {
+  const companyId = await resolveCompanyId();
+  const { data, error } = await supabase
+    .from('teams')
+    .select('id, name')
+    .eq('company_id', companyId)
+    .order('name');
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function listScheduledChallenges() {
@@ -146,16 +140,6 @@ export async function listScheduledChallenges() {
     .order('start_date', { ascending: false });
   if (error) throw error;
   return data ?? [];
-}
-
-export async function getChallengeStatus(challengeId: string) {
-  const { data, error } = await supabase
-    .from('challenges')
-    .select('*, challenge_leaderboard_cache(*)')
-    .eq('id', challengeId)
-    .single();
-  if (error) throw error;
-  return data;
 }
 
 // ── Broadcasts ─────────────────────────────────────────────────
