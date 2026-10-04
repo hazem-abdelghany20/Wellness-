@@ -2,7 +2,7 @@ import React from 'react';
 import { typeStyles, Icon, Button, Card, SectionLabel } from '../design-system.jsx';
 import { useHabitChallenge } from '../hooks/use-habit-challenge.js';
 import { getContentBySlug, listSignatureChallenges } from '../../lib/supabase';
-import { SignaturePathCard } from './home.jsx';
+import { SignaturePathCard, IconBtn, fmtNum } from '../components/shared.jsx';
 import { toPlayerItem } from '../lib/content-item.js';
 
 // Weekly habit challenge: one small daily action, Sun → Thu, chosen by HR.
@@ -28,12 +28,13 @@ function dateLabel(iso, lang) {
     .format(new Date(`${iso}T00:00:00Z`));
 }
 
-function ScreenHabitChallenge({ theme, dir, go }) {
+function ScreenHabitChallenge({ theme, dir, go, state: app }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const { state, loading, saving, error, toggle } = useHabitChallenge();
   const [articleBusy, setArticleBusy] = React.useState(false);
+  const unread = app?.unreadCount || 0;
   // Sabr / Niyyah / Ramadan: optional personal paths, separate from the
   // weekly challenge HR runs. Hide runs whose end date has passed.
   const [paths, setPaths] = React.useState([]);
@@ -62,7 +63,8 @@ function ScreenHabitChallenge({ theme, dir, go }) {
 
   const shell = (children) => (
     <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
-      <div style={{ padding: '16px 22px 14px' }}>
+      <div style={{ padding: '16px 22px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+       <div style={{ minWidth: 0 }}>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>
           {s('This week', 'تحدي الأسبوع')}
         </div>
@@ -71,6 +73,18 @@ function ScreenHabitChallenge({ theme, dir, go }) {
             {dateLabel(state.challenge.start_date, lang)} {lang === 'ar' ? '←' : '→'} {dateLabel(state.challenge.end_date, lang)}
           </div>
         )}
+       </div>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <IconBtn theme={T} icon="bell" onClick={() => go('notifs')}
+            aria-label={s(`Notifications${unread ? ` (${unread} new)` : ''}`, `الإشعارات${unread ? ` (${fmtNum(unread, lang)} جديدة)` : ''}`)}/>
+          {unread > 0 && (
+            <span aria-hidden="true" style={{
+              position: 'absolute', top: -2, insetInlineEnd: -2, minWidth: 18, height: 18, padding: '0 5px',
+              borderRadius: 999, background: T.accent, color: T.accentInk, fontSize: 10, fontWeight: 700,
+              display: 'grid', placeItems: 'center', border: `2px solid ${T.bg}`, boxSizing: 'border-box',
+            }}>{unread > 9 ? '9+' : fmtNum(unread, lang)}</span>
+          )}
+        </div>
       </div>
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>{children}{pathsSection}</div>
     </div>

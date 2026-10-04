@@ -80,7 +80,7 @@ function ScreenNotifs({ theme, t, dir, go }) {
   return (
     <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 40, boxSizing: 'border-box' }}>
       <div style={{ padding: '14px 22px 6px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <TopBack theme={T} onBack={() => go('home')} dir={dir}/>
+        <TopBack theme={T} onBack={() => go('challenges')} dir={dir}/>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, letterSpacing: -0.4, color: T.text, flex: 1 }}>
           {lang==='ar'?'الإشعارات':'Notifications'}
         </div>

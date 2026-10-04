@@ -5,13 +5,15 @@ import {
 import { useAuth } from '../state/auth-context.jsx';
 import { deleteMyAccount } from '../../lib/supabase';
 import { useProfile } from '../hooks/use-profile.js';
+import { useWallet } from '../hooks/use-wallet.js';
+import { fmtNum } from '../components/shared.jsx';
 
 function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey, state }) {
   const T = theme;
   const { signOut, company } = useAuth();
   const { profile, update } = useProfile();
-  const [anon, setAnon] = React.useState(true);
-  const [notifs, setNotifs] = React.useState(true);
+  const { grouped } = useWallet();
+  const readyCount = grouped?.ready?.length || 0;
   const [picker, setPicker] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
@@ -19,20 +21,6 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
   const [deleting, setDeleting] = React.useState(false);
   const [deleteErr, setDeleteErr] = React.useState(null);
 
-  // Sync from server. Falls back to optimistic defaults when the column
-  // is missing (e.g. before migration 0015 lands on the project).
-  React.useEffect(() => {
-    if (!profile) return;
-    setAnon(profile.anon ?? true);
-    setNotifs(profile.digest_opt_in ?? true);
-  }, [profile]);
-
-  const persistPref = async (column, value) => {
-    try { await update({ [column]: value }); }
-    catch (e) { console.warn(`[profile] ${column} update failed`, e); }
-  };
-  const handleAnon = (next) => { setAnon(next); persistPref('anon', next); };
-  const handleNotifs = (next) => { setNotifs(next); persistPref('digest_opt_in', next); };
 
   if (!profile) return <ProfileLoading theme={T} dir={dir}/>;
 
@@ -104,25 +92,25 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
         </button>
       </div>
 
-      <SectionLabel theme={T}>{t('privacy')}</SectionLabel>
       <div style={{ padding: '0 16px' }}>
-        <Card theme={T} pad={0} radius={20}>
-          <ToggleRow theme={T} icon="shield" title={t('anonymous')} sub={t('anonymousSub')} value={anon} onChange={handleAnon}/>
-        </Card>
-        {/* The old "Aggregated outcomes to HR" row was rendered disabled
-            with a "Required by your plan" caption and no persistence —
-            misleading. The actual aggregation contract is described in
-            the consent screen, so the toggle is dropped here. */}
-      </div>
-
-      <div style={{ height: 16 }}/>
-      <SectionLabel theme={T}>{t('notifs')}</SectionLabel>
-      <div style={{ padding: '0 16px' }}>
-        <Card theme={T} pad={0} radius={20}>
-          <ToggleRow theme={T} icon="bell"
-            title={lang==='ar'?'تذكير التسجيل اليومي':'Daily check-in reminder'}
-            sub={lang==='ar'?'تنبيه يومي في الصباح':'A nudge each morning'}
-            value={notifs} onChange={handleNotifs}/>
+        <Card theme={T} pad={16} radius={20} onClick={() => go('mine')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: T.accentSoft, color: T.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <Icon name="star" size={22}/>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, color: T.text, fontWeight: 600 }}>{lang === 'ar' ? 'مكافآتي' : 'My rewards'}</div>
+            <div style={{ fontSize: 13, color: T.textMuted, marginTop: 3 }}>
+              {readyCount > 0
+                ? (lang === 'ar' ? `${fmtNum(readyCount, lang)} جاهزة للاستلام` : `${readyCount} ready to claim`)
+                : (lang === 'ar' ? 'بتكسبها لما تكمّل تحدي الأسبوع' : 'Earned by completing weekly challenges')}
+            </div>
+          </div>
+          {readyCount > 0 && (
+            <span style={{ minWidth: 22, height: 22, padding: '0 6px', borderRadius: 999, background: T.accent, color: T.accentInk, fontSize: 12, fontWeight: 700, display: 'grid', placeItems: 'center' }}>
+              {fmtNum(readyCount, lang)}
+            </span>
+          )}
+          <Icon name={lang === 'ar' ? 'chevL' : 'chev'} size={16} style={{ color: T.textMuted }}/>
         </Card>
       </div>
 
@@ -327,8 +315,8 @@ function NameEditSheet({ theme, lang, initialEn, initialAr, onCancel, onSave }) 
         </div>
         <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 18 }}>
           {lang === 'ar'
-            ? 'الاسم يظهر لك فقط. لزملائك تبقى مجهولاً على اللوحات.'
-            : 'Your name is only visible to you. Teammates still see you anonymously on leaderboards.'}
+            ? 'اسمك بيظهر ليك ولفريق الـ HR بس.'
+            : 'Your name is only visible to you and your HR team.'}
         </div>
         {field(
           lang === 'ar' ? 'الاسم (لاتيني)' : 'Name',
@@ -364,38 +352,6 @@ function ProfileLoading({ theme, dir }) {
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
-    </div>
-  );
-}
-
-function ToggleRow({ theme, icon, title, sub, value, onChange, disabled }) {
-  const T = theme;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
-      <div style={{
-        width: 36, height: 36, borderRadius: 10,
-        background: T.accentSoft, color: T.accent,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}><Icon name={icon} size={18}/></div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 15, color: T.text, fontWeight: 500 }}>{title}</div>
-        {sub && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{sub}</div>}
-      </div>
-      <button onClick={() => !disabled && onChange(!value)} disabled={disabled}
-        style={{
-          width: 48, height: 28, borderRadius: 999,
-          background: value ? T.accent : T.track,
-          border: 'none', padding: 0, cursor: disabled ? 'default' : 'pointer',
-          position: 'relative', opacity: disabled ? 0.6 : 1,
-          transition: 'background .2s',
-        }}>
-        <div style={{
-          position: 'absolute', top: 3, left: value ? 23 : 3,
-          width: 22, height: 22, borderRadius: 999, background: '#fff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
-          transition: 'left .2s',
-        }}/>
-      </button>
     </div>
   );
 }

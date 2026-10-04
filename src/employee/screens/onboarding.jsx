@@ -7,7 +7,7 @@ import { useAuth } from '../state/auth-context.jsx';
 import { useProfile } from '../hooks/use-profile.js';
 
 // --- screens-onboarding.jsx ---
-// Onboarding flow: code → OTP → consent → baseline → goals → welcome
+// Onboarding flow: code → consent → name → welcome
 
 function ScreenJoin({ theme, t, onNext, dir }) {
   const [code, setCode] = React.useState('WH-4782');
@@ -299,173 +299,6 @@ function ScreenConsent({ theme, t, onNext, onBack, dir }) {
   );
 }
 
-function ScreenBaseline({ theme, t, onNext, onBack, dir }) {
-  const T = theme;
-  const lang = dir === 'rtl' ? 'ar' : 'en';
-  const questions = [
-    { id: 'stress',  label: t('stress'),  labels: [t('stressSub').split('→')[0].trim(), t('stressSub').split('→')[1].trim()] },
-    { id: 'sleep',   label: t('sleep'),   labels: [t('sleepSub'), ''] , min: 3, max: 10, step: 0.5, fmt: (v)=>`${v}h` },
-    { id: 'energy',  label: t('energy'),  labels: [t('energySub').split('→')[0].trim(), t('energySub').split('→')[1].trim()] },
-    { id: 'mood',    label: t('mood'),    labels: [t('moodSub').split('→')[0].trim(), t('moodSub').split('→')[1].trim()] },
-  ];
-  const [idx, setIdx] = React.useState(0);
-  const [vals, setVals] = React.useState({ stress: 5, sleep: 6.5, energy: 5, mood: 6 });
-  const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState(null);
-  const { update } = useProfile();
-  const q = questions[idx];
-  const v = vals[q.id];
-
-  const submit = async () => {
-    setErr(null); setBusy(true);
-    try {
-      // baseline_* columns are SMALLINT (1-10). Sleep uses a 0.5 step so
-      // values like 6.5 must be rounded before hitting Postgres.
-      await update({
-        baseline_sleep:  Math.round(vals.sleep),
-        baseline_stress: Math.round(vals.stress),
-        baseline_energy: Math.round(vals.energy),
-        baseline_mood:   Math.round(vals.mood),
-      });
-      onNext();
-    } catch (e) {
-      setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <ScreenFrame theme={T}>
-      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <TopBack theme={T} onBack={idx === 0 ? onBack : () => setIdx(idx - 1)} dir={dir} />
-        <div style={{ marginTop: 22, display: 'flex', gap: 5 }}>
-          {questions.map((_, i) => (
-            <div key={i} style={{
-              flex: 1, height: 4, borderRadius: 2,
-              background: i <= idx ? T.accent : T.track,
-              transition: 'background .3s',
-            }}/>
-          ))}
-        </div>
-        <div style={{
-          fontFamily: typeStyles(T).displayFont, fontSize: 32, lineHeight: 1.1,
-          color: T.text, fontWeight: 400, letterSpacing: -0.5, marginTop: 30, marginBottom: 8,
-        }}>{t('baselineTitle')}</div>
-        <div style={{ color: T.textMuted, fontSize: 14, marginBottom: 36 }}>{t('baselineSub')}</div>
-
-        <Card theme={T} pad={22} radius={22}>
-          <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.8, color: T.textMuted, fontWeight: 600, marginBottom: 6 }}>
-            {q.label}
-          </div>
-          <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 56, lineHeight: 1, color: T.text, marginBottom: 26, letterSpacing: -1 }}>
-            {q.fmt ? q.fmt(v) : v}<span style={{ color: T.textFaint, fontSize: 22 }}>{q.fmt ? '' : ` / ${q.max || 10}`}</span>
-          </div>
-          <Slider theme={T} value={v}
-            onChange={(nv) => setVals({ ...vals, [q.id]: nv })}
-            min={q.min || 0} max={q.max || 10} step={q.step || 1}
-            labels={q.labels}/>
-        </Card>
-
-        {err && (
-          <div style={{
-            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
-            padding: '10px 12px', borderRadius: 10, fontSize: 13,
-            marginTop: 12, fontFamily: typeStyles(T).sansFont,
-          }}>{err}</div>
-        )}
-
-        <div style={{ flex: 1 }}/>
-        <Button theme={T}
-          onClick={() => idx < questions.length - 1 ? setIdx(idx + 1) : submit()}
-          disabled={busy} iconR="arrow">
-          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…')
-            : idx < questions.length - 1 ? t('next') : t('continue')}
-        </Button>
-      </div>
-    </ScreenFrame>
-  );
-}
-
-function ScreenGoals({ theme, t, onNext, onBack, dir }) {
-  const T = theme;
-  const goals = [
-    { id: 'sleep',     icon: 'moon',     label: { en: 'Better sleep', ar: 'نوم أفضل' } },
-    { id: 'stress',    icon: 'leaf',     label: { en: 'Manage stress', ar: 'إدارة التوتر' } },
-    { id: 'energy',    icon: 'bolt',     label: { en: 'More energy', ar: 'طاقة أكثر' } },
-    { id: 'pain',      icon: 'activity', label: { en: 'Reduce pain', ar: 'تقليل الألم' } },
-    { id: 'focus',     icon: 'target',   label: { en: 'Focus', ar: 'التركيز' } },
-    { id: 'move',      icon: 'wind',     label: { en: 'Move more', ar: 'الحركة أكثر' } },
-  ];
-  const lang = dir === 'rtl' ? 'ar' : 'en';
-  const [sel, setSel] = React.useState(new Set(['stress', 'sleep']));
-  const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState(null);
-  const { update } = useProfile();
-  const toggle = (id) => {
-    const n = new Set(sel);
-    if (n.has(id)) n.delete(id);
-    else if (n.size < 3) n.add(id);
-    setSel(n);
-  };
-  const submit = async () => {
-    setErr(null); setBusy(true);
-    try {
-      await update({ goals: Array.from(sel) });
-      onNext();
-    } catch (e) {
-      setErr(e?.message || (lang === 'ar' ? 'تعذّر الحفظ' : 'Save failed'));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <ScreenFrame theme={T}>
-      <div style={{ padding: '30px 22px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <TopBack theme={T} onBack={onBack} dir={dir} />
-        <div style={{
-          fontFamily: typeStyles(T).displayFont, fontSize: 32, lineHeight: 1.1,
-          color: T.text, fontWeight: 400, letterSpacing: -0.5, marginTop: 28, marginBottom: 8,
-        }}>{t('goalsTitle')}</div>
-        <div style={{ color: T.textMuted, fontSize: 14, marginBottom: 22 }}>{t('goalsSub')}</div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {goals.map(g => {
-            const active = sel.has(g.id);
-            return (
-              <button key={g.id} onClick={() => toggle(g.id)} style={{
-                padding: '18px 14px', background: active ? T.accent : T.surface,
-                border: `1px solid ${active ? 'transparent' : T.border}`,
-                borderRadius: 18, textAlign: dir === 'rtl' ? 'right' : 'left',
-                color: active ? T.accentInk : T.text, cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', gap: 10, minHeight: 96,
-                transition: 'all .2s',
-              }}>
-                <Icon name={g.icon} size={22}/>
-                <div style={{ fontSize: 15, fontWeight: 600, fontFamily: typeStyles(T).sansFont }}>{g.label[lang]}</div>
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ textAlign: 'center', marginTop: 14, color: T.textMuted, fontSize: 12 }}>
-          {sel.size} / 3
-        </div>
-        {err && (
-          <div style={{
-            color: '#c0392b', background: 'rgba(192,57,43,0.08)',
-            padding: '10px 12px', borderRadius: 10, fontSize: 13,
-            marginTop: 10, fontFamily: typeStyles(T).sansFont,
-          }}>{err}</div>
-        )}
-        <div style={{ flex: 1 }}/>
-        <Button theme={T} onClick={submit} disabled={sel.size === 0 || busy}>
-          {busy ? (lang === 'ar' ? 'جارٍ…' : 'Saving…') : t('finish')}
-        </Button>
-      </div>
-    </ScreenFrame>
-  );
-}
-
 function ScreenWelcome({ theme, t, state, onNext, dir }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
@@ -640,6 +473,6 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
 }
 
 export {
-  ScreenJoin, ScreenOTP, ScreenConsent, ScreenBaseline, ScreenGoals,
+  ScreenJoin, ScreenOTP, ScreenConsent,
   ScreenWelcome, ScreenName, ScreenFrame, TopBack,
 };

@@ -3,7 +3,7 @@ import {
   typeStyles, Icon, Card, Chip, SectionLabel,
 } from '../design-system.jsx';
 import { TopBack } from './onboarding.jsx';
-import { IconBtn, kindLabel } from './home.jsx';
+import { IconBtn, kindLabel } from '../components/shared.jsx';
 import { useContent } from '../hooks/use-content.js';
 
 // --- screens-content.jsx ---
