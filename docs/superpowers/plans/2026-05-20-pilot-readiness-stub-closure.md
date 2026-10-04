@@ -1,5 +1,7 @@
 # Pilot-Readiness Stub Closure — Implementation Plan
 
+> **Status: EXECUTED 2026-05-20.** All five fixes and the copy rename landed on `main`; the step checkboxes below were not ticked as the work ran. Commits: `44e10c9` (lib helpers) · `fc902d4` · `153e9b1` (profile delete-account) · `49dd2e3` (player resume) · `8a4e32d` (wallet realtime) · `edf4d53` (HR people team filter) · `47ca6c1` (HR settings language) · `6b8667f` ("Schedule challenge" rename) · `0dca836` (test-flow doc trimmed).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close 5 pilot-visible gaps in the Wellness+ build, plus 1 copy fix and 1 doc update, so the Foundever pilot client can follow `CLIENT_TEST_FLOW.md` end-to-end without ⚠️ surprises.

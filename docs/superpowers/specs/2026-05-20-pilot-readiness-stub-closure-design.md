@@ -1,7 +1,7 @@
 # Pilot-Readiness Stub Closure — Design
 
 **Date:** 2026-05-20
-**Status:** Approved, awaiting plan
+**Status:** Implemented 2026-05-20 (see the plan for commit SHAs)
 **Scope:** Close the 5 user-visible gaps between `CLIENT_TEST_FLOW.md` and the deployed Wellness+ build at `https://main.d1c79md4n000h6.amplifyapp.com/`, plus one copy fix and one doc update.
 **Out of scope:** Admin tenant suspend, HR Settings sub-tabs marked `soon`, Gifts Pools/Amazon/Custom, free-form challenge editor, native iOS/Android wrap.
 

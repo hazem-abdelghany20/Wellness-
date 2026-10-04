@@ -6,11 +6,18 @@ vi.mock('../../../lib/supabase', () => ({
   getCheckinHistory: vi.fn(),
 }));
 
+const refreshProfile = vi.fn();
+
+vi.mock('../../state/auth-context.jsx', () => ({
+  useAuth: vi.fn(() => ({ refreshProfile })),
+}));
+
 import { submitCheckin, getCheckinHistory } from '../../../lib/supabase';
 import { useCheckin } from '../use-checkin';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  refreshProfile.mockResolvedValue(undefined);
   getCheckinHistory.mockResolvedValue([
     { checked_at: '2026-04-29', sleep: 7, stress: 4, energy: 6, mood: 7 },
   ]);
@@ -24,7 +31,7 @@ describe('useCheckin', () => {
     expect(getCheckinHistory).toHaveBeenCalledWith(30);
   });
 
-  it('submits a check-in and re-fetches history', async () => {
+  it('submits a check-in, re-fetches history and refreshes the profile streak', async () => {
     submitCheckin.mockResolvedValue({ id: 'x' });
     const { result } = renderHook(() => useCheckin());
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -35,5 +42,6 @@ describe('useCheckin', () => {
 
     expect(submitCheckin).toHaveBeenCalledWith({ sleep: 7, stress: 3, energy: 6, mood: 8 });
     expect(getCheckinHistory).toHaveBeenCalledTimes(2);
+    expect(refreshProfile).toHaveBeenCalledTimes(1);
   });
 });

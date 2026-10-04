@@ -16,7 +16,7 @@ describe('normalizeAction', () => {
       id: 'content-123',
       type: 'content',
       content_id: '123',
-      kind: 'Content',
+      kind: { en: 'Content', ar: 'محتوى' },
       minutes: 6,
       label: {
         en: 'Sleep onset — a cue for tonight',
@@ -28,14 +28,14 @@ describe('normalizeAction', () => {
   it('keeps check-in and breathe actions actionable with sensible defaults', () => {
     expect(normalizeAction({ id: 'daily-checkin', type: 'checkin' })).toMatchObject({
       icon: 'smile',
-      kind: 'Check-in',
+      kind: { en: 'Check-in', ar: 'تسجيل' },
       minutes: 1,
       label: { en: 'Daily check-in', ar: 'التسجيل اليومي' },
     });
 
     expect(normalizeAction({ id: 'box-breath', type: 'breathe', duration_mins: 4 })).toMatchObject({
       icon: 'wind',
-      kind: 'Reset',
+      kind: { en: 'Reset', ar: 'استراحة' },
       minutes: 4,
     });
   });
