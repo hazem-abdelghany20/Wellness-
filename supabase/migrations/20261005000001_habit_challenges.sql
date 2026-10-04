@@ -69,7 +69,7 @@ INSERT INTO public.challenge_templates (slug, title_en, title_ar, kind, default_
   "missed_en": "It doesn't have to be all of it. Half a bottle beats none.",
   "missed_ar": "مش لازم كلها. نص القزازة أحسن من ولا حاجة.",
   "check_mode": "same_day", "success_days": 4, "article_slug": "inside-out-performance",
-  "badge_icon": "wave", "badge_color": "#6FB7D9"
+  "badge_icon": "bolt", "badge_color": "#6FB7D9"
 }$j$::jsonb),
 ('habit-lunch-walk', 'Walk-After-Lunch Week', 'أسبوع المشي بعد الغدا', 'habit', 5, 4, 'habit', $j${
   "action_en": "Walk for 10 minutes after lunch, indoors or out.",
@@ -95,7 +95,7 @@ INSERT INTO public.challenge_templates (slug, title_en, title_ar, kind, default_
   "missed_en": "Busy day. Tomorrow, try blocking 5 minutes in your calendar.",
   "missed_ar": "اليوم كان زحمة. بكره حاول تحجز ٥ دقايق في الكالندر.",
   "check_mode": "same_day", "success_days": 4, "article_slug": "busy-trap",
-  "badge_icon": "leaf", "badge_color": "#C9A15B"
+  "badge_icon": "wind", "badge_color": "#C9A15B"
 }$j$::jsonb),
 ('habit-same-bedtime', 'Same Bedtime Week', 'ميعاد نوم ثابت', 'habit', 5, 4, 'habit', $j${
   "action_en": "Pick a bedtime and go to bed within 30 minutes of it every night.",
@@ -121,7 +121,7 @@ INSERT INTO public.challenge_templates (slug, title_en, title_ar, kind, default_
   "missed_en": "That's okay. Tonight is another try.",
   "missed_ar": "عادي. الليلة دي محاولة جديدة.",
   "check_mode": "next_morning", "success_days": 4, "article_slug": "quiet-solitude",
-  "badge_icon": "moon", "badge_color": "#7FA3C9"
+  "badge_icon": "phone", "badge_color": "#7FA3C9"
 }$j$::jsonb)
 ON CONFLICT (slug) DO UPDATE SET
   title_en = EXCLUDED.title_en, title_ar = EXCLUDED.title_ar, kind = EXCLUDED.kind,

@@ -41,7 +41,7 @@ function ScreenHabitChallenge({ theme, dir, go }) {
         </div>
         {state?.challenge && (
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>
-            {dateLabel(state.challenge.start_date, lang)} → {dateLabel(state.challenge.end_date, lang)}
+            {dateLabel(state.challenge.start_date, lang)} {lang === 'ar' ? '←' : '→'} {dateLabel(state.challenge.end_date, lang)}
           </div>
         )}
       </div>

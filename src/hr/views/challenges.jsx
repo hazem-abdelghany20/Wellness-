@@ -47,9 +47,10 @@ function HRChallengesPage({ theme, lang, density }) {
 
   const pick = (p, k) => (lang === 'ar' ? (p?.[`${k}_ar`] || p?.[`${k}_en`]) : p?.[`${k}_en`]) || '';
   const tTitle = (r) => (lang === 'ar' ? (r.title_ar || r.title_en) : r.title_en);
+  const arrow = lang === 'ar' ? '←' : '→';
   const weekLabel = (w) => {
     const rel = w.index === 0 ? s(' · this week', ' · الأسبوع ده') : w.index === 1 ? s(' · next week', ' · الأسبوع الجاي') : '';
-    return `${fmt(w.start, lang, { weekday: 'short', day: 'numeric', month: 'short' })} → ${fmt(w.end, lang, { weekday: 'short', day: 'numeric', month: 'short' })}${rel}`;
+    return `${fmt(w.start, lang, { weekday: 'short', day: 'numeric', month: 'short' })} ${arrow} ${fmt(w.end, lang, { weekday: 'short', day: 'numeric', month: 'short' })}${rel}`;
   };
 
   const nextWeekStart = weeks.find((w) => w.index === 1)?.start;
@@ -184,11 +185,16 @@ function HRChallengesPage({ theme, lang, density }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{tTitle(c)}</div>
               <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
-                {c.team_name || s('All staff', 'كل الموظفين')} · {fmt(c.start_date, lang)} → {fmt(c.end_date, lang)}
+                {c.team_name || s('All staff', 'كل الموظفين')} · {fmt(c.start_date, lang)} {arrow} {fmt(c.end_date, lang)}
               </div>
             </div>
             <div style={{ fontSize: 12, color: T.textMid, textAlign: lang === 'ar' ? 'left' : 'right', minWidth: 170 }}>
-              {c.status === 'upcoming' || c.status === 'cancelled' ? '—' : (
+              {c.status === 'upcoming' || c.status === 'cancelled' ? '—' : c.status === 'active' ? (
+                <>
+                  {s(`${c.participants} taking part so far`, `${c.participants} بيشاركوا لحد دلوقتي`)}
+                  <div style={{ fontSize: 11, color: T.textMuted }}>{s('Results after Thursday', 'النتيجة بعد الخميس')}</div>
+                </>
+              ) : (
                 <>
                   {s(`${c.participants} took part · ${c.completed} completed`, `${c.participants} شاركوا · ${c.completed} كمّلوا`)}
                   <div style={{ fontSize: 11, color: T.textMuted }}>
