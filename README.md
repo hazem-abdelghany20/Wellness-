@@ -28,7 +28,7 @@ src/
   shared/     design tokens + components used by all three
   lib/        Supabase client + typed helpers (supabase.ts, supabase-hr.ts, …)
 supabase/
-  migrations/ 45 migrations (schema, RLS, seeds)
+  migrations/ 47 migrations (schema, RLS, seeds)
   functions/  12 edge functions
   seed.sql    demo tenants, users, rewards
 ```
@@ -39,17 +39,18 @@ supabase/
 npm ci
 cp .env.local.example .env.local   # fill in your Supabase URL + anon key
 npm run dev                        # http://localhost:5173
-npm test                           # vitest
+npm test                           # unit tests (vitest)
+npm run test:e2e                   # end-to-end against a local Supabase stack — see docs/e2e.md
 npm run build                      # → dist/ (all three apps)
 ```
 
-Backend: apply `supabase/migrations/` to a Supabase project, deploy `supabase/functions/`, then run `supabase/seed.sql` for the demo tenants. In Supabase Auth, **disable "Confirm email"** — sign-up signs the user straight in.
+Backend: apply `supabase/migrations/` (47) to a Supabase project, deploy `supabase/functions/`, then run `supabase/seed.sql` for the demo tenants. In Supabase Auth, **disable "Confirm email"** — sign-up signs the user straight in.
 
 Amplify build spec: `amplify.yml`. It needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set as app environment variables; in production the app refuses to start without them.
 
 ## Status
 
-v1 pilot build, feature-complete for the scope in `BUILD_PLAN.md`; the pilot-readiness fixes of 2026-05-20 are in (`docs/superpowers/plans/`). Tests: 96 / 96 passing. Walkthrough for testers: `CLIENT_TEST_FLOW.md` (smoke pass ≈ 25 min). Acceptance script: `UAT.md`.
+v1 pilot build, feature-complete for the scope in `BUILD_PLAN.md`; the pilot-readiness fixes of 2026-05-20 are in (`docs/superpowers/plans/`). Unit tests: 96 / 96 passing. End-to-end: 40 / 44 (the 4 open checks are documented findings — `docs/e2e.md`). Walkthrough for testers: `CLIENT_TEST_FLOW.md` (smoke pass ≈ 25 min). Acceptance script: `UAT.md`.
 
 Deliberately **not** in v1:
 

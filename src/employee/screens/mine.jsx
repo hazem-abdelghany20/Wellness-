@@ -196,7 +196,7 @@ function ClaimSheet({ theme, t, lang, reward, onCancel, onClaim }) {
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: '100%', background: T.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-        padding: '20px 22px 28px', border: `1px solid ${T.border}`,
+        padding: '20px 22px 128px', border: `1px solid ${T.border}`,
         animation: 'sheetUp .25s ease both',
         maxHeight: '80%', overflow: 'auto',
       }}>

@@ -249,7 +249,7 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             width: '100%', background: T.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-            padding: '20px 20px 28px', border: `1px solid ${T.border}`,
+            padding: '20px 20px 128px', border: `1px solid ${T.border}`,
             animation: 'sheetUp .25s ease both',
           }}>
             <div style={{ width: 40, height: 4, borderRadius: 2, background: T.border, margin: '0 auto 18px' }}/>
@@ -318,7 +318,7 @@ function NameEditSheet({ theme, lang, initialEn, initialAr, onCancel, onSave }) 
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: '100%', background: T.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-        padding: '20px 22px 28px', border: `1px solid ${T.border}`,
+        padding: '20px 22px 128px', border: `1px solid ${T.border}`,
         animation: 'sheetUp .25s ease both',
       }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: T.border, margin: '0 auto 18px' }}/>

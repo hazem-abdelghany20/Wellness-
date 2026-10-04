@@ -1,4 +1,40 @@
--- SUPERSEDED by migrations/20261004000001_consolidate_manual_prod_scripts.sql — kept for history. Wellness+ HR unblock — fixes for super-admin login + Reports/Templates.
+-- Consolidates fixes that were applied to the hosted project by hand, so a
+-- project rebuilt from migrations/ alone behaves like the live one.
+--
+--  1. Sign-up crash: handle_new_user() inserts a profile stub with
+--     display_name = ''. compute_initials('') returned NULL, which violates
+--     profiles.initials NOT NULL → "Database error saving new user" for every
+--     brand-new employee. 20260518000001 fixed the OLD reference but not this.
+--  2. Everything in supabase/hr_unblock.sql (is_superadmin(), JWT-fallback HR
+--     RPCs, catalogue read policies). Migrations 20260519000002 / …008 call
+--     public.is_superadmin() but never defined it, so on a rebuilt database
+--     every RLS check that goes through auth_company_id()/auth_role() raised
+--     42883. hr_unblock.sql is idempotent, so applying this to the hosted
+--     project (where it was already run by hand) is a no-op.
+--
+--  3. Two bugs the e2e run found in the hosted functions' text: the trend query in
+--     hr_company_overview() nested aggregates (HR dashboard KPIs errored), and
+--     awarded_rewards was never added to the realtime publication.
+--
+-- The read policies carried over from hr_unblock.sql are broader than their
+-- comments say; 20261004000002 tightens them.
+
+-- ── 1. initials never NULL ───────────────────────────────────
+CREATE OR REPLACE FUNCTION public.compute_initials(name TEXT)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT coalesce(upper(string_agg(left(word, 1), '')), '')
+  FROM (
+    SELECT regexp_split_to_table(trim(coalesce(name, '')), '\s+') AS word
+    LIMIT 2
+  ) w
+  WHERE word <> '';
+$$;
+
+-- ── 2. hr_unblock.sql (verbatim) ─────────────────────────────
+-- Wellness+ HR unblock — fixes for super-admin login + Reports/Templates.
 -- Safe to re-run (CREATE OR REPLACE + idempotent policy creation).
 --
 -- Problem set:
@@ -120,20 +156,29 @@ BEGIN
        AND checked_at >= v_start;
   END IF;
 
-  -- Daily trend series (last v_days days, 4 metrics).
+  -- Daily trend series (last v_days days, 4 metrics). Aggregate per day in a
+  -- subquery first: jsonb_agg(… avg() …) in one SELECT is a nested aggregate
+  -- (42803) and made the whole RPC fail.
   SELECT jsonb_agg(jsonb_build_object(
-    'date',   d::date,
-    'mood',   round(coalesce(avg(c.mood),   0)::numeric, 1),
-    'stress', round(coalesce(avg(c.stress), 0)::numeric, 1),
-    'sleep',  round(coalesce(avg(c.sleep),  0)::numeric, 1),
-    'energy', round(coalesce(avg(c.energy), 0)::numeric, 1)
-  ) ORDER BY d)
+    'date',   t.day,
+    'mood',   t.mood,
+    'stress', t.stress,
+    'sleep',  t.sleep,
+    'energy', t.energy
+  ) ORDER BY t.day)
     INTO v_trend
-    FROM generate_series(v_start, current_date, '1 day'::interval) AS d
-    LEFT JOIN public.checkins c
-      ON c.checked_at = d::date
-     AND c.company_id = v_company_id
-   GROUP BY d;
+    FROM (
+      SELECT d::date AS day,
+             round(coalesce(avg(c.mood),   0)::numeric, 1) AS mood,
+             round(coalesce(avg(c.stress), 0)::numeric, 1) AS stress,
+             round(coalesce(avg(c.sleep),  0)::numeric, 1) AS sleep,
+             round(coalesce(avg(c.energy), 0)::numeric, 1) AS energy
+        FROM generate_series(v_start, current_date, '1 day'::interval) AS d
+        LEFT JOIN public.checkins c
+          ON c.checked_at = d::date
+         AND c.company_id = v_company_id
+       GROUP BY d
+    ) t;
 
   RETURN jsonb_build_object(
     'kpis',  coalesce(v_kpis, '{}'::jsonb),
@@ -304,3 +349,16 @@ CREATE POLICY broadcasts_hr_read
        WHERE id = auth.uid() AND company_id = broadcasts.company_id
     )
   );
+
+-- ── 3. Live wallet: awarded_rewards must be in the realtime publication ──
+-- subscribeToAwardedRewards() (employee Wallet) listens to this table, but no
+-- migration ever added it, so rewards only appeared after a manual refresh.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+     WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'awarded_rewards'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.awarded_rewards;
+  END IF;
+END $$;
