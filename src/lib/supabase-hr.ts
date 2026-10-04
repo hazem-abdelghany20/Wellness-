@@ -85,6 +85,14 @@ export async function assignContent(contentId: string, scope: 'all' | 'team', te
   return data;
 }
 
+// ── Participation (what the HR dashboard shows) ──────────────
+
+export async function getParticipationOverview(range: '7d' | '30d' | '90d' = '30d') {
+  const { data, error } = await supabase.rpc('hr_participation_overview', { p_range: range });
+  if (error) throw error;
+  return data;
+}
+
 // ── Challenges (weekly habit challenges) ─────────────────────
 
 export async function listHabitTemplates() {

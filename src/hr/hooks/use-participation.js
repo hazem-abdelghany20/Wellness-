@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCompanyOverview } from '../../lib/supabase-hr';
+import { getParticipationOverview } from '../../lib/supabase-hr';
 
-export function useOverview(range = '30d') {
+export function useParticipation(range = '30d') {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const refetch = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setData(await getCompanyOverview(range)); }
+    try { setData(await getParticipationOverview(range)); }
     catch (e) { setError(e); }
     finally { setLoading(false); }
   }, [range]);
