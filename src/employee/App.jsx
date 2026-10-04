@@ -16,7 +16,7 @@ import {
 import { ScreenHome } from './screens/home.jsx';
 import { ScreenCheckIn } from './screens/checkin.jsx';
 import { ScreenBreathe } from './screens/breathe.jsx';
-import { ScreenChallenges } from './screens/challenges.jsx';
+import { ScreenHabitChallenge } from './screens/habit-challenge.jsx';
 import { ScreenProgress } from './screens/progress.jsx';
 import { ScreenProfile }  from './screens/profile.jsx';
 import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
@@ -232,7 +232,7 @@ function AppInner() {
     case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'checkin':  content = <ScreenCheckIn theme={theme} t={t} dir={dir} go={go} variant={cfg.checkinVariant} state={state}/>; showTabs = true; break;
     case 'breathe':  content = <ScreenBreathe theme={theme} t={t} dir={dir} go={go}/>; break;
-    case 'challenges': content = <ScreenChallenges theme={theme} t={t} dir={dir} go={go} variant={cfg.leaderboardVariant} state={state}/>; showTabs = true; break;
+    case 'challenges': content = <ScreenHabitChallenge theme={theme} dir={dir} go={go}/>; showTabs = true; break;
     case 'progress': content = <ScreenProgress theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
     case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
     case 'competition-path': content = <ScreenCompetitionPath theme={theme} t={t} dir={dir} go={go} challengeId={competitionId}/>; break;

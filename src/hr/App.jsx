@@ -38,7 +38,7 @@ function Dashboard({ theme, S, cfg, density, gap, layout, range, setDrawerTeam, 
   const { data: overview, loading: overviewLoading } = useOverview(range);
   const { list: broadcasts } = useBroadcasts();
   const { items: contentItems } = useContent();
-  const { templates: challengeItems } = useChallenges();
+  const { scheduled: challengeItems } = useChallenges();
   const { people: roster } = usePeople();
   const now = new Date();
   const lastUpdated = now.toLocaleTimeString(cfg.lang === 'ar' ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
