@@ -134,7 +134,7 @@ describe('1 · employee app (Amira)', () => {
 
   it('content library: items load; playback progress is saved and resumed', async () => {
     const items = await emp.getContentItems();
-    expect(items.length).toBe(6);
+    expect(items.length).toBe(12); // 10 Wellness House articles + 2 sleep articles (audio and video retired)
     await emp.saveContentProgress(items[0].id, 42);
     expect(await emp.getContentProgress(items[0].id)).toBe(42);
   });
