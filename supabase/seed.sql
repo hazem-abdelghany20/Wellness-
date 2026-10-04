@@ -94,6 +94,9 @@ INSERT INTO public.content_items (id, slug, kind, title_en, title_ar, descriptio
   )
 ON CONFLICT (id) DO NOTHING;
 
+-- Audio has no real playback yet (see migration 20261004000005): keep it out of the library.
+UPDATE public.content_items SET published = false, featured = false, status = 'draft' WHERE kind = 'audio';
+
 -- ── Active Challenge ─────────────────────────────────────────
 INSERT INTO public.challenges (
   id, company_id, title_en, title_ar, description_en, description_ar,
