@@ -68,7 +68,7 @@ function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
   }
 
   return (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
       <div style={{ padding: '14px 22px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
         <TopBack theme={T} onBack={() => step > 0 ? setStep(step - 1) : go('home')} dir={dir}/>
         <div style={{ flex: 1, display: 'flex', gap: 4 }}>

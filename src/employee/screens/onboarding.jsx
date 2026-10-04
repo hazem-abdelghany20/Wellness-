@@ -518,7 +518,7 @@ function ScreenFrame({ theme, children }) {
     <div style={{
       width: '100%', height: '100%', background: theme.bg,
       display: 'flex', flexDirection: 'column',
-      paddingTop: 54, // status bar space
+      paddingTop: 'var(--wp-top)', // status bar space
       boxSizing: 'border-box',
     }}>{children}</div>
   );

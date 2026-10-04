@@ -48,7 +48,7 @@ export function InstallBanner({ theme, lang }) {
 
   return (
     <div style={{
-      position: 'absolute', left: 16, right: 16, bottom: 96, zIndex: 45,
+      position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--wp-tabpad) - 4px)', zIndex: 45,
       background: T.surface, border: `1px solid ${T.border}`,
       borderRadius: 16, padding: 14,
       display: 'flex', alignItems: 'center', gap: 12,

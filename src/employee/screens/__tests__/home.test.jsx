@@ -16,7 +16,7 @@ describe('normalizeAction', () => {
       id: 'content-123',
       type: 'content',
       content_id: '123',
-      kind: { en: 'Content', ar: 'محتوى' },
+      kind: { en: 'Read', ar: 'قراءة' },
       minutes: 6,
       label: {
         en: 'Sleep onset — a cue for tonight',

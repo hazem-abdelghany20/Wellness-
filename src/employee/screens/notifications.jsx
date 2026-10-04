@@ -78,7 +78,7 @@ function ScreenNotifs({ theme, t, dir, go }) {
   ].filter(s => s.items.length > 0);
 
   return (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 40, boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 40, boxSizing: 'border-box' }}>
       <div style={{ padding: '14px 22px 6px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <TopBack theme={T} onBack={() => go('home')} dir={dir}/>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, letterSpacing: -0.4, color: T.text, flex: 1 }}>
@@ -156,7 +156,7 @@ function NotifsLoading({ theme, dir }) {
   const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
   return (
     <div style={{
-      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 40,
+      height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 40,
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>

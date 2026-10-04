@@ -65,7 +65,7 @@ function ScreenProgress({ theme, t, dir, go }) {
   const deltaColor = isPositive ? T.positive : T.danger || T.warning || T.textMuted;
 
   return (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
       <div style={{ padding: '16px 22px 10px' }}>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>{t('progressTitle')}</div>
         <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>{t('last30')}</div>
@@ -183,7 +183,7 @@ function ProgressLoading({ theme, dir }) {
   const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
   return (
     <div style={{
-      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)',
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>

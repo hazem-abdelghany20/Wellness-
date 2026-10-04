@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getTodayPlan, completeAction } from '../../lib/supabase';
+import { getTodayPlan, completeAction, getPlanCompletions } from '../../lib/supabase';
 
 export function useDailyPlan() {
   const [plan, setPlan] = useState(null);
@@ -12,7 +12,11 @@ export function useDailyPlan() {
     try {
       const p = await getTodayPlan();
       setPlan(p);
-      setCompletedIds(p?.completed_action_ids ?? []);
+      // generate-daily-plan returns the raw row (id, not plan_id) and no
+      // completions, so ticks were lost on reload. Read them back.
+      const planId = p?.id ?? p?.plan_id;
+      const done = planId ? await getPlanCompletions(planId).catch(() => []) : [];
+      setCompletedIds([...new Set([...(p?.completed_action_ids ?? []), ...done])]);
     } catch (e) { setError(e); }
     finally { setLoading(false); }
   }, []);
@@ -21,8 +25,9 @@ export function useDailyPlan() {
 
   const complete = useCallback(async (actionId) => {
     if (!plan) return;
-    await completeAction(plan.plan_id, actionId);
+    // Optimistic: tick immediately, then persist.
     setCompletedIds(prev => prev.includes(actionId) ? prev : [...prev, actionId]);
+    await completeAction(plan.id ?? plan.plan_id, actionId);
   }, [plan]);
 
   return { plan, completedIds, loading, error, complete, refetch };

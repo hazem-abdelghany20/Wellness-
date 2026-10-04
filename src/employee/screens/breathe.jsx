@@ -39,7 +39,7 @@ function ScreenBreathe({ theme, t, dir, go }) {
   const ss = String(Math.floor(timeLeft % 60)).padStart(2, '0');
 
   return (
-    <div style={{ height: '100%', background: T.bg, paddingTop: 54, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '14px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <TopBack theme={T} onBack={() => go('home')} dir={dir}/>
         <div style={{

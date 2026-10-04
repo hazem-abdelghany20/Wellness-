@@ -24,7 +24,7 @@ function ScreenCompetitionPath({ theme, t, dir, go, challengeId }) {
   if (loading) {
     return (
       <div style={{
-        height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+        height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)',
         boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{ color: T.textMuted, fontSize: 14 }}>
@@ -49,7 +49,7 @@ function ScreenCompetitionPath({ theme, t, dir, go, challengeId }) {
   return (
     <div style={{
       height: '100%', background: T.bg, overflow: 'auto',
-      paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box',
+      paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box',
     }}>
       {/* Header */}
       <div style={{ padding: '18px 22px 6px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -262,7 +262,7 @@ function PathError({ theme, lang, go }) {
   const T = theme;
   return (
     <div style={{
-      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)',
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexDirection: 'column', gap: 14, padding: 24, textAlign: 'center',
     }}>
