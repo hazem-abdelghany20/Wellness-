@@ -172,7 +172,7 @@ function HRSettingsPage({ theme, S, lang, density }) {
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${T.divider}` }}>
               <div style={{ fontSize: 12, color: T.textMid, marginBottom: 8 }}>{s('Minimum cohort size','الحد الأدنى للعينة')}</div>
               <div style={{ display: 'flex', gap: 4, background: T.panelSunk, padding: 3, borderRadius: 9, border: `1px solid ${T.border}`, width: 'fit-content' }}>
-                {[3, 5, 10, 20].map(n => (
+                {[5, 10, 20].map(n => (
                   <button key={n} onClick={()=>setSetting('min_cohort', n)} style={{
                     padding: '6px 14px', borderRadius: 7, border: 'none',
                     background: minCohort===n ? T.panel : 'transparent',
