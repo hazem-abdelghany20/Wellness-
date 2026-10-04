@@ -37,42 +37,11 @@ const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'p
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
 
-// Small unread-count badge overlaid on the bell icon in the home header.
-// Positioned to track the IconBtn at top-right of the home screen header
-// (54px status-bar offset + 18px header padding + ~28px above bell center).
-function BellBadge({ theme, count, dir }) {
-  const T = theme;
-  const display = count > 99 ? '99+' : String(count);
-  // The home header lays out: [logo]                  [bell] [avatar]
-  // bell IconBtn is 40x40, avatar 38px, gap 8, padding 22px from edge.
-  // RTL flips so badge sticks to the leading-edge instead.
-  const horizontal = dir === 'rtl'
-    ? { left: 22 + 38 + 8 + 26 } // align over bell on the left side
-    : { right: 22 + 38 + 8 + 26 };
-  return (
-    <div style={{
-      position: 'absolute',
-      top: 'calc(var(--wp-top) + 14px)', // safe-area / status-bar offset + header padding-top, nudge upward
-      ...horizontal,
-      minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box',
-      borderRadius: 999,
-      background: T.danger || T.accent,
-      color: T.accentInk || '#fff',
-      fontSize: 10, fontWeight: 700,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      border: `2px solid ${T.bg}`,
-      pointerEvents: 'none',
-      zIndex: 5,
-    }}>{display}</div>
-  );
-}
-
 function TabBar({ theme, t, dir, active, onTab }) {
   const T = theme;
   const tabs = [
     { id: 'home', icon: 'home', label: t('tabToday') },
     { id: 'library', icon: 'library', label: dir==='rtl'?'مكتبة':'Library' },
-    { id: 'checkin', icon: 'sparkle', label: t('tabCheckIn') },
     { id: 'challenges', icon: 'trophy', label: t('tabChallenges') },
     { id: 'progress', icon: 'chart', label: t('tabProgress') },
     { id: 'mine', icon: 'star', label: t('tabMine') },
@@ -237,6 +206,7 @@ function AppInner() {
     playerItem, setPlayerItem,
     avatar, setAvatar,
     name, setName,
+    unreadCount,
   };
 
   const setLang = (l) => setCfg({ ...cfg, lang: l });
@@ -259,7 +229,7 @@ function AppInner() {
     case 'library':  content = <ScreenLibrary theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
     case 'player':   content = <ScreenPlayer theme={theme} t={t} dir={dir} go={go} state={state}/>; break;
     case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go}/>; break;
-    case 'checkin':  content = <ScreenCheckIn theme={theme} t={t} dir={dir} go={go} variant={cfg.checkinVariant} state={state}/>; showTabs = true; break;
+    case 'checkin':  content = <ScreenCheckIn theme={theme} t={t} dir={dir} go={go} variant={cfg.checkinVariant} state={state}/>; break;
     case 'breathe':  content = <ScreenBreathe theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'challenges': content = <ScreenHabitChallenge theme={theme} dir={dir} go={go}/>; showTabs = true; break;
     case 'progress': content = <ScreenProgress theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
@@ -283,10 +253,6 @@ function AppInner() {
                  style={{ position: 'absolute', inset: 0, animation: 'screenIn .35s ease both' }}>
               {content}
             </div>
-            {/* Realtime unread-notification badge over the home-screen bell. */}
-            {screen === 'home' && unreadCount > 0 && (
-              <BellBadge theme={theme} count={unreadCount} dir={dir}/>
-            )}
             {showTabs && <TabBar theme={theme} t={t} dir={dir} active={screen} onTab={go}/>}
             <OfflineBanner theme={theme} lang={lang}/>
             {showTabs && <InstallBanner theme={theme} lang={lang}/>}

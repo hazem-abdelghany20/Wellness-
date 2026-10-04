@@ -68,7 +68,7 @@ function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
   }
 
   return (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-bottom)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
       <div style={{ padding: '14px 22px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
         <TopBack theme={T} onBack={() => step > 0 ? setStep(step - 1) : go('home')} dir={dir}/>
         <div style={{ flex: 1, display: 'flex', gap: 4 }}>
@@ -82,7 +82,7 @@ function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
       </div>
 
       <div style={{ padding: '32px 22px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>
+        <div style={{ fontSize: 13, color: T.textMuted }}>
           {t('checkInTitle')}
         </div>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 36, color: T.text, marginTop: 6, marginBottom: 4, letterSpacing: -0.5, lineHeight: 1.1 }}>

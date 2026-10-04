@@ -1,7 +1,8 @@
 import React from 'react';
 import { typeStyles, Icon, Button, Card, SectionLabel } from '../design-system.jsx';
 import { useHabitChallenge } from '../hooks/use-habit-challenge.js';
-import { getContentBySlug } from '../../lib/supabase';
+import { getContentBySlug, listSignatureChallenges } from '../../lib/supabase';
+import { SignaturePathCard } from './home.jsx';
 import { toPlayerItem } from '../lib/content-item.js';
 
 // Weekly habit challenge: one small daily action, Sun → Thu, chosen by HR.
@@ -33,6 +34,31 @@ function ScreenHabitChallenge({ theme, dir, go }) {
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const { state, loading, saving, error, toggle } = useHabitChallenge();
   const [articleBusy, setArticleBusy] = React.useState(false);
+  // Sabr / Niyyah / Ramadan: optional personal paths, separate from the
+  // weekly challenge HR runs. Hide runs whose end date has passed.
+  const [paths, setPaths] = React.useState([]);
+  React.useEffect(() => {
+    let alive = true;
+    const today = new Date().toISOString().slice(0, 10);
+    listSignatureChallenges()
+      .then((rows) => { if (alive) setPaths((rows || []).filter((r) => !r.end_date || r.end_date >= today)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const pathsSection = paths.length > 0 && (
+    <div style={{ marginTop: 18 }}>
+      <SectionLabel theme={T} style={{ padding: '0 6px', margin: '0 0 10px' }}>{s('Personal paths', 'مسارات شخصية')}</SectionLabel>
+      <div style={{ color: T.textMuted, fontSize: 13, padding: '0 6px 12px', lineHeight: 1.5 }}>
+        {s('Optional, at your own pace.', 'اختيارية، على راحتك.')}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {paths.map((sig) => (
+          <SignaturePathCard key={sig.id} theme={T} lang={lang} sig={sig} onOpen={() => go('competition-path', { id: sig.id })}/>
+        ))}
+      </div>
+    </div>
+  );
 
   const shell = (children) => (
     <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
@@ -46,7 +72,7 @@ function ScreenHabitChallenge({ theme, dir, go }) {
           </div>
         )}
       </div>
-      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
+      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>{children}{pathsSection}</div>
     </div>
   );
 
