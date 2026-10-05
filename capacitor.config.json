@@ -1,0 +1,10 @@
+{
+  "appId": "com.wellnesshouse.wellnessplus",
+  "appName": "Wellness+",
+  "webDir": "dist",
+  "backgroundColor": "#0a1615",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0a1615"
+  }
+}

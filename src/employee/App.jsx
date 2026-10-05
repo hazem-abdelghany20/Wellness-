@@ -244,7 +244,7 @@ function AppInner() {
             </div>
             {showTabs && <TabBar theme={theme} t={t} dir={dir} active={screen} onTab={go}/>}
             <OfflineBanner theme={theme} lang={lang}/>
-            {showTabs && <InstallBanner theme={theme} lang={lang}/>}
+            {showTabs && !window.Capacitor?.isNativePlatform?.() && <InstallBanner theme={theme} lang={lang}/>}
           </div>
         );
         return isPhone ? (
