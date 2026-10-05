@@ -186,6 +186,7 @@ function HRChallengesPage({ theme, lang, density }) {
               <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{tTitle(c)}</div>
               <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
                 {c.team_name || s('All staff', 'كل الموظفين')} · {fmt(c.start_date, lang)} {arrow} {fmt(c.end_date, lang)}
+                {c.auto && s(' · Picked by the app. Schedule your own for this week to replace it.', ' · التطبيق اختاره. جدول تحدي للأسبوع ده عشان تغيّره.')}
               </div>
             </div>
             <div style={{ fontSize: 12, color: T.textMid, textAlign: lang === 'ar' ? 'left' : 'right', minWidth: 170 }}>

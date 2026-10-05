@@ -36,13 +36,15 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
   const [articleBusy, setArticleBusy] = React.useState(false);
   const unread = app?.unreadCount || 0;
   // Sabr / Niyyah / Ramadan: optional personal paths, separate from the
-  // weekly challenge HR runs. Hide runs whose end date has passed.
+  // weekly challenge HR runs. A company's own run hides once its end date
+  // has passed; the shared paths (no company) are self-paced, so the dates
+  // they were seeded with don't apply.
   const [paths, setPaths] = React.useState([]);
   React.useEffect(() => {
     let alive = true;
     const today = new Date().toISOString().slice(0, 10);
     listSignatureChallenges()
-      .then((rows) => { if (alive) setPaths((rows || []).filter((r) => !r.end_date || r.end_date >= today)); })
+      .then((rows) => { if (alive) setPaths((rows || []).filter((r) => !r.company_id || !r.end_date || r.end_date >= today)); })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
