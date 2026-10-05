@@ -680,6 +680,7 @@ export async function claimMyReward(
 
 export interface SignatureChallenge {
   id: string;
+  company_id?: string | null;
   title_en: string;
   title_ar: string | null;
   description_en: string | null;
@@ -716,7 +717,7 @@ export interface PracticeCompletion {
 export async function listSignatureChallenges(): Promise<SignatureChallenge[]> {
   const { data, error } = await supabase
     .from('challenges')
-    .select('id, title_en, title_ar, description_en, description_ar, theme, cultural_context, duration_days, badge_color, badge_icon, start_date, end_date, active')
+    .select('id, company_id, title_en, title_ar, description_en, description_ar, theme, cultural_context, duration_days, badge_color, badge_icon, start_date, end_date, active')
     .not('theme', 'is', null)
     .eq('active', true)
     .order('start_date', { ascending: false });
