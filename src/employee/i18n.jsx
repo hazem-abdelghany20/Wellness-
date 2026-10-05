@@ -14,9 +14,9 @@ const STRINGS = {
     verifySub: 'We sent a verification code to {dest}. Your employer never sees this.',
     resend: 'Resend code',
     consentTitle: 'Your data, your rules',
-    consentBullet1: 'Your employer only sees aggregated, anonymised data.',
+    consentBullet1: 'Your HR team only sees participation: who joined a challenge and who completed it.',
     consentBullet2: 'You can delete your account any time from Settings.',
-    consentBullet3: 'Personal check-ins never leave your account.',
+    consentBullet3: 'Nothing about your health or mood is collected.',
     iAgree: 'I understand',
     baselineTitle: 'A quick baseline',
     baselineSub: 'Five short questions. We\'ll tune your plan from here.',
@@ -24,7 +24,7 @@ const STRINGS = {
     goalsSub: 'Pick up to three. You can change this later.',
     finish: 'Finish setup',
     welcome: 'Welcome, Amira',
-    welcomeSub: 'Your plan is ready.',
+    welcomeSub: 'Your first weekly challenge is waiting.',
     startApp: 'Start using Wellness+',
 
     // Tabs
@@ -37,7 +37,7 @@ const STRINGS = {
 
     // Mine / Wallet
     walletTitle: 'My rewards',
-    walletSub: 'Rewards earned through challenges and check-in streaks.',
+    walletSub: 'Rewards from the weekly challenges you complete.',
     walletEmptyTitle: 'No rewards yet',
     walletEmptySub: 'Complete challenges to earn Bronze, Silver, and Gold rewards.',
     rewardStatusReady: 'Ready to claim',
@@ -135,9 +135,9 @@ const STRINGS = {
     verifySub: 'أرسلنا رمز تحقق إلى {dest}. لا يطَّلع عليه صاحب العمل.',
     resend: 'إعادة إرسال الرمز',
     consentTitle: 'بياناتك، قواعدك',
-    consentBullet1: 'يطَّلع صاحب العمل على بيانات مجمَّعة ومجهولة الهوية فقط.',
+    consentBullet1: 'فريق الـ HR بيشوف المشاركة بس: مين دخل التحدي ومين كمّله.',
     consentBullet2: 'يمكنك حذف حسابك في أي وقت من الإعدادات.',
-    consentBullet3: 'لا تغادر تسجيلاتك الشخصية حسابك أبداً.',
+    consentBullet3: 'مفيش أي بيانات عن صحتك أو مزاجك بتتجمع.',
     iAgree: 'موافق',
     baselineTitle: 'تقييم سريع',
     baselineSub: 'خمسة أسئلة قصيرة. سنضبط خطتك من هنا.',
@@ -145,7 +145,7 @@ const STRINGS = {
     goalsSub: 'اختر حتى ثلاثة. يمكنك التغيير لاحقاً.',
     finish: 'إنهاء الإعداد',
     welcome: 'أهلاً بكِ، أميرة',
-    welcomeSub: 'خطتك جاهزة.',
+    welcomeSub: 'أول تحدي أسبوعي مستنيك.',
     startApp: 'ابدأ استخدام Wellness+',
 
     tabToday: 'اليوم',
@@ -156,7 +156,7 @@ const STRINGS = {
     tabMine: 'حسابي',
 
     walletTitle: 'مكافآتي',
-    walletSub: 'مكافآت من التحديات وسلاسل التسجيل اليومي.',
+    walletSub: 'مكافآت التحديات الأسبوعية اللي بتكمّلها.',
     walletEmptyTitle: 'لا توجد مكافآت بعد',
     walletEmptySub: 'أكمل التحديات لتحصل على مكافآت برونزية وفضية وذهبية.',
     rewardStatusReady: 'جاهزة للاستلام',

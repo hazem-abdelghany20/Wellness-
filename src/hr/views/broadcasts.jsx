@@ -3,7 +3,7 @@ import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useBroadcasts } from '../hooks/use-broadcasts.js';
-import { useTeams } from '../hooks/use-teams.js';
+import { listCompanyTeams } from '../../lib/supabase-hr';
 import { friendlyErrorI18n } from '../../lib/errors';
 
 // ── BROADCASTS PAGE ──────────────────────────────────────────────
@@ -11,7 +11,8 @@ function HRBroadcastsPage({ theme, S, lang, density }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { list, loading, schedule, cancel } = useBroadcasts();
-  const { teams } = useTeams();
+  const [teams, setTeams] = React.useState([]);
+  React.useEffect(() => { listCompanyTeams().then(setTeams).catch(() => setTeams([])); }, []);
 
   const [titleEn, setTitleEn] = useState('');
   const [titleAr, setTitleAr] = useState('');
@@ -137,7 +138,7 @@ function HRBroadcastsPage({ theme, S, lang, density }) {
                 }}>
                   <option value="">{s('Pick a team…','اختر فريقاً…')}</option>
                   {teams.map(t => (
-                    <option key={t.team_id} value={t.team_id}>{t.team_name}{t.department ? ` — ${t.department}` : ''}</option>
+                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
               )}

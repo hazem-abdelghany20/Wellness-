@@ -10,14 +10,9 @@ import {
 } from './design-system.jsx';
 import { STRINGS, useT } from './i18n.jsx';
 import {
-  ScreenJoin, ScreenConsent, ScreenName, ScreenBaseline,
-  ScreenGoals, ScreenWelcome,
+  ScreenJoin, ScreenConsent, ScreenName, ScreenWelcome,
 } from './screens/onboarding.jsx';
-import { ScreenHome } from './screens/home.jsx';
-import { ScreenCheckIn } from './screens/checkin.jsx';
-import { ScreenBreathe } from './screens/breathe.jsx';
 import { ScreenHabitChallenge } from './screens/habit-challenge.jsx';
-import { ScreenProgress } from './screens/progress.jsx';
 import { ScreenProfile }  from './screens/profile.jsx';
 import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
 import { ScreenNotifs } from './screens/notifications.jsx';
@@ -31,8 +26,10 @@ import { AuthProvider, useAuth } from './state/auth-context.jsx';
 import { Splash } from './screens/splash.jsx';
 import { useNotifications } from './hooks/use-notifications.js';
 
-const ONBOARDING_SCREENS = ['join', 'consent', 'name', 'baseline', 'goals', 'welcome'];
-const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'profile', 'mine', 'breathe', 'player', 'notifs', 'competition-path'];
+const ONBOARDING_SCREENS = ['join', 'consent', 'name', 'welcome'];
+const MAIN_SCREENS = ['challenges', 'library', 'profile', 'mine', 'player', 'notifs', 'competition-path'];
+// Screens removed in the 3-tab app; a saved one lands on Challenges.
+const RETIRED_SCREENS = ['home', 'checkin', 'breathe', 'progress', 'baseline', 'goals'];
 
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
@@ -40,11 +37,9 @@ const MAIN_SCREENS = ['home', 'library', 'checkin', 'challenges', 'progress', 'p
 function TabBar({ theme, t, dir, active, onTab }) {
   const T = theme;
   const tabs = [
-    { id: 'home', icon: 'home', label: t('tabToday') },
-    { id: 'library', icon: 'library', label: dir==='rtl'?'مكتبة':'Library' },
-    { id: 'challenges', icon: 'trophy', label: t('tabChallenges') },
-    { id: 'progress', icon: 'chart', label: t('tabProgress') },
-    { id: 'mine', icon: 'star', label: t('tabMine') },
+    { id: 'challenges', icon: 'trophy', label: dir === 'rtl' ? 'التحدي' : 'Challenge' },
+    { id: 'library', icon: 'library', label: dir === 'rtl' ? 'المكتبة' : 'Library' },
+    { id: 'profile', icon: 'user', label: dir === 'rtl' ? 'أنا' : 'Me' },
   ];
   return (
     <div style={{
@@ -140,15 +135,15 @@ function AppInner() {
         setScreen('join');
       }
     } else if (!(profile?.onboarded || profile?.onboarded_at)) {
-      // Authenticated but not onboarded — must be on consent/name/baseline/goals/welcome.
+      // Authenticated but not onboarded — must be on consent/name/welcome.
       // If they're on join/null/main, jump them to consent.
-      if (screen === null || screen === 'join' || MAIN_SCREENS.includes(screen)) {
+      if (screen === null || screen === 'join' || MAIN_SCREENS.includes(screen) || RETIRED_SCREENS.includes(screen)) {
         setScreen('consent');
       }
     } else {
       // Fully onboarded — never show onboarding screens again.
-      if (screen === null || ONBOARDING_SCREENS.includes(screen)) {
-        setScreen('home');
+      if (screen === null || ONBOARDING_SCREENS.includes(screen) || RETIRED_SCREENS.includes(screen)) {
+        setScreen('challenges');
       }
     }
   }, [authLoading, session, profile, profileLoaded, screen]);
@@ -221,22 +216,16 @@ function AppInner() {
   switch (screen) {
     case 'join':     content = <ScreenJoin theme={theme} t={t} dir={dir} onNext={() => go('consent')}/>; break;
     case 'consent':  content = <ScreenConsent theme={theme} t={t} dir={dir} onNext={() => go('name')} onBack={() => go('join')}/>; break;
-    case 'name':     content = <ScreenName theme={theme} t={t} dir={dir} state={state} onNext={() => go('baseline')} onBack={() => go('consent')}/>; break;
-    case 'baseline': content = <ScreenBaseline theme={theme} t={t} dir={dir} onNext={() => go('goals')} onBack={() => go('name')}/>; break;
-    case 'goals':    content = <ScreenGoals theme={theme} t={t} dir={dir} onNext={() => go('welcome')} onBack={() => go('baseline')}/>; break;
-    case 'welcome':  content = <ScreenWelcome theme={theme} t={t} dir={dir} state={state} onNext={() => go('home')}/>; break;
-    case 'home':     content = <ScreenHome theme={theme} t={t} dir={dir} go={go} variant={cfg.homeVariant} state={state}/>; showTabs = true; break;
+    case 'name':     content = <ScreenName theme={theme} t={t} dir={dir} state={state} onNext={() => go('welcome')} onBack={() => go('consent')}/>; break;
+    case 'welcome':  content = <ScreenWelcome theme={theme} t={t} dir={dir} state={state} onNext={() => go('challenges')}/>; break;
     case 'library':  content = <ScreenLibrary theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
     case 'player':   content = <ScreenPlayer theme={theme} t={t} dir={dir} go={go} state={state}/>; break;
     case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go}/>; break;
-    case 'checkin':  content = <ScreenCheckIn theme={theme} t={t} dir={dir} go={go} variant={cfg.checkinVariant} state={state}/>; break;
-    case 'breathe':  content = <ScreenBreathe theme={theme} t={t} dir={dir} go={go}/>; break;
-    case 'challenges': content = <ScreenHabitChallenge theme={theme} dir={dir} go={go}/>; showTabs = true; break;
-    case 'progress': content = <ScreenProgress theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
-    case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
+    case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'competition-path': content = <ScreenCompetitionPath theme={theme} t={t} dir={dir} go={go} challengeId={competitionId}/>; break;
     case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state}/>; showTabs = true; break;
-    default:         content = <ScreenHome theme={theme} t={t} dir={dir} go={go} variant={cfg.homeVariant} state={state}/>; showTabs = true;
+    case 'challenges':
+    default:         content = <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>; showTabs = true;
   }
 
   return (
@@ -249,7 +238,7 @@ function AppInner() {
             position: 'absolute', inset: 0, zIndex: 1,
             fontFamily: typeStyles(theme).sansFont,
           }}>
-            <div key={screen + cfg.theme + cfg.lang + cfg.homeVariant + cfg.checkinVariant + cfg.leaderboardVariant}
+            <div key={screen + cfg.theme + cfg.lang}
                  style={{ position: 'absolute', inset: 0, animation: 'screenIn .35s ease both' }}>
               {content}
             </div>

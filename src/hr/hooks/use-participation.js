@@ -1,18 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getProgressStats } from '../../lib/supabase';
+import { getParticipationOverview } from '../../lib/supabase-hr';
 
-export function useProgress() {
-  const [stats, setStats] = useState(null);
+export function useParticipation(range = '30d') {
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const refetch = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setStats(await getProgressStats()); }
+    try { setData(await getParticipationOverview(range)); }
     catch (e) { setError(e); }
     finally { setLoading(false); }
-  }, []);
+  }, [range]);
 
   useEffect(() => { refetch(); }, [refetch]);
-  return { stats, loading, error, refetch };
+  return { data, loading, error, refetch };
 }

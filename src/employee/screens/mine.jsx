@@ -5,11 +5,13 @@ import {
 import { useWallet } from '../hooks/use-wallet.js';
 import { tierToken } from '../../shared/tokens.jsx';
 import { getTierChoiceForReward } from '../../lib/supabase';
+import { TopBack } from './onboarding.jsx';
+import { fmtNum } from '../components/shared.jsx';
 
 // v2 Mine tab — wallet hero. Sprint 0 shipped read-only display;
 // Sprint 2 adds the choose-from-options + claim flow.
 
-function ScreenMine({ theme, t, dir }) {
+function ScreenMine({ theme, t, dir, go }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const { rewards, grouped, loading, error, claim } = useWallet();
@@ -26,8 +28,13 @@ function ScreenMine({ theme, t, dir }) {
   return (
     <div style={{
       height: '100%', background: T.bg, overflow: 'auto',
-      paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box',
+      paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-bottom)', boxSizing: 'border-box',
     }}>
+      {go && (
+        <div style={{ padding: '14px 22px 0' }}>
+          <TopBack theme={T} onBack={() => go('profile')} dir={dir}/>
+        </div>
+      )}
       <div style={{ padding: '18px 22px 6px' }}>
         <div style={{
           fontFamily: typeStyles(T).displayFont, fontSize: 28, lineHeight: 1.1,
@@ -48,7 +55,7 @@ function ScreenMine({ theme, t, dir }) {
                 borderLeft: i > 0 ? `1px solid ${T.border}` : 'none',
                 paddingLeft: i > 0 ? 12 : 0, paddingRight: i < summaryStats.length - 1 ? 12 : 0,
               }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: T.text, lineHeight: 1 }}>{s.count}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: T.text, lineHeight: 1 }}>{fmtNum(s.count, lang)}</div>
                 <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4, letterSpacing: 0.2 }}>
                   {s.label}
                 </div>
@@ -195,7 +202,7 @@ function ClaimSheet({ theme, t, lang, reward, onCancel, onClaim }) {
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: '100%', background: T.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-        padding: '20px 22px calc(var(--wp-tabpad) + 28px)', border: `1px solid ${T.border}`,
+        padding: '20px 22px calc(var(--wp-bottom) + 28px)', border: `1px solid ${T.border}`,
         animation: 'sheetUp .25s ease both',
         maxHeight: '80%', overflow: 'auto',
       }}>

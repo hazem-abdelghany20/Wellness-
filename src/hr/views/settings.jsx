@@ -211,7 +211,7 @@ function HRSettingsPage({ theme, S, lang, density }) {
 
           <Panel theme={T} density={density}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Data retention','الاحتفاظ بالبيانات')}</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('Individual check-ins are kept for 90 days then aggregated. Aggregates retained 24 months.','تُحفظ الفحوصات الفردية ٩٠ يومًا ثم تُجمَّع. تُحفظ المجاميع ٢٤ شهرًا.')}</div>
+            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('The app collects no health or mood data. HR sees participation only: who joined a challenge, who completed it, and article reads.','التطبيق مش بيجمع أي بيانات عن الصحة أو المزاج. الـ HR بيشوف المشاركة بس: مين دخل التحدي، ومين كمّله، وقراية المقالات.')}</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <HRButton theme={T} variant="secondary">{s('View policy','عرض السياسة')}</HRButton>
               <HRButton theme={T} variant="ghost">{s('Request export','طلب تصدير')}</HRButton>

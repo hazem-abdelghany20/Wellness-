@@ -3,8 +3,9 @@ import {
   typeStyles, Icon, Card, Chip, SectionLabel,
 } from '../design-system.jsx';
 import { TopBack } from './onboarding.jsx';
-import { IconBtn, kindLabel } from './home.jsx';
+import { IconBtn, kindLabel } from '../components/shared.jsx';
 import { useContent } from '../hooks/use-content.js';
+import { markArticleOpened, saveContentProgress } from '../../lib/supabase';
 
 // --- screens-content.jsx ---
 // Content library + audio/video/article player + Notifications
@@ -242,7 +243,8 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const { saveProgress, getProgress } = useContent();
   const item = state.playerItem || { id: 'sleep-onset', kind: 'audio', mins: 6, title: { en: 'Sleep onset — a cue for tonight', ar: 'بداية النوم — إشارة لهذه الليلة' } };
-  const [playing, setPlaying] = React.useState(true);
+  // Articles have no media timer; reads are tracked separately below.
+  const [playing, setPlaying] = React.useState(item.kind !== 'article');
   const [pos, setPos] = React.useState(0);
   const dur = (item.mins || 0) * 60;
 
@@ -250,6 +252,22 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
   const lastWriteRef = React.useRef(0);
   const completedRef = React.useRef(false);
   const posRef       = React.useRef(0);
+
+  // Articles: count a read when opened, and a finished read when the
+  // reader scrolls to the end. (HR sees counts only.)
+  const isArticleItem = item.kind === 'article';
+  const finishedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (isArticleItem && item.id) markArticleOpened(item.id).catch(() => {});
+  }, [isArticleItem, item.id]);
+  const onArticleScroll = (e) => {
+    const el = e.currentTarget;
+    if (finishedRef.current || !item.id) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) {
+      finishedRef.current = true;
+      saveContentProgress(item.id, 0, true).catch(() => {});
+    }
+  };
   React.useEffect(() => { posRef.current = pos; }, [pos]);
 
   // Only save progress for real DB-backed items (UUID-shaped ids). Legacy
@@ -327,7 +345,7 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
   if (isArticle) {
     const articleBody = (item.body && (item.body[lang] || item.body.en)) || '';
     return (
-      <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 40, boxSizing: 'border-box' }}>
+      <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 40, boxSizing: 'border-box' }} onScroll={onArticleScroll}>
         <div style={{ padding: '14px 22px 0' }}>
           <TopBack theme={T} onBack={() => go('library')} dir={dir}/>
         </div>

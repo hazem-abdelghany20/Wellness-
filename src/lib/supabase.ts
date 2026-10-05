@@ -306,6 +306,19 @@ export async function getFeaturedContent() {
   return data ?? [];
 }
 
+// Record that an article was opened. Inserts once per person per article
+// and never overwrites a finished read. HR sees only counts.
+export async function markArticleOpened(itemId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const companyId = await resolveMyCompanyId();
+  const { error } = await supabase
+    .from('content_progress')
+    .upsert({ user_id: user.id, item_id: itemId, company_id: companyId },
+            { onConflict: 'user_id,item_id', ignoreDuplicates: true });
+  if (error) throw error;
+}
+
 export async function saveContentProgress(itemId: string, progressS: number, completed = false) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
