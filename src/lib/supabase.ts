@@ -423,6 +423,37 @@ export async function logHabit(challengeId: string, done = true): Promise<HabitC
   return data as HabitChallengeState;
 }
 
+// Score tab: my points (this week, all time, last 6 weeks) plus my team's and
+// company's average per person. Group numbers are null when the group is
+// below the company's minimum cohort.
+export interface ScorePart { habit_days: number; weeks_done: number; articles: number }
+export interface ScoreGroup {
+  name?: string;
+  members: number;
+  avg_week: number;
+  active: number;
+  weekly: { week_start: string; avg: number }[];
+}
+export interface Scorecard {
+  week_start: string;
+  me: {
+    week: number;
+    total: number;
+    best_week: number;
+    week_parts: ScorePart;
+    total_parts: ScorePart;
+    weekly: { week_start: string; points: number }[];
+  };
+  team: ScoreGroup | null;
+  company: ScoreGroup | null;
+}
+
+export async function getMyScorecard(): Promise<Scorecard> {
+  const { data, error } = await supabase.rpc('my_scorecard');
+  if (error) throw error;
+  return data as Scorecard;
+}
+
 export async function getContentById(id: string) {
   const { data, error } = await supabase
     .from('content_items')

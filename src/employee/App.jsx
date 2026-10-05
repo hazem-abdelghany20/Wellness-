@@ -14,6 +14,7 @@ import {
 } from './screens/onboarding.jsx';
 import { ScreenHabitChallenge } from './screens/habit-challenge.jsx';
 import { ScreenProfile }  from './screens/profile.jsx';
+import { ScreenScorecard } from './screens/scorecard.jsx';
 import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
 import { ScreenNotifs } from './screens/notifications.jsx';
 import { ScreenMine } from './screens/mine.jsx';
@@ -27,8 +28,8 @@ import { Splash } from './screens/splash.jsx';
 import { useNotifications } from './hooks/use-notifications.js';
 
 const ONBOARDING_SCREENS = ['join', 'consent', 'name', 'welcome'];
-const MAIN_SCREENS = ['challenges', 'library', 'profile', 'mine', 'player', 'notifs', 'competition-path'];
-// Screens removed in the 3-tab app; a saved one lands on Challenges.
+const MAIN_SCREENS = ['challenges', 'library', 'score', 'profile', 'mine', 'player', 'notifs', 'competition-path'];
+// Screens removed when the app went to Challenge / Library / Score / Me; a saved one lands on Challenges.
 const RETIRED_SCREENS = ['home', 'checkin', 'breathe', 'progress', 'baseline', 'goals'];
 
 // --- app.jsx ---
@@ -39,6 +40,7 @@ function TabBar({ theme, t, dir, active, onTab }) {
   const tabs = [
     { id: 'challenges', icon: 'trophy', label: dir === 'rtl' ? 'التحدي' : 'Challenge' },
     { id: 'library', icon: 'library', label: dir === 'rtl' ? 'المكتبة' : 'Library' },
+    { id: 'score', icon: 'chart', label: dir === 'rtl' ? 'نقاطي' : 'Score' },
     { id: 'profile', icon: 'user', label: dir === 'rtl' ? 'أنا' : 'Me' },
   ];
   return (
@@ -223,6 +225,7 @@ function AppInner() {
     case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'competition-path': content = <ScreenCompetitionPath theme={theme} t={t} dir={dir} go={go} challengeId={competitionId}/>; break;
+    case 'score':    content = <ScreenScorecard theme={theme} dir={dir} go={go}/>; showTabs = true; break;
     case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state}/>; showTabs = true; break;
     case 'challenges':
     default:         content = <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>; showTabs = true;
