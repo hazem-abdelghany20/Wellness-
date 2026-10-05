@@ -410,6 +410,26 @@ export async function logHabit(challengeId: string, done = true): Promise<HabitC
   return data as HabitChallengeState;
 }
 
+export async function getContentById(id: string) {
+  const { data, error } = await supabase
+    .from('content_items')
+    .select('*')
+    .eq('id', id)
+    .eq('published', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getPlanCompletions(planId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('daily_plan_completions')
+    .select('action_id')
+    .eq('plan_id', planId);
+  if (error) throw error;
+  return (data ?? []).map((r: { action_id: string }) => r.action_id);
+}
+
 export async function getContentBySlug(slug: string) {
   const { data, error } = await supabase
     .from('content_items')

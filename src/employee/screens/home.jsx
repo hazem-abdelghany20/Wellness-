@@ -8,7 +8,9 @@ import { useCheckin } from '../hooks/use-checkin.js';
 import { useContent } from '../hooks/use-content.js';
 import { useAuth } from '../state/auth-context.jsx';
 import { tierFor } from '../lib/tiers.js';
-import { listSignatureChallenges } from '../../lib/supabase.js';
+import { listSignatureChallenges, getContentById } from '../../lib/supabase.js';
+import { useHabitChallenge } from '../hooks/use-habit-challenge.js';
+import { toPlayerItem } from '../lib/content-item.js';
 import { useAppConfig } from '../state/app-config-context.jsx';
 import { prayerTimes, CAIRO } from '../lib/sun-times.js';
 
@@ -23,7 +25,7 @@ const ACTION_DEFAULTS = {
   'daily-checkin': { icon: 'smile',    kind: { en: 'Check-in', ar: 'تسجيل' },     label: { en: 'Daily check-in',             ar: 'التسجيل اليومي' },       minutes: 1 },
   breathe:         { icon: 'wind',     kind: { en: 'Reset',    ar: 'استراحة' },   label: { en: '2-minute box breathing',     ar: 'تنفس مربع دقيقتان' },    minutes: 2 },
   'box-breath':    { icon: 'wind',     kind: { en: 'Reset',    ar: 'استراحة' },   label: { en: 'Box breathing',              ar: 'تنفس مربع' },            minutes: 4 },
-  content:         { icon: 'play',     kind: { en: 'Content',  ar: 'محتوى' },     label: { en: 'Recommended session',        ar: 'جلسة مقترحة' },          minutes: 5 },
+  content:         { icon: 'book',     kind: { en: 'Read',     ar: 'قراءة' },     label: { en: 'Recommended read',           ar: 'قراءة مقترحة' },          minutes: 5 },
   challenge:       { icon: 'trophy',   kind: { en: 'Challenge', ar: 'تحدٍ' },     label: { en: 'Challenge practice',         ar: 'تدريب التحدي' },         minutes: 5 },
   stretch:         { icon: 'activity', kind: { en: 'Move',     ar: 'حركة' },      label: { en: 'Desk mobility flow',         ar: 'حركات مكتبية' },         minutes: 4 },
   journal:         { icon: 'book',     kind: { en: 'Reflect',  ar: 'تأمّل' },     label: { en: 'Evening wind-down journal',  ar: 'يوميات نهاية اليوم' },   minutes: 3 },
@@ -32,6 +34,9 @@ const ACTION_DEFAULTS = {
 // Translate content-item kind chips (AUDIO/VIDEO/ARTICLE) to AR-friendly
 // labels in the home featured strip + library cards. Lives next to home so
 // the home featured card and library can share it.
+// Arabic-Indic digits in AR so numbers match the surrounding text.
+const fmtNum = (n, lang) => (lang === 'ar' ? new Intl.NumberFormat('ar-EG', { useGrouping: false }).format(n) : String(n));
+
 function kindLabel(kind, lang) {
   const map = {
     audio:   { en: 'AUDIO',   ar: 'صوت' },
@@ -78,12 +83,16 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   const enName = state.name || profile?.display_name || '';
   const displayName = (lang === 'ar' && arName) ? arName : enName;
   const firstName = displayName.trim().split(/\s+/)[0] || (lang === 'ar' ? 'هناك' : 'there');
-  const greeting = lang === 'ar' ? `صباح الخير، ${firstName}` : `Good morning, ${firstName}`;
+  const hour = new Date().getHours();
+  const greeting = lang === 'ar'
+    ? `${hour < 12 ? 'صباح الخير' : 'مساء الخير'}، ${firstName}`
+    : `${hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'}, ${firstName}`;
   const streak = state.streak;
 
   const { plan, completedIds, loading, complete } = useDailyPlan();
   const { history: checkinHistory } = useCheckin(14);
   const { featured: featuredItems } = useContent(null);
+  const { state: habit } = useHabitChallenge();
   const { cfg } = useAppConfig();
   const ramadan = cfg?.ramadanMode;
   const times = React.useMemo(() => ramadan ? prayerTimes(new Date(), CAIRO) : null, [ramadan]);
@@ -91,7 +100,10 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   React.useEffect(() => {
     let alive = true;
     listSignatureChallenges()
-      .then((rows) => { if (alive) setSignatures(rows); })
+      .then((rows) => {
+        const today = new Date().toISOString().slice(0, 10);
+        if (alive) setSignatures((rows || []).filter((r) => !r.end_date || r.end_date >= today));
+      })
       .catch(() => { /* swallow — strip just won't render */ });
     return () => { alive = false; };
   }, []);
@@ -102,9 +114,12 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
 
   const rawActions = plan?.actions ?? [];
   const completedSet = new Set(completedIds || []);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const checkedInToday = (checkinHistory || []).some((r) => String(r?.checked_at || r?.date || '').slice(0, 10) === todayIso);
   const actions = rawActions.map(a => {
     const n = normalizeAction(a);
-    return { ...n, done: completedSet.has(n.id) };
+    const isCheckin = n.type === 'checkin' || n.id === 'daily-checkin' || n.id === 'checkin';
+    return { ...n, done: completedSet.has(n.id) || (isCheckin && checkedInToday) };
   });
   const doneCount = actions.filter(a => a.done).length;
   const totalCount = Math.max(actions.length, 1);
@@ -113,10 +128,21 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   // content; only renders the strip when we actually have a row.
   const featured = featuredItems && featuredItems[0] ? featuredItems[0] : null;
 
-  const onAction = (a) => {
+  const onAction = async (a) => {
     if (a.type === 'checkin' || a.id === 'daily-checkin') { go('checkin'); return; }
-    if (a.type === 'breathe' || a.id === 'breathe' || a.id === 'box-breath') { go('breathe'); return; }
-    if (!a.done) complete(a.id);
+    if (a.type === 'breathe' || a.id === 'breathe' || a.id === 'box-breath') {
+      if (!a.done) complete(a.id).catch(() => {});
+      go('breathe'); return;
+    }
+    if (a.type === 'content' && a.content_id) {
+      if (!a.done) complete(a.id).catch(() => {});
+      try {
+        const row = await getContentById(a.content_id);
+        if (row) { go('player', { item: toPlayerItem(row) }); return; }
+      } catch (_) { /* fall through */ }
+      return;
+    }
+    if (!a.done) complete(a.id).catch(() => {});
   };
 
   // Build the 7-day sleep sparkline from real check-in history. checkinHistory
@@ -131,7 +157,7 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
   return (
     <div style={{
       height: '100%', background: T.bg, overflow: 'auto',
-      paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box',
+      paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box',
     }}>
       {/* Header */}
       <div style={{ padding: '18px 22px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -160,7 +186,7 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
           <StreakTierCard theme={T} t={t} lang={lang} streak={streak}/>
           <Card theme={T} pad={14} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
             <Ring theme={T} value={doneCount / totalCount} size={38} stroke={4}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{doneCount}/{actions.length || 0}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{lang === 'ar' ? `${new Intl.NumberFormat('ar-EG').format(doneCount)}/${new Intl.NumberFormat('ar-EG').format(actions.length || 0)}` : `${doneCount}/${actions.length || 0}`}</div>
             </Ring>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>{lang==='ar'?'خطة اليوم':'Today'}</div>
@@ -169,6 +195,13 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
           </Card>
         </div>
       </div>
+
+      {/* This week's habit challenge */}
+      {habit && habit.status !== 'none' && habit.challenge && (
+        <div style={{ padding: '0 16px 18px' }}>
+          <HabitHomeCard theme={T} lang={lang} habit={habit} onOpen={() => go('challenges')}/>
+        </div>
+      )}
 
       {/* Signature paths (Sabr / Niyyah / Ramadan Mode) */}
       {signatures.length > 0 && (
@@ -199,7 +232,7 @@ function ScreenHome({ theme, t, dir, go, variant = 'list', state }) {
             {lang==='ar'?'المكتبة ←':'Library →'}
           </button>
         }>{t('recForYou')}</SectionLabel>
-        <Card theme={T} pad={0} radius={22} onClick={() => go('player', { item: featured })} style={{ overflow: 'hidden', cursor: 'pointer' }}>
+        <Card theme={T} pad={0} radius={22} onClick={() => go('player', { item: toPlayerItem(featured) })} style={{ overflow: 'hidden', cursor: 'pointer' }}>
           <div style={{
             height: 140, position: 'relative',
             background: `linear-gradient(135deg, ${T.accentSoft}, ${T.surfaceAlt})`,
@@ -275,7 +308,7 @@ function HomeLoading({ theme, dir }) {
   const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
   return (
     <div style={{
-      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)',
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
@@ -359,7 +392,7 @@ function SignaturePathCard({ theme, lang, sig, onOpen }) {
           fontSize: 10, color: T.textMuted, letterSpacing: 0.4,
           textTransform: 'uppercase', fontWeight: 700, marginBottom: 2,
         }}>
-          {subtle}{days ? ` · ${days} ${lang === 'ar' ? 'يوماً' : 'days'}` : ''}
+          {subtle}{days ? ` · ${lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(days) : days} ${lang === 'ar' ? 'يوماً' : 'days'}` : ''}
         </div>
         <div style={{ fontSize: 15, color: T.text, fontWeight: 600, lineHeight: 1.2 }}>{title}</div>
         {desc && (
@@ -384,7 +417,7 @@ function StreakTierCard({ theme, t, lang, streak }) {
     : (info.daysToNext === 1 ? 'day' : 'days');
   const toNext = info.next
     ? (lang === 'ar'
-        ? `${info.daysToNext} ${dayWord} إلى ${info.nextLabel.ar}`
+        ? `${new Intl.NumberFormat('ar-EG').format(info.daysToNext)} ${dayWord} إلى ${info.nextLabel.ar}`
         : `${info.daysToNext} ${dayWord} to ${info.nextLabel.en}`)
     : (lang === 'ar' ? 'وصلت للذهبي' : 'Top tier reached');
   return (
@@ -395,7 +428,7 @@ function StreakTierCard({ theme, t, lang, streak }) {
           color: T.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}><Icon name="flame" size={20}/></div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: T.text, lineHeight: 1 }}>{streak}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: T.text, lineHeight: 1 }}>{lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(streak) : streak}</div>
           <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{t('dayStreak')}</div>
         </div>
         <div style={{
@@ -463,7 +496,7 @@ function LayoutList({ theme, t, lang, actions, onAction }) {
               textDecorationColor: T.textFaint,
             }}>{a.label[lang]}</div>
           </div>
-          <div style={{ fontSize: 12, color: T.textMuted, whiteSpace: 'nowrap' }}>{a.minutes} {t('minutes')}</div>
+          <div style={{ fontSize: 12, color: T.textMuted, whiteSpace: 'nowrap' }}>{fmtNum(a.minutes, lang)} {t('minutes')}</div>
         </div>
       ))}
     </Card>
@@ -482,11 +515,11 @@ function LayoutStack({ theme, t, lang, actions, onAction }) {
           <div style={{
             fontFamily: typeStyles(T).displayFont, fontSize: 38, color: T.accent,
             width: 36, lineHeight: 1, letterSpacing: -1,
-          }}>{String(i+1).padStart(2,'0')}</div>
+          }}>{lang === 'ar' ? fmtNum(i + 1, lang) : String(i+1).padStart(2,'0')}</div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <Icon name={a.icon} size={14} stroke={T.textMuted}/>
-              <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>{typeof a.kind === 'object' ? (a.kind[lang] || a.kind.en) : a.kind} · {a.minutes} {t('minutes')}</div>
+              <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600 }}>{typeof a.kind === 'object' ? (a.kind[lang] || a.kind.en) : a.kind} · {fmtNum(a.minutes, lang)} {t('minutes')}</div>
             </div>
             <div style={{ fontSize: 16, color: T.text, fontWeight: 500, lineHeight: 1.3 }}>{a.label[lang]}</div>
           </div>
@@ -528,7 +561,7 @@ function LayoutAgenda({ theme, t, lang, actions, onAction }) {
             onClick={() => onAction(a)}
             style={{ flex: 1, cursor: 'pointer' }}>
             <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: T.textMuted, fontWeight: 600, marginBottom: 4 }}>
-              {typeof a.kind === 'object' ? (a.kind[lang] || a.kind.en) : a.kind} · {a.minutes} {t('minutes')}
+              {typeof a.kind === 'object' ? (a.kind[lang] || a.kind.en) : a.kind} · {fmtNum(a.minutes, lang)} {t('minutes')}
             </div>
             <div style={{ fontSize: 15, color: T.text, fontWeight: 500, lineHeight: 1.3, marginBottom: 10 }}>
               {a.label[lang]}
@@ -543,6 +576,43 @@ function LayoutAgenda({ theme, t, lang, actions, onAction }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// Compact "this week" card: the action, today's state, and a way in.
+function HabitHomeCard({ theme, lang, habit, onOpen }) {
+  const T = theme;
+  const c = habit.challenge;
+  const p = c.payload || {};
+  const title = lang === 'ar' ? (c.title_ar || c.title_en) : c.title_en;
+  const action = (lang === 'ar' ? (p.action_ar || p.action_en) : p.action_en) || '';
+  const num = (n) => (lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(n) : String(n));
+  const status = habit.status === 'upcoming'
+    ? (lang === 'ar' ? 'يبدأ الأحد' : 'Starts Sunday')
+    : habit.logged_target
+      ? (lang === 'ar' ? 'عملتها ✓' : 'Done today ✓')
+      : (lang === 'ar' ? `${num(habit.my_count || 0)} من ${num(habit.success_days || 4)} أيام` : `${habit.my_count || 0} of ${habit.success_days || 4} days`);
+  return (
+    <Card theme={T} pad={16} radius={20} onClick={onOpen} style={{ cursor: 'pointer' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center',
+          background: (p.badge_color || T.accent) + '26', color: p.badge_color || T.accent,
+        }}><Icon name={p.badge_icon || 'trophy'} size={20}/></div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, letterSpacing: 0.8, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
+            {lang === 'ar' ? 'تحدي الأسبوع' : "This week's challenge"}
+          </div>
+          <div style={{ fontSize: 16, color: T.text, fontWeight: 600, marginTop: 2 }}>{title}</div>
+        </div>
+        <div style={{
+          fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', padding: '6px 10px', borderRadius: 999,
+          background: habit.logged_target ? T.accent : T.surfaceAlt || T.bg,
+          color: habit.logged_target ? T.accentInk : T.textMuted,
+        }}>{status}</div>
+      </div>
+      <div style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.5, marginTop: 10 }}>{action}</div>
+    </Card>
   );
 }
 

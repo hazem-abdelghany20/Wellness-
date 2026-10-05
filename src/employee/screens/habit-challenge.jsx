@@ -2,6 +2,7 @@ import React from 'react';
 import { typeStyles, Icon, Button, Card, SectionLabel } from '../design-system.jsx';
 import { useHabitChallenge } from '../hooks/use-habit-challenge.js';
 import { getContentBySlug } from '../../lib/supabase';
+import { toPlayerItem } from '../lib/content-item.js';
 
 // Weekly habit challenge: one small daily action, Sun → Thu, chosen by HR.
 // No scores and no ranking — a "Did it" tap, five day dots, and one shared
@@ -34,7 +35,7 @@ function ScreenHabitChallenge({ theme, dir, go }) {
   const [articleBusy, setArticleBusy] = React.useState(false);
 
   const shell = (children) => (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
       <div style={{ padding: '16px 22px 14px' }}>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>
           {s('This week', 'تحدي الأسبوع')}
@@ -102,11 +103,7 @@ function ScreenHabitChallenge({ theme, dir, go }) {
     try {
       const row = await getContentBySlug(p.article_slug);
       if (row) {
-        go('player', { item: {
-          id: row.id, kind: row.kind, mins: row.duration_mins,
-          title: { en: row.title_en || '', ar: row.title_ar || row.title_en || '' },
-          body: { en: row.body_en || '', ar: row.body_ar || row.body_en || '' },
-        } });
+        go('player', { item: toPlayerItem(row) });
       }
     } finally { setArticleBusy(false); }
   };

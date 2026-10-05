@@ -68,7 +68,7 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
   };
 
   return (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
       <div style={{ padding: '16px 22px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <button onClick={() => setPicker(true)} style={{
           background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
@@ -360,7 +360,7 @@ function ProfileLoading({ theme, dir }) {
   const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
   return (
     <div style={{
-      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)',
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>

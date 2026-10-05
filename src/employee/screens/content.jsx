@@ -48,6 +48,8 @@ function ScreenLibrary({ theme, t, dir, go }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const [cat, setCat] = React.useState('all');
+  const [query, setQuery] = React.useState('');
+  const [searching, setSearching] = React.useState(false);
 
   const { items: rawItems, featured: rawFeatured, loading } = useContent(cat === 'all' ? null : cat);
 
@@ -55,18 +57,35 @@ function ScreenLibrary({ theme, t, dir, go }) {
     return <ContentLoading theme={T} dir={dir}/>;
   }
 
-  const items = (rawItems || []).map(normalizeItem).filter(Boolean);
+  const num = (n) => (lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(n) : String(n));
   const featured = (rawFeatured || []).map(normalizeItem).filter(Boolean);
-  const heroItem = featured[0];
+  const q = query.trim().toLowerCase();
+  const heroItem = q ? null : featured[0];
+  const items = (rawItems || []).map(normalizeItem).filter(Boolean)
+    // the hero card already shows this one
+    .filter((it) => !(cat === 'all' && heroItem && it.id === heroItem.id))
+    .filter((it) => !q || `${it.title?.en || ''} ${it.title?.ar || ''}`.toLowerCase().includes(q));
 
   return (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
       <div style={{ padding: '16px 22px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>
           {lang==='ar' ? 'المكتبة' : 'Library'}
         </div>
-        <IconBtn theme={T} icon="search"/>
+        <IconBtn theme={T} icon={searching ? 'close' : 'search'}
+          aria-label={lang === 'ar' ? 'بحث' : 'Search'}
+          onClick={() => { setSearching((v) => !v); setQuery(''); }}/>
       </div>
+      {searching && (
+        <div style={{ padding: '0 16px 12px' }}>
+          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder={lang === 'ar' ? 'دوّر على مقال…' : 'Search articles…'}
+            style={{
+              width: '100%', boxSizing: 'border-box', height: 44, padding: '0 14px', borderRadius: 14,
+              background: T.surface, border: `1px solid ${T.border}`, color: T.text, fontSize: 15, outline: 'none',
+            }}/>
+        </div>
+      )}
 
       <div style={{ padding: '4px 22px 14px', display: 'flex', gap: 8, overflowX: 'auto' }}>
         {CATEGORIES.map(c => (
@@ -98,11 +117,11 @@ function ScreenLibrary({ theme, t, dir, go }) {
                 width: 56, height: 56, borderRadius: 999,
                 background: T.accentInk, color: T.accent,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}><Icon name="play" size={22}/></div>
+              }}><Icon name={heroItem.kind === 'article' ? 'book' : 'play'} size={22}/></div>
             </div>
             <div style={{ padding: '16px 18px 18px' }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
-                {kindLabel(heroItem.kind, lang)} · {heroItem.mins} {lang==='ar'?'د':'MIN'} · {lang==='ar'?'موصى به':'FOR YOU'}
+                {kindLabel(heroItem.kind, lang)} · {num(heroItem.mins)} {lang==='ar'?'د':'MIN'} · {lang==='ar'?'موصى به':'FOR YOU'}
               </div>
               <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, marginTop: 6, letterSpacing: -0.3, lineHeight: 1.2 }}>
                 {heroItem.title?.[lang] || heroItem.title?.en || ''}
@@ -117,7 +136,9 @@ function ScreenLibrary({ theme, t, dir, go }) {
         <div style={{ padding: '0 16px' }}>
           <Card theme={T} pad={16}>
             <div style={{ fontSize: 13, color: T.textMuted, textAlign: 'center' }}>
-              {lang==='ar' ? 'لا يوجد محتوى في هذا التصنيف بعد.' : 'No content in this category yet.'}
+              {q
+                ? (lang==='ar' ? 'مفيش مقال بالاسم ده.' : 'No article matches that.')
+                : (lang==='ar' ? 'لا يوجد محتوى في هذا التصنيف بعد.' : 'No content in this category yet.')}
             </div>
           </Card>
         </div>
@@ -140,6 +161,9 @@ function ScreenLibrary({ theme, t, dir, go }) {
                 background: T.bg + 'cc', color: T.text,
                 fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
               }}>{kindLabel(it.kind, lang)}</div>
+              <div style={{ position: 'absolute', top: 14, insetInlineEnd: 14, color: T.textFaint, opacity: 0.5 }}>
+                <Icon name={(CATEGORIES.find((c) => c.id === it.cat) || CATEGORIES[0]).icon} size={36}/>
+              </div>
               <div style={{
                 position: 'absolute', bottom: 10, right: 10,
                 width: 32, height: 32, borderRadius: 999,
@@ -153,7 +177,7 @@ function ScreenLibrary({ theme, t, dir, go }) {
               <div style={{ fontSize: 13, color: T.text, fontWeight: 500, lineHeight: 1.3, minHeight: 34 }}>
                 {it.title?.[lang] || it.title?.en || ''}
               </div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 6 }}>{it.mins} {t('minutes')}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 6 }}>{num(it.mins)} {t('minutes')}</div>
             </div>
           </Card>
         ))}
@@ -205,7 +229,7 @@ function ContentLoading({ theme, dir }) {
   const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
   return (
     <div style={{
-      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)',
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>
@@ -303,13 +327,13 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
   if (isArticle) {
     const articleBody = (item.body && (item.body[lang] || item.body.en)) || '';
     return (
-      <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 54, paddingBottom: 40, boxSizing: 'border-box' }}>
+      <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 40, boxSizing: 'border-box' }}>
         <div style={{ padding: '14px 22px 0' }}>
           <TopBack theme={T} onBack={() => go('library')} dir={dir}/>
         </div>
         <div style={{ padding: '20px 24px 24px' }}>
           <div style={{ fontSize: 11, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
-            {lang==='ar'?'مقال · ':'ARTICLE · '}{item.mins} {t('minutes')}
+            {lang==='ar'?'مقال · ':'ARTICLE · '}{lang==='ar' ? new Intl.NumberFormat('ar-EG').format(item.mins) : item.mins} {t('minutes')}
           </div>
           <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 34, color: T.text, marginTop: 10, letterSpacing: -0.5, lineHeight: 1.1 }}>
             {playerTitle(item, lang)}
@@ -329,7 +353,7 @@ function ScreenPlayer({ theme, t, dir, go, state }) {
   }
 
   return (
-    <div style={{ height: '100%', background: T.bg, paddingTop: 54, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '14px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <TopBack theme={T} onBack={() => go('library')} dir={dir}/>
         <IconBtn theme={T} icon="plus"/>

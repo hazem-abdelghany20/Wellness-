@@ -26,7 +26,7 @@ function ScreenMine({ theme, t, dir }) {
   return (
     <div style={{
       height: '100%', background: T.bg, overflow: 'auto',
-      paddingTop: 54, paddingBottom: 100, boxSizing: 'border-box',
+      paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box',
     }}>
       <div style={{ padding: '18px 22px 6px' }}>
         <div style={{
@@ -87,10 +87,9 @@ function ScreenMine({ theme, t, dir }) {
           reward={claiming}
           onCancel={() => setClaiming(null)}
           onClaim={async (chosenItemId) => {
-            try {
-              await claim(claiming.id, chosenItemId);
-              setClaiming(null);
-            } catch (_e) { /* surfaced via toast */ }
+            // Let errors reach ClaimSheet, which shows them and stops its spinner.
+            await claim(claiming.id, chosenItemId);
+            setClaiming(null);
           }}/>
       )}
     </div>
@@ -196,7 +195,7 @@ function ClaimSheet({ theme, t, lang, reward, onCancel, onClaim }) {
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: '100%', background: T.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-        padding: '20px 22px 128px', border: `1px solid ${T.border}`,
+        padding: '20px 22px calc(var(--wp-tabpad) + 28px)', border: `1px solid ${T.border}`,
         animation: 'sheetUp .25s ease both',
         maxHeight: '80%', overflow: 'auto',
       }}>
@@ -354,7 +353,7 @@ function MineLoading({ theme, dir }) {
   const text = dir === 'rtl' ? 'جارٍ التحميل…' : 'Loading…';
   return (
     <div style={{
-      height: '100%', background: T.bg, paddingTop: 54, paddingBottom: 100,
+      height: '100%', background: T.bg, paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)',
       boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ color: T.textMuted, fontSize: 14, letterSpacing: 0.5 }}>{text}</div>

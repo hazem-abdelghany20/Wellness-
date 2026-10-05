@@ -52,7 +52,7 @@ function BellBadge({ theme, count, dir }) {
   return (
     <div style={{
       position: 'absolute',
-      top: 54 + 18 - 4, // status bar offset + header padding-top, nudge upward
+      top: 'calc(var(--wp-top) + 14px)', // safe-area / status-bar offset + header padding-top, nudge upward
       ...horizontal,
       minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box',
       borderRadius: 999,
@@ -80,7 +80,7 @@ function TabBar({ theme, t, dir, active, onTab }) {
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40,
-      paddingBottom: 24, paddingTop: 8,
+      paddingBottom: 'var(--wp-bottom)', paddingTop: 8,
       background: `linear-gradient(to top, ${T.bg} 70%, transparent)`,
     }}>
       <div style={{
@@ -92,7 +92,8 @@ function TabBar({ theme, t, dir, active, onTab }) {
         {tabs.map(tab => {
           const isActive = active === tab.id;
           return (
-            <button key={tab.id} onClick={() => onTab(tab.id)} style={{
+            <button key={tab.id} onClick={() => onTab(tab.id)}
+              aria-label={tab.label} aria-current={isActive ? 'page' : undefined} style={{
               flex: 1, height: 52, borderRadius: 14,
               background: isActive ? T.accent : 'transparent',
               color: isActive ? T.accentInk : T.textMuted,
@@ -101,7 +102,7 @@ function TabBar({ theme, t, dir, active, onTab }) {
               transition: 'background .2s',
             }}>
               <Icon name={tab.icon} size={19}/>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.2 }}>{tab.label}</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{tab.label}</div>
             </button>
           );
         })}
@@ -109,6 +110,29 @@ function TabBar({ theme, t, dir, active, onTab }) {
     </div>
   );
 }
+
+// Real phones get the app full-screen (respecting the notch / home bar);
+// wider screens keep the iPhone frame, which is handy for demos.
+function useIsPhone() {
+  const q = '(max-width: 600px)';
+  const [isPhone, setIsPhone] = React.useState(() =>
+    typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(q).matches : false);
+  React.useEffect(() => {
+    if (!window.matchMedia) return;
+    const m = window.matchMedia(q);
+    const on = () => setIsPhone(m.matches);
+    m.addEventListener ? m.addEventListener('change', on) : m.addListener(on);
+    return () => { m.removeEventListener ? m.removeEventListener('change', on) : m.removeListener(on); };
+  }, []);
+  return isPhone;
+}
+
+const FRAME_VARS = { '--wp-top': '54px', '--wp-bottom': '24px', '--wp-tabpad': '100px' };
+const PHONE_VARS = {
+  '--wp-top': 'max(env(safe-area-inset-top), 14px)',
+  '--wp-bottom': 'max(env(safe-area-inset-bottom), 12px)',
+  '--wp-tabpad': 'calc(88px + max(env(safe-area-inset-bottom), 12px))',
+};
 
 function AppInner() {
   const { cfg, setCfg } = useAppConfig();
@@ -185,6 +209,11 @@ function AppInner() {
   const lang = cfg.lang;
   const t = useT(lang);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
+  const isPhone = useIsPhone();
+  React.useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = dir;
+  }, [lang, dir]);
 
   const go = (s, extra) => {
     if (s === 'competition-path' && extra?.id) {
@@ -241,9 +270,11 @@ function AppInner() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: theme.bg === '#F6F3EC' ? '#EAE4D5' : '#0a1615', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, boxSizing: 'border-box' }}>
-      <div style={{ direction: dir, transition: 'all .3s ease' }}>
-        <IOSDevice width={402} height={874} dark={theme.isDark}>
+    <div style={isPhone
+      ? { position: 'fixed', inset: 0, background: theme.bg }
+      : { minHeight: '100vh', background: theme.bg === '#F6F3EC' ? '#EAE4D5' : '#0a1615', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, boxSizing: 'border-box' }}>
+      {(() => {
+        const screenLayer = (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 1,
             fontFamily: typeStyles(theme).sansFont,
@@ -260,8 +291,19 @@ function AppInner() {
             <OfflineBanner theme={theme} lang={lang}/>
             {showTabs && <InstallBanner theme={theme} lang={lang}/>}
           </div>
-        </IOSDevice>
-      </div>
+        );
+        return isPhone ? (
+          <div style={{ ...PHONE_VARS, direction: dir, position: 'absolute', inset: 0, overflow: 'hidden', background: theme.bg }}>
+            {screenLayer}
+          </div>
+        ) : (
+          <div style={{ ...FRAME_VARS, direction: dir, transition: 'all .3s ease' }}>
+            <IOSDevice width={402} height={874} dark={theme.isDark}>
+              {screenLayer}
+            </IOSDevice>
+          </div>
+        );
+      })()}
       {tweaksAvailable && <TweaksPanel theme={theme} open={tweaksOpen} onClose={() => setTweaksOpen(false)} cfg={cfg} setCfg={setCfg}/>}
       <style>{`
         @keyframes screenIn { 0%{opacity:0;transform:translateY(6px);} 100%{opacity:1;transform:translateY(0);} }
