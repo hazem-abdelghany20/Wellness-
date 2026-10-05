@@ -285,9 +285,9 @@ function SectionLabel({ theme, children, right, style = {} }) {
       padding: '0 20px', margin: '4px 0 10px', ...style,
     }}>
       <div style={{
-        fontFamily: typeStyles(t).sansFont, fontSize: 12,
-        fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase',
-        color: t.textMuted,
+        fontFamily: typeStyles(t).sansFont, fontSize: 14,
+        fontWeight: 600, letterSpacing: 0,
+        color: t.textMid || t.textMuted,
       }}>{children}</div>
       {right && <div style={{ color: t.textMuted, fontSize: 12 }}>{right}</div>}
     </div>
