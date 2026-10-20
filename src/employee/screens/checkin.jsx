@@ -95,7 +95,8 @@ function ScreenCheckIn({ theme, t, dir, go, variant = 'sliders', state }) {
         {variant === 'cards' && <VarCards theme={T} q={q} v={v} set={set} lang={lang}/>}
 
         <div style={{ flex: 1 }}/>
-        <div style={{ paddingBottom: 22 }}>
+        {/* 22 + ~100px: the bottom tab bar (z-index 40) overlays the screen, so a smaller padding hid Next / Save check-in behind it */}
+        <div style={{ paddingBottom: 122 }}>
           {err && (
             <div style={{
               fontSize: 13, color: T.negative || '#c0392b',
