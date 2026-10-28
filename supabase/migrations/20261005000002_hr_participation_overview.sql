@@ -19,7 +19,7 @@
 
 CREATE OR REPLACE FUNCTION public.hr_participation_overview(p_range TEXT DEFAULT '30d')
 RETURNS JSONB
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE
   v_company UUID := public.auth_company_id();
