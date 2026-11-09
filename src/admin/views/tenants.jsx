@@ -6,12 +6,21 @@ import { useTenants } from '../hooks/use-tenants.js';
 import { exportPlatformReport } from '../../lib/supabase-admin';
 import { friendlyErrorI18n } from '../../lib/errors';
 
+// Most tenants are in Egypt and the Gulf; Africa/Cairo is the default.
+const TIMEZONES = [
+  ['Africa/Cairo',  'Cairo',   'القاهرة'],
+  ['Asia/Riyadh',   'Riyadh',  'الرياض'],
+  ['Asia/Dubai',    'Dubai',   'دبي'],
+  ['Europe/London', 'London',  'لندن'],
+  ['UTC',           'UTC',     'UTC'],
+];
+
 function NewTenantForm({ theme, lang, onCreate, busy }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const [name, setName] = React.useState('');
   const [locale, setLocale] = React.useState('en');
-  const [timezone, setTimezone] = React.useState('UTC');
+  const [timezone, setTimezone] = React.useState('Africa/Cairo');
   const [plan, setPlan] = React.useState('starter');
   const [error, setError] = React.useState(null);
 
@@ -45,8 +54,12 @@ function NewTenantForm({ theme, lang, onCreate, busy }) {
         <option value="ar">ar</option>
         <option value="fr">fr</option>
       </select>
-      <input value={timezone} onChange={(e) => setTimezone(e.target.value)}
-        placeholder="UTC" style={{ ...inputStyle, width: 110 }}/>
+      <select value={timezone} onChange={(e) => setTimezone(e.target.value)}
+        aria-label={s('Timezone','المنطقة الزمنية')} style={inputStyle}>
+        {TIMEZONES.map(([tz, en, ar]) => (
+          <option key={tz} value={tz}>{lang === 'ar' ? ar : en} · {tz}</option>
+        ))}
+      </select>
       <select value={plan} onChange={(e) => setPlan(e.target.value)} style={inputStyle}>
         <option value="starter">starter</option>
         <option value="pro">pro</option>

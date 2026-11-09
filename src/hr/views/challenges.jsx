@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { DENSITY } from '../../shared/tokens.jsx';
-import { HRButton, Panel, Badge } from '../../shared/components.jsx';
+import { HRIcon, HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useChallenges } from '../hooks/use-challenges.js';
 import { friendlyErrorI18n } from '../../lib/errors';
+import { habitCategory, mediaFromPayload } from '../../shared/habit-meta.js';
 
 // Weekly habit challenges. HR picks one template and one week (Sun → Thu),
 // optionally for one team. One challenge at a time for the same people.
@@ -33,7 +34,7 @@ function fmt(isoDate, lang, opts = { day: 'numeric', month: 'short' }) {
 function HRChallengesPage({ theme, lang, density }) {
   const T = theme;
   const s = (en, ar) => (lang === 'ar' ? ar : en);
-  const { templates, scheduled, teams, loading, error, schedule, cancel } = useChallenges();
+  const { templates, scheduled, teams, loading, error, schedule, cancel, refetch } = useChallenges();
   const weeks = useMemo(upcomingWeeks, []);
   const [templateId, setTemplateId] = useState(null);
   const [weekStart, setWeekStart] = useState(() => weeks[0]?.start || '');
@@ -72,6 +73,8 @@ function HRChallengesPage({ theme, lang, density }) {
                                         `الأسبوع ده فيه تحدي شغال لنفس الناس: ${ar || ''}. اختار أسبوع أو فريق تاني.`) });
       } else {
         setFlash({ kind: 'err', text: friendlyErrorI18n(e, lang) });
+        // Archived since this page loaded: drop it from the picker.
+        if (msg.includes('template_archived')) { setTemplateId(null); refetch(); }
       }
     } finally {
       setBusy(false);
@@ -125,6 +128,8 @@ function HRChallengesPage({ theme, lang, density }) {
           {templates.map((tp) => {
             const p = tp.payload || {};
             const sel = tp.id === templateId;
+            const cat = habitCategory(p.category);
+            const media = mediaFromPayload(p);
             return (
               <button key={tp.id} onClick={() => setTemplateId(tp.id)} style={{
                 textAlign: lang === 'ar' ? 'right' : 'left', cursor: 'pointer', fontFamily: 'inherit',
@@ -135,6 +140,17 @@ function HRChallengesPage({ theme, lang, density }) {
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{tTitle(tp)}</div>
                   <span style={{ width: 10, height: 10, borderRadius: 99, background: p.badge_color || T.accent }}/>
                 </div>
+                {(cat || media) && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {cat && <Badge theme={T} tone="neutral">{lang === 'ar' ? cat.ar : cat.en}</Badge>}
+                    {media && (
+                      <Badge theme={T} tone="info">
+                        <HRIcon name={media.type === 'image' ? 'eye' : 'play'} size={11}/>
+                        {media.type === 'image' ? s('How-to image', 'صورة توضيحية') : s('How-to video', 'فيديو توضيحي')}
+                      </Badge>
+                    )}
+                  </div>
+                )}
                 <div style={{ fontSize: 12, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{pick(p, 'action')}</div>
                 <div style={{ fontSize: 11, color: T.textMuted }}>
                   {p.check_mode === 'next_morning'

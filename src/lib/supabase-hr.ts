@@ -96,14 +96,18 @@ export async function getParticipationOverview(range: '7d' | '30d' | '90d' = '30
 
 // ── Challenges (weekly habit challenges) ─────────────────────
 
+// Archived templates (Wellness House admin) are left out of the picker;
+// weeks already scheduled from them keep running. Filtered here rather than
+// with .is('archived_at', null) so the picker still loads on a database
+// that hasn't got the archived_at column yet.
 export async function listHabitTemplates() {
   const { data, error } = await supabase
     .from('challenge_templates')
-    .select('id, slug, title_en, title_ar, target, payload')
+    .select('*')
     .eq('kind', 'habit')
     .order('title_en');
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).filter((t: any) => !t.archived_at);
 }
 
 export async function listHabitChallenges() {
@@ -318,7 +322,7 @@ export async function getCompanySettings() {
   const companyId = await resolveCompanyId();
   const { data, error } = await supabase
     .from('companies')
-    .select('id, name, slug, settings')
+    .select('id, name, slug, code, settings')
     .eq('id', companyId)
     .single();
   if (error) throw error;

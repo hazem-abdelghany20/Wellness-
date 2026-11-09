@@ -4,11 +4,12 @@ import {
 } from '../design-system.jsx';
 import { useAuth } from '../state/auth-context.jsx';
 import { deleteMyAccount } from '../../lib/supabase';
+import { guideHref } from '../../shared/walkthrough.jsx';
 import { useProfile } from '../hooks/use-profile.js';
 import { useWallet } from '../hooks/use-wallet.js';
 import { fmtNum } from '../components/shared.jsx';
 
-function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey, state }) {
+function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey, state, onReplayTour }) {
   const T = theme;
   const { signOut, company } = useAuth();
   const { profile, update } = useProfile();
@@ -149,6 +150,31 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
               ))}
             </div>
           </div>
+        </Card>
+      </div>
+
+      <div style={{ height: 16 }}/>
+      <SectionLabel theme={T}>{lang === 'ar' ? 'مساعدة' : 'Help'}</SectionLabel>
+      <div style={{ padding: '0 16px' }}>
+        <Card theme={T} pad={6} radius={20} style={{ display: 'flex', flexDirection: 'column' }}>
+          {onReplayTour && (
+            <button onClick={onReplayTour} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 14,
+              background: 'transparent', border: 'none', color: T.text, fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', textAlign: 'start', fontFamily: 'inherit',
+            }}>
+              <Icon name="sparkle" size={18} style={{ color: T.accent }}/>
+              <span style={{ flex: 1 }}>{lang === 'ar' ? 'أعد الجولة السريعة' : 'Replay the quick tour'}</span>
+            </button>
+          )}
+          <a href={guideHref('employee', lang)} target="_blank" rel="noopener" style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 14,
+            color: T.text, fontSize: 15, fontWeight: 600, textDecoration: 'none',
+          }}>
+            <Icon name="library" size={18} style={{ color: T.accent }}/>
+            <span style={{ flex: 1 }}>{lang === 'ar' ? 'دليل الاستخدام' : 'How Wellness+ works'}</span>
+            <span aria-hidden="true" style={{ color: T.textMuted }}>↗</span>
+          </a>
         </Card>
       </div>
 

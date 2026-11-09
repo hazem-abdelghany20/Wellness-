@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wellness+ admin console · Guide</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Figtree:wght@400;600;700&family=Lora:wght@600&display=swap">
+<style>
+:root{--bg:#F6F3EC;--panel:#FFFFFF;--ink:#0D2321;--muted:#4C605D;--line:rgba(13,35,33,.12);--teal:#0E2A26;--gold:#B07A1F;--goldbg:#F5B544}
+@media (prefers-color-scheme:dark){:root{--bg:#0B1F1C;--panel:#112B27;--ink:#F5F1E8;--muted:rgba(245,241,232,.7);--line:rgba(245,241,232,.12);--teal:#F5F1E8;--gold:#F5B544;--goldbg:#F5B544}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 "Figtree",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;padding:32px max(16px,env(safe-area-inset-right)) 64px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:760px;margin:0 auto}
+header{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--teal)}
+.brand img{width:34px;height:34px;border-radius:9px}
+.lang{display:flex;gap:4px;border:1px solid var(--line);border-radius:999px;padding:3px}
+.lang a{padding:5px 12px;border-radius:999px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px}
+.lang a[aria-current=true]{background:var(--goldbg);color:#1A1206}
+h1{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,38px);line-height:1.15;margin:8px 0 0;color:var(--teal);text-wrap:balance}
+.lede{color:var(--muted);margin:0;max-width:60ch;font-size:17px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-top:14px;break-inside:avoid}
+h2{font-family:"Lora",Georgia,serif;font-weight:600;font-size:21px;margin:0 0 10px;color:var(--teal)}
+ol{margin:0;padding-inline-start:22px;display:grid;gap:8px}
+li::marker{color:var(--gold);font-weight:700}
+.cta{display:inline-block;margin-top:22px;background:var(--goldbg);color:#1A1206;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:10px}
+footer{margin-top:28px;color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 16px}
+footer a{color:var(--muted)}
+[lang=ar]{font-family:"Cairo","Figtree",Tahoma,sans-serif}
+.l-ar{display:none}
+body.ar .l-en{display:none} body.ar .l-ar{display:block}
+@media print{body{background:#fff;color:#000;padding:0}.lang,.cta{display:none}section{border-color:#ccc}}
+</style></head>
+<body><div class="wrap">
+<header>
+  <div class="top">
+    <div class="brand"><img src="/icon-192.png" alt=""><bdi>Wellness+</bdi></div>
+    <nav class="lang" aria-label="Language"><a href="#en" id="b-en">English</a><a href="#ar" id="b-ar">العربية</a></nav>
+  </div>
+  <h1 class="l-en " lang="en">Wellness+ admin console</h1><h1 class="l-ar " lang="ar" dir="rtl">لوحة تحكم ⁦Wellness+⁩</h1>
+  <p class="l-en lede" lang="en">For the Wellness House team: add client companies, get their HR in, and build the challenges every company runs.</p><p class="l-ar lede" lang="ar" dir="rtl">لفريق Wellness House: ضيف الشركات العملاء، دخّل الـ HR بتاعهم، واعمل التحديات اللي كل الشركات بتشغّلها.</p>
+</header>
+<section><div class="l-en" lang="en"><h2>Sign in</h2><ol><li>Sign in at the admin console with your Wellness House admin account.</li></ol></div><div class="l-ar" lang="ar" dir="rtl"><h2>تسجيل الدخول</h2><ol><li>ادخل لوحة التحكم بحساب مسؤول Wellness House.</li></ol></div></section><section><div class="l-en" lang="en"><h2>Add a company</h2><ol><li>Tenants → New: company name, language, timezone, plan. Create.</li><li>Open the company → Invite admin → type their email. You get a personal sign-up link: copy it or download it as a sheet, and send it yourself. No email is sent by the system.</li><li>Optional: import the company&#x27;s employees for them from the same page, and hand HR the invite sheet.</li><li>Each company also has its own join link with its code, shown on the company page.</li></ol></div><div class="l-ar" lang="ar" dir="rtl"><h2>ضيف شركة</h2><ol><li>العملاء ← جديد: اسم الشركة، اللغة، المنطقة الزمنية، الباقة. ثم إنشاء.</li><li>افتح الشركة ← ادعُ مسؤول ← اكتب إيميله. هيطلعلك لينك تسجيل خاص: انسخه أو نزّله كشيت وابعته بنفسك. النظام مش بيبعت إيميلات.</li><li>اختياري: من نفس الصفحة ارفع موظفين الشركة بنفسك، وسلّم الـ HR شيت الدعوات.</li><li>كل شركة ليها لينك انضمام بالكود بتاعها، ظاهر في صفحة الشركة.</li></ol></div></section><section><div class="l-en" lang="en"><h2>Build a challenge</h2><ol><li>Challenge templates → New: name, category, the daily action, why it helps, an optional tip, same-day or next-morning check, days needed to win (default 4 of 5).</li><li>Add a how-to: upload a video (mp4 or mov) or an image up to 50 MB, or paste a YouTube link. Employees see it as &quot;Watch how&quot;.</li><li>Check the preview, then save. It appears straight away in every company&#x27;s HR challenge list.</li><li>Archive a template to stop new companies picking it; challenges already running keep working.</li></ol></div><div class="l-ar" lang="ar" dir="rtl"><h2>اعمل تحدّي</h2><ol><li>قوالب التحديات ← جديد: الاسم، الفئة، الفعل اليومي، فايدته، نصيحة (اختياري)، يتسجّل نفس اليوم ولا تاني يوم الصبح، وعدد الأيام المطلوبة للمكافأة (٤ من ٥ افتراضياً).</li><li>ضيف شرح: ارفع فيديو (mp4 أو mov) أو صورة لحد ٥٠ ميجا، أو حط لينك YouTube. الموظفين بيشوفوه كـ &quot;اتفرّج إزاي&quot;.</li><li>راجع المعاينة واحفظ. هيظهر على طول في قايمة التحديات عند الـ HR في كل شركة.</li><li>أرشف القالب علشان محدش يختاره تاني؛ والتحديات الشغالة بتكمّل عادي.</li></ol></div></section><section><div class="l-en" lang="en"><h2>Content and control</h2><ol><li>Content library: articles published here reach every company.</li><li>Users &amp; roles, Localization (every Arabic string), Feature flags, Audit log (every change), Billing.</li></ol></div><div class="l-ar" lang="ar" dir="rtl"><h2>المحتوى والتحكم</h2><ol><li>مكتبة المحتوى: المقالات اللي بتتنشر هنا بتوصل لكل الشركات.</li><li>المستخدمين والأدوار، التعريب (كل النصوص العربي)، الخصائص التجريبية، سجل التدقيق (كل تغيير)، الفوترة.</li></ol></div></section><section><div class="l-en" lang="en"><h2>Help</h2><ol><li>Use the ? button at the bottom of the console to replay the tour or open this guide.</li></ol></div><div class="l-ar" lang="ar" dir="rtl"><h2>المساعدة</h2><ol><li>استخدم زرار ؟ تحت في اللوحة علشان تعيد الجولة أو تفتح الدليل ده.</li></ol></div></section>
+<a class="cta" href="https://main.d1c79md4n000h6.amplifyapp.com/admin.html"><span class="l-en " lang="en">Open the admin console</span><span class="l-ar " lang="ar" dir="rtl">افتح لوحة التحكم</span></a>
+<footer><span class="l-en">Other guides:</span><span class="l-ar">أدلة تانية:</span> <a href="./employee.html" class="xl"><span class="l-en">Employees</span><span class="l-ar">الموظفين</span></a> · <a href="./hr.html" class="xl"><span class="l-en">HR</span><span class="l-ar">الـ HR</span></a>
+<span class="l-en">· Print or save as PDF from your browser.</span><span class="l-ar">· تقدر تطبعه أو تحفظه PDF من المتصفح.</span></footer>
+</div>
+<script>
+function apply(){var ar=location.hash==='#ar';document.body.classList.toggle('ar',ar);document.documentElement.lang=ar?'ar':'en';document.documentElement.dir=ar?'rtl':'ltr';
+document.getElementById('b-ar').setAttribute('aria-current',ar);document.getElementById('b-en').setAttribute('aria-current',!ar);
+document.querySelectorAll('a.xl').forEach(function(a){a.hash=ar?'ar':'';});}
+window.addEventListener('hashchange',apply);apply();
+</script>
+</body></html>

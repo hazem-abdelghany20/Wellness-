@@ -43,7 +43,7 @@ You're an employee opening Wellness+ for the first time, then returning as a reg
 URL: <https://main.d1c79md4n000h6.amplifyapp.com/>
 
 1. **Action:** Land on the site signed out.
-   **See:** Gold "Wellness+" wordmark, headline "Your workplace wellbeing companion", company code pre-filled with `WH-4782`, plus WORK EMAIL and PASSWORD fields, single "Continue" button.
+   **See:** Gold "Wellness+" wordmark, headline "Your workplace wellbeing companion", an empty, optional COMPANY CODE field (opening `/?code=WH-4782` fills it), plus WORK EMAIL and PASSWORD fields, single "Continue" button.
 2. **Action:** Type a bad code (`xxxx`) + valid email + valid password → Continue.
    **See:** Inline error, no sign-in.
 3. **Action:** Use `WH-4782` + `amira.hassan@demo.wellhouse.test` + `WellnessDemo!2026` → Continue.

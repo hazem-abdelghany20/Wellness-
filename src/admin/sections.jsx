@@ -33,8 +33,8 @@ function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignO
     || s('Admin','مسؤول');
   const ROLE_LABELS = {
     wellness_admin: s('Platform admin','مسؤول المنصة'),
-    company_admin:  s('Company admin','مسؤول الشركة'),
-    hr_admin:       s('HR admin','مسؤول الموارد'),
+    company_admin:  s('HR admin','مسؤول الموارد البشرية'),
+    hr_admin:       s('HR admin','مسؤول الموارد البشرية'),
     manager:        s('Manager','مدير'),
     employee:       s('Employee','موظف'),
   };

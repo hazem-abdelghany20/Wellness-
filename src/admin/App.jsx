@@ -20,6 +20,8 @@ import { AdminAuthProvider, useAdminAuth } from './state/auth-context.jsx';
 import { SignIn } from './views/sign-in.jsx';
 import { AccessDenied } from './views/access-denied.jsx';
 import { isSuperadminEmail } from '../lib/superadmin';
+import { useWalkthrough, WalkthroughCard, HelpButton, guideHref } from '../shared/walkthrough.jsx';
+import { ADMIN_TOUR } from '../shared/tours.js';
 
 function AppInner() {
   const { cfg, patch } = useAdminAppConfig();
@@ -68,6 +70,15 @@ function AppInner() {
 
   const { session, role, profile, signOut, loading: authLoading } = useAdminAuth();
   const isSuper = isSuperadminEmail(session?.user?.email);
+  const tour = useWalkthrough({
+    key: 'admin', user: session?.user, steps: ADMIN_TOUR,
+    onNavigate: (id) => { setActive(id); setOpenTenant(null); },
+    autoStart: !!session && (role === 'wellness_admin' || isSuper),
+  });
+  const tourColors = {
+    panel: T.panel, text: T.text, muted: T.textMuted, border: T.borderStrong || T.border,
+    accent: T.sidebarActive, accentInk: T.sidebarActiveText,
+  };
 
   if (authLoading) return <div style={{ minHeight: '100vh', background: T.bg }}/>;
   if (!session)    return <SignIn theme={T} dir={dir} lang={lang}/>;
@@ -129,6 +140,8 @@ function AppInner() {
           onClose={() => { setTweaksOpen(false); window.parent.postMessage({type:'__edit_mode_dismissed'},'*'); }}
         />
       )}
+      <WalkthroughCard tour={tour} lang={lang} colors={tourColors} bottomOffset={80}/>
+      <HelpButton lang={lang} colors={tourColors} onReplay={tour.start} guideHref={guideHref('admin', lang)}/>
     </div>
   );
 }

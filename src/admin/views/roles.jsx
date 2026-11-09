@@ -5,9 +5,12 @@ import { HRButton, Panel, PanelHeader, Badge, AvatarMark } from '../../shared/co
 import { useRoles } from '../hooks/use-roles.js';
 import { useTenants } from '../hooks/use-tenants.js';
 import { inviteCompanyAdmin } from '../../lib/supabase-admin';
-import { friendlyErrorI18n } from '../../lib/errors';
+import { AdminInviteResult, adminInviteErrorText } from '../../shared/admin-invite-result.jsx';
+import { roleLabel } from '../../shared/people-import.js';
 
-const ROLE_OPTIONS = ['hr_admin', 'company_admin', 'wellness_admin'];
+// HR admin and company admin are one role in the UI: company_admin is only
+// listed for someone who already has it.
+const ROLE_OPTIONS = ['hr_admin', 'wellness_admin'];
 
 const ROLE_TONES = {
   wellness_admin: 'danger',
@@ -50,7 +53,7 @@ function AdminRow({ theme, density, lang, admin, isLast, onPromote }) {
           {admin.companies?.name || (admin.company_id ? <span className="mono">{admin.company_id}</span> : s('Platform','المنصة'))}
         </div>
       </div>
-      <Badge theme={T} tone={ROLE_TONES[role] || 'neutral'}>{role}</Badge>
+      <Badge theme={T} tone={ROLE_TONES[role] || 'neutral'}>{roleLabel(role, lang)}</Badge>
       <select value={role} onChange={(e) => handleChange(e.target.value)} disabled={busy}
         title={s('To demote to employee, use the Tenants flow','للتراجع إلى موظف، استخدم إدارة العملاء')}
         style={{
@@ -58,8 +61,8 @@ function AdminRow({ theme, density, lang, admin, isLast, onPromote }) {
           background: T.panelSunk, border: `1px solid ${T.border}`,
           color: T.text, fontSize: 12, outline: 'none', cursor: busy ? 'wait' : 'pointer',
         }}>
-        {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-        {!ROLE_OPTIONS.includes(role) && <option key={role} value={role}>{role}</option>}
+        {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{roleLabel(r, lang)}</option>)}
+        {!ROLE_OPTIONS.includes(role) && <option key={role} value={role}>{roleLabel(role, lang)}</option>}
       </select>
       {err && <span style={{ fontSize: 11, color: T.danger }}>{err}</span>}
     </div>
@@ -74,6 +77,7 @@ function InviteTeammateForm({ theme, lang }) {
   const [companyId, setCompanyId] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
+  const [result, setResult] = React.useState(null);
 
   React.useEffect(() => {
     if (!companyId && tenants && tenants.length > 0) {
@@ -84,13 +88,12 @@ function InviteTeammateForm({ theme, lang }) {
   async function submit(e) {
     e.preventDefault();
     if (!email.trim() || !companyId) return;
-    setBusy(true); setMsg(null);
+    setBusy(true); setMsg(null); setResult(null);
     try {
-      await inviteCompanyAdmin(companyId, email.trim());
-      setMsg({ tone: 'ok', text: s('Invite sent','تم إرسال الدعوة') });
+      setResult(await inviteCompanyAdmin(companyId, email.trim()));
       setEmail('');
     } catch (err) {
-      setMsg({ tone: 'err', text: friendlyErrorI18n(err, lang) });
+      setMsg({ tone: 'err', text: adminInviteErrorText(err, lang) });
     } finally {
       setBusy(false);
     }
@@ -120,10 +123,14 @@ function InviteTeammateForm({ theme, lang }) {
         ))}
       </select>
       <HRButton theme={T} type="submit" disabled={busy || !email.trim() || !companyId} icon="mail">
-        {busy ? s('Inviting…','جارٍ الدعوة…') : s('Invite teammate','ادعُ زميلًا')}
+        {busy ? s('Creating…','جارٍ الإنشاء…') : s('Invite HR admin','دعوة مسؤول موارد بشرية')}
       </HRButton>
       {msg && (
         <span style={{ fontSize: 12, color: msg.tone === 'ok' ? T.positive : T.danger }}>{msg.text}</span>
+      )}
+      {result && (
+        <AdminInviteResult theme={T} lang={lang} result={result}
+          companyName={tenants.find((t) => t.id === result.company_id)?.name}/>
       )}
     </form>
   );

@@ -1,9 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useHRAuth } from '../state/auth-context.jsx';
 import { HRButton } from '../../shared/components.jsx';
+import { readJoinParams } from '../../shared/people-import.js';
+
+function clearInviteParam() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('invite')) return;
+    url.searchParams.delete('invite');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  } catch { /* non-browser */ }
+}
 
 export function SignIn({ theme, S, dir }) {
   const { signIn } = useHRAuth();
+  const s = (en, ar) => (dir === 'rtl' ? ar : en);
+  // /hr.html?invite=TOKEN — the HR-admin invite link.
+  const inviteToken = useMemo(() => readJoinParams(typeof window === 'undefined' ? '' : window.location.search).invite, []);
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy]         = useState(false);
@@ -12,8 +25,11 @@ export function SignIn({ theme, S, dir }) {
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
     setErr(null); setBusy(true);
-    try { await signIn(email, password); }
-    catch (e) { setErr(e?.message || 'Sign-in failed'); }
+    try {
+      await signIn(email, password, inviteToken);
+      clearInviteParam();
+    }
+    catch (e) { setErr(e?.message || s('Sign-in failed', 'فشل تسجيل الدخول')); }
     finally { setBusy(false); }
   };
 
@@ -26,14 +42,20 @@ export function SignIn({ theme, S, dir }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: theme.bg, color: theme.text }} dir={dir}>
       <form onSubmit={handleSubmit} style={{ width: 360, padding: 32, background: theme.panel, borderRadius: 16, border: `1px solid ${theme.border}` }}>
-        <h1 className="display" style={{ fontSize: 24, marginBottom: 16, marginTop: 0 }}>{S?.signIn || 'HR Portal'}</h1>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" required style={input}/>
-        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password" required minLength={6} style={input}/>
+        <h1 className="display" style={{ fontSize: 24, marginBottom: 16, marginTop: 0 }}>{S?.signIn || s('HR Portal', 'بوابة الموارد البشرية')}</h1>
+        {inviteToken && (
+          <div role="status" style={{ fontSize: 13, lineHeight: 1.5, color: theme.text, background: theme.accentSoft, borderRadius: 8, padding: '10px 12px', marginBottom: 14 }}>
+            {s('You’ve been invited as an HR admin. Use the email the invite was made for and choose a password.',
+               'تمت دعوتك كمسؤول موارد بشرية. استخدم البريد الذي وصلتك عليه الدعوة واختر كلمة مرور.')}
+          </div>
+        )}
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" required style={input} dir="ltr"/>
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={s('Password', 'كلمة المرور')} autoComplete={inviteToken ? 'new-password' : 'current-password'} required minLength={6} style={input}/>
         <HRButton theme={theme} onClick={handleSubmit} disabled={busy || !email || password.length < 6}>
-          {busy ? 'Signing in…' : (S?.signIn || 'Sign in')}
+          {busy ? s('Signing in…', 'جارٍ تسجيل الدخول…') : (S?.signIn || s('Sign in', 'تسجيل الدخول'))}
         </HRButton>
         <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 10 }}>
-          New email? An account is created on first sign-in.
+          {s('New email? An account is created on first sign-in.', 'بريد جديد؟ يُنشأ الحساب عند أول تسجيل دخول.')}
         </div>
         {err && <div style={{ fontSize: 12, color: theme.danger || '#ff6b6b', marginTop: 12 }}>{err}</div>}
       </form>

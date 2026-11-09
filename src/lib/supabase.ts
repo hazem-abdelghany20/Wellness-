@@ -173,7 +173,7 @@ export async function getMyCompany() {
   if (!companyId) return null;
   const { data, error } = await supabase
     .from('companies')
-    .select('id, name, slug, settings')
+    .select('id, name, slug, code, settings')
     .eq('id', companyId)
     .single();
   if (error) throw error;

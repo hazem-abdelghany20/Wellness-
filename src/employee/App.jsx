@@ -26,6 +26,10 @@ import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx'
 import { AuthProvider, useAuth } from './state/auth-context.jsx';
 import { Splash } from './screens/splash.jsx';
 import { useNotifications } from './hooks/use-notifications.js';
+import { useWalkthrough, WalkthroughCard } from '../shared/walkthrough.jsx';
+import { EMPLOYEE_TOUR } from '../shared/tours.js';
+
+const TOUR_SCREENS = ['challenges', 'library', 'score', 'profile'];
 
 const ONBOARDING_SCREENS = ['join', 'consent', 'name', 'welcome'];
 const MAIN_SCREENS = ['challenges', 'library', 'score', 'profile', 'mine', 'player', 'notifs', 'competition-path'];
@@ -102,7 +106,7 @@ const PHONE_VARS = {
 
 function AppInner() {
   const { cfg, setCfg } = useAppConfig();
-  const { session, profile, loading: authLoading, profileLoaded } = useAuth();
+  const { session, profile, loading: authLoading, profileLoaded, joining } = useAuth();
   // App-level subscription — feeds the realtime bell badge.
   const { unreadCount } = useNotifications(session?.user?.id);
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
@@ -130,6 +134,9 @@ function AppInner() {
   // - Fully onboarded: route to main app.
   React.useEffect(() => {
     if (authLoading) return;
+    // Sign-in is still placing the account (invite / company lookup) — stay
+    // on the join screen so a "no invite found" error is shown there.
+    if (joining) return;
     if (session && !profileLoaded) return;
     if (!session) {
       // Unauthenticated users only sit on join.
@@ -148,7 +155,7 @@ function AppInner() {
         setScreen('challenges');
       }
     }
-  }, [authLoading, session, profile, profileLoaded, screen]);
+  }, [authLoading, session, profile, profileLoaded, screen, joining]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-avatar', avatar); }, [avatar]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-name', name); }, [name]);
   React.useEffect(() => {
@@ -209,8 +216,18 @@ function AppInner() {
   const setLang = (l) => setCfg({ ...cfg, lang: l });
   const setThemeKey = (k) => setCfg({ ...cfg, theme: k });
 
+  const onboarded = !!(profile?.onboarded || profile?.onboarded_at);
+  const tour = useWalkthrough({
+    key: 'employee',
+    user: session?.user,
+    steps: EMPLOYEE_TOUR,
+    onNavigate: go,
+    autoStart: onboarded && TOUR_SCREENS.includes(screen),
+  });
+
   // Splash while auth bootstraps, or while the routing effect is still resolving the initial screen.
-  if (authLoading || (session && !profileLoaded) || screen === null) {
+  const holdJoin = joining && screen === 'join';
+  if (!holdJoin && (authLoading || (session && !profileLoaded) || screen === null)) {
     return <Splash theme={theme}/>;
   }
 
@@ -226,7 +243,7 @@ function AppInner() {
     case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'competition-path': content = <ScreenCompetitionPath theme={theme} t={t} dir={dir} go={go} challengeId={competitionId}/>; break;
     case 'score':    content = <ScreenScorecard theme={theme} dir={dir} go={go}/>; showTabs = true; break;
-    case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state}/>; showTabs = true; break;
+    case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state} onReplayTour={tour.start}/>; showTabs = true; break;
     case 'challenges':
     default:         content = <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>; showTabs = true;
   }
@@ -246,6 +263,9 @@ function AppInner() {
               {content}
             </div>
             {showTabs && <TabBar theme={theme} t={t} dir={dir} active={screen} onTab={go}/>}
+            <WalkthroughCard tour={tour} lang={lang} placement="sheet"
+              bottomOffset={showTabs ? 'calc(var(--wp-tabpad) + 4px)' : 24}
+              colors={{ panel: theme.surface, text: theme.text, muted: theme.textMuted, border: theme.border, accent: theme.accent, accentInk: theme.accentInk }}/>
             <OfflineBanner theme={theme} lang={lang}/>
             {showTabs && !window.Capacitor?.isNativePlatform?.() && <InstallBanner theme={theme} lang={lang}/>}
           </div>

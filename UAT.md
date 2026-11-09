@@ -23,7 +23,7 @@ Run these once before the UAT. If any fail, stop — the env is broken.
 | 0.1 | `npm test` | 84/84 pass, 34 files | [ ] |
 | 0.2 | `npm run build` | Clean build, no errors, dist/ regenerated | [ ] |
 | 0.3 | `npm run dev` | Vite serves on `http://localhost:5173/` | [ ] |
-| 0.4 | Open `http://localhost:5173/` | Onboarding screen renders with brand wordmark + WH-4782 pre-filled | [ ] |
+| 0.4 | Open `http://localhost:5173/` | Onboarding screen renders with brand wordmark + an empty, optional company code field (`/?code=WH-4782` pre-fills it) | [ ] |
 | 0.5 | Open `http://localhost:5173/hr.html` | HR Portal sign-in card visible | [ ] |
 | 0.6 | Open `http://localhost:5173/admin.html` | Admin Console sign-in card visible | [ ] |
 | 0.7 | DevTools console, all three SPAs | No red errors (React DevTools info is fine) | [ ] |
@@ -51,7 +51,7 @@ Run these once before the UAT. If any fail, stop — the env is broken.
 
 | # | Action | Expected | [ ] |
 |---|--------|----------|-----|
-| A1.1 | Land on `/` while signed out | Onboarding screen, gold wordmark, WH-4782 in field, "Continue" CTA visible | [ ] |
+| A1.1 | Land on `/` while signed out | Onboarding screen, gold wordmark, empty optional company code field, "Continue" CTA visible | [ ] |
 | A1.2 | Enter `bad-code` + valid email → Continue | Inline error, no email sent | [ ] |
 | A1.3 | Enter `WH-4782` + `amira.hassan@demo.wellhouse.test` → Continue | OTP sent / step transitions to code entry | [ ] |
 | A1.4 | Enter 6-digit OTP → Continue | Sign-in success, lands on Home (or onboarding baseline if first time) | [ ] |

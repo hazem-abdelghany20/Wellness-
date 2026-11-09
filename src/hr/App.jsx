@@ -14,6 +14,8 @@ import { HRAuthProvider, useHRAuth } from './state/auth-context.jsx';
 import { SignIn } from './views/sign-in.jsx';
 import { AccessDenied } from './views/access-denied.jsx';
 import { isSuperadminEmail } from '../lib/superadmin';
+import { useWalkthrough, WalkthroughCard, HelpButton, guideHref } from '../shared/walkthrough.jsx';
+import { HR_TOUR } from '../shared/tours.js';
 
 function AppInner() {
   const { cfg, setCfg } = useHRAppConfig();
@@ -22,9 +24,10 @@ function AppInner() {
   const userEmail = session?.user?.email || '';
   const userName = profile?.display_name || userEmail.split('@')[0] || '';
   const firstName = userName ? userName.split(/\s+/)[0] : '';
-  const roleLabel = role === 'company_admin' ? 'Company admin'
-                  : role === 'hr_admin'      ? 'HR admin'
-                  : isSuperadminEmail(userEmail) ? 'Platform admin'
+  // HR admin and company admin are one role in the UI.
+  const ar = cfg.lang === 'ar';
+  const roleLabel = role === 'company_admin' || role === 'hr_admin' ? (ar ? 'مسؤول الموارد البشرية' : 'HR admin')
+                  : isSuperadminEmail(userEmail) ? (ar ? 'مسؤول المنصة' : 'Platform admin')
                   : (role || '');
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [range, setRange] = React.useState('30d');
@@ -51,6 +54,14 @@ function AppInner() {
   const density = DENSITY[cfg.density] ? cfg.density : 'comfortable';
   const gap = DENSITY[density].gap;
 
+  const hasAccess = !!session && (['hr_admin', 'company_admin'].includes(role) || isSuperadminEmail(session?.user?.email));
+  const tour = useWalkthrough({
+    key: 'hr', user: session?.user, steps: HR_TOUR, onNavigate: setNav, autoStart: hasAccess,
+  });
+  const tourColors = {
+    panel: T.panel, text: T.text, muted: T.textMuted, border: T.borderStrong || T.border,
+    accent: T.sidebarActive, accentInk: T.sidebarActiveText,
+  };
 
   if (authLoading) {
     return <div style={{ minHeight: '100vh', background: T.bg }}/>;
@@ -98,6 +109,8 @@ function AppInner() {
       </div>
 
       {tweaksAvailable && <TweaksPanel theme={T} open={tweaksOpen} onClose={() => setTweaksOpen(false)} cfg={cfg} setCfg={setCfg} S={S}/>}
+      <WalkthroughCard tour={tour} lang={cfg.lang} colors={tourColors} bottomOffset={80}/>
+      <HelpButton lang={cfg.lang} colors={tourColors} onReplay={tour.start} guideHref={guideHref('hr', cfg.lang)}/>
     </div>
   );
 }

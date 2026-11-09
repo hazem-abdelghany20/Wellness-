@@ -16,9 +16,9 @@ export function useTenant(companyId) {
 
   useEffect(() => { refetch(); }, [refetch]);
 
-  const invite = useCallback(async (email) => {
+  const invite = useCallback(async (email, name) => {
     if (!companyId) throw new Error('no_company');
-    await inviteCompanyAdmin(companyId, email);
+    return inviteCompanyAdmin(companyId, email, name);
   }, [companyId]);
 
   return { tenant, loading, error, invite, refetch };
