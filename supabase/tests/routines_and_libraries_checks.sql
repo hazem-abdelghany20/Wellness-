@@ -370,21 +370,29 @@ SELECT pg_temp.chk('board: no exercise / health data in the board',
   NOT (public.recognition_board('week')::text ~ '(body_areas|helps|Neck|exercise)'));
 RESET ROLE;
 
--- Five more people in Engineering: it reaches the floor and shows by name;
--- Finance (2) + People & Ops (2) stay grouped and, at 4 people, hidden.
+-- Five more people in Engineering: it reaches the floor, but Finance (2) +
+-- People & Ops (2) would then be 4 people that "company total minus
+-- Engineering" exposes. Sprint 3 (20261111000001) folds Engineering into
+-- the hidden group instead: one "small" row of everyone, no team named.
+-- (supabase/tests/reminders_broadcasts_teams_checks.sql covers the case
+-- where a team does stay on its own.)
 SELECT pg_temp.mk_user('eng' || g || '@check.local', 'WH-4782', 'Eng ' || g, 'employee',
                        '00000000-0000-0000-0001-000000000001') FROM generate_series(1, 5) g;
 SELECT pg_temp.act(current_setting('t.sara')::uuid);
 SET LOCAL ROLE authenticated;
-SELECT pg_temp.chk('report: Engineering (8) shows on its own, the 4 others are hidden',
-  (SELECT array_agg(x ->> 'name') FROM jsonb_array_elements(public.hr_routine_report('14d') -> 'by_team') x) = ARRAY['Engineering']
-  AND (public.hr_routine_report('14d') ->> 'small_teams_hidden')::boolean,
+SELECT pg_temp.chk('report: Engineering (8) is folded while the 4 others would be exposed by subtraction',
+  jsonb_array_length(public.hr_routine_report('14d') -> 'by_team') = 1
+  AND (public.hr_routine_report('14d') -> 'by_team' -> 0 ->> 'small')::boolean
+  AND (public.hr_routine_report('14d') -> 'by_team' -> 0 ->> 'members')::int = 12
+  AND (public.hr_routine_report('14d') ->> 'teams_folded')::int = 1
+  AND (public.hr_routine_report('14d') ->> 'breakdown_suppressed')::boolean
+  AND NOT (public.hr_routine_report('14d') ->> 'small_teams_hidden')::boolean,
   public.hr_routine_report('14d') ->> 'by_team');
 RESET ROLE;
 SELECT pg_temp.act(current_setting('t.omar')::uuid);
 SET LOCAL ROLE authenticated;
-SELECT pg_temp.chk('board: Engineering appears on the team board, no names in it',
-  (SELECT array_agg(x ->> 'name') FROM jsonb_array_elements(public.recognition_board('week') -> 'teams') x) = ARRAY['Engineering']
+SELECT pg_temp.chk('board: Engineering is folded too (no team on its own), no names in it',
+  jsonb_array_length(public.recognition_board('week') -> 'teams') = 0
   AND NOT ((public.recognition_board('week') -> 'teams')::text ~ 'display_name'));
 RESET ROLE;
 

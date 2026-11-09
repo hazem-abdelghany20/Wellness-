@@ -2,7 +2,9 @@ import { supabase, resolveMyCompanyId } from './supabase';
 import { parseYouTubeUrl, isYouTubeId } from '../shared/habit-meta.js';
 
 // Sprint 2: routines, checklists, libraries, recognition and company media.
-// SQL: supabase/migrations/20261110000001_routines_and_libraries.sql.
+// SQL: supabase/migrations/20261110000001_routines_and_libraries.sql
+// (+ sprint 3, 20261111000001: week items carry their exercise, quiet_hours,
+// report privacy folding, bulk exercise media, audio in company-media).
 //
 // Every function calls one RPC (or Storage) and throws the Supabase error
 // as-is on failure; error.message is the code the SQL raises, e.g.
@@ -212,7 +214,10 @@ export interface WeekDayItem {
   title_ar: string;
   sets_reps: string | null;
   sets_reps_ar: string | null;
+  note_en: string | null;
+  note_ar: string | null;
   checked: boolean;
+  exercise: Exercise | null;  // same shape as TodayItem.exercise — play it with resolveMedia()
 }
 
 export interface RoutineWeek {
@@ -267,11 +272,13 @@ export interface CompanySettings {
   recognition: RecognitionMode;
   weekly_habit_enabled: boolean;
   hr_people_view: boolean;
+  quiet_hours: boolean;          // on (default): broadcasts only 08:00–20:00 company time
+  quiet_window: { from: string; to: string };  // {from: '20:00', to: '08:00'}
   min_cohort: number;
 }
 
 export type CompanySettingsPatch = Partial<Pick<CompanySettings,
-  'recognition' | 'weekly_habit_enabled' | 'hr_people_view' | 'timezone' | 'min_cohort'>>;
+  'recognition' | 'weekly_habit_enabled' | 'hr_people_view' | 'quiet_hours' | 'timezone' | 'min_cohort'>>;
 
 export interface MyPrefs {
   routine_reminders: boolean;
@@ -281,7 +288,8 @@ export interface MyPrefs {
   share_with_hr: boolean;
   share_with_hr_at: string | null;
   consent_version: string | null;
-  company: Pick<CompanySettings, 'timezone' | 'workweek' | 'recognition' | 'weekly_habit_enabled' | 'hr_people_view'>;
+  company: Pick<CompanySettings, 'timezone' | 'workweek' | 'recognition' | 'weekly_habit_enabled' | 'hr_people_view'
+    | 'quiet_hours' | 'quiet_window'>;
 }
 
 export type MyPrefsPatch = Partial<Pick<MyPrefs,
@@ -294,7 +302,7 @@ export async function getMyCompanySettings(): Promise<CompanySettings> {
   return data as CompanySettings;
 }
 
-// HR: change recognition / weekly_habit_enabled / hr_people_view / timezone / min_cohort.
+// HR: change recognition / weekly_habit_enabled / hr_people_view / quiet_hours / timezone / min_cohort.
 export async function setCompanySettings(patch: CompanySettingsPatch): Promise<CompanySettings> {
   const { data, error } = await supabase.rpc('hr_set_company_settings', { p_patch: patch });
   if (error) throw error;
@@ -380,6 +388,54 @@ export async function copyRoutine(routineId: string): Promise<RoutineDetail> {
   const { data, error } = await supabase.rpc('hr_copy_routine', { p_routine_id: routineId });
   if (error) throw error;
   return data as RoutineDetail;
+}
+
+// HR: set media on many of my company's exercises at once ("upload many
+// videos, matched by file name": match names in the app, upload each file
+// with uploadCompanyMedia, then call this once). Each item is
+// { id, ...mediaFieldsFrom(upload) } (media_type null clears). overwrite
+// false skips exercises that already have media. Public exercises are
+// skipped (public_item_read_only) — copy them first.
+export interface ExerciseMediaUpdate extends Partial<MediaFields> { id: string }
+export interface BulkMediaResult {
+  updated: number;
+  skipped: Array<{ id: string; reason: string }>; // exercise_not_found · public_item_read_only · has_media ·
+                                                   // duplicate · bad_media_mime · media_path_outside_company · …
+}
+export async function setExercisesMedia(
+  items: ExerciseMediaUpdate[], opts: { overwrite?: boolean } = {},
+): Promise<BulkMediaResult> {
+  const { data, error } = await supabase.rpc('hr_set_exercises_media', {
+    p_items: items, p_overwrite: opts.overwrite ?? true,
+  });
+  if (error) throw error;
+  return data as BulkMediaResult;
+}
+
+// A file name → the exercise it is for: case, accents-free, punctuation and
+// extension ignored ("Neck_tilt.MP4" ↔ "Neck tilt"). Returns the map
+// file name → exercise id for the matches, and the files left over.
+export function matchFilesToExercises<T extends { id: string; name_en: string; name_ar?: string | null }>(
+  fileNames: string[], exercises: T[],
+): { matched: Record<string, string>; unmatched: string[] } {
+  const norm = (s: string) => String(s || '').toLowerCase()
+    .replace(/\.[a-z0-9]{2,4}$/i, '')
+    .normalize('NFKD').replace(/[\u0300-\u036f\u064B-\u065F\u0670\u0640]/g, '')  // Latin accents, Arabic harakat, tatweel
+    .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const byName = new Map<string, string>();
+  for (const e of exercises) {
+    for (const n of [e.name_en, e.name_ar]) {
+      const k = n ? norm(n) : '';
+      if (k && !byName.has(k)) byName.set(k, e.id);
+    }
+  }
+  const matched: Record<string, string> = {};
+  const unmatched: string[] = [];
+  for (const f of fileNames) {
+    const id = byName.get(norm(f));
+    if (id) matched[f] = id; else unmatched.push(f);
+  }
+  return { matched, unmatched };
 }
 
 // ── authoring ─────────────────────────────────────────────────
@@ -631,8 +687,9 @@ export interface RoutineReportTeam {
   team_id: string | null;
   name: string | null;
   department: string | null;
-  small: boolean;            // "Small teams": every team under the floor, grouped
-  no_team: boolean;          // people without a team, when they reach the floor
+  small: boolean;            // "Other teams": teams under the floor, teams folded for privacy and
+                             // no-team people under the floor, grouped (shown only at/over the floor)
+  no_team: boolean;          // people without a team, when they reach the floor (and aren't folded)
   teams: number;
   members: number;
   active: number;
@@ -656,7 +713,10 @@ export interface RoutineReport {
   totals: { done: number; due: number; full_days: number; active_people: number; completion_pct: number | null };
   by_day: RoutineReportDay[];        // days with something due or done
   by_team: RoutineReportTeam[];      // best first
-  small_teams_hidden: boolean;       // small teams together are still under the floor
+  small_teams_hidden: boolean;       // the grouped rest is still under the floor (not shown)
+  // Secondary suppression (sprint 3): total − the teams shown is always 0 or ≥ the floor.
+  teams_folded: number;              // teams at/over the floor folded into "Other teams" for privacy
+  breakdown_suppressed: boolean;     // no team shown on its own ("Teams are grouped to protect privacy")
   by_exercise: Array<{ key: string; exercise_id: string | null; title_en: string; title_ar: string | null;
                        done: number; due: number; pct: number | null }>; // most → least done
   by_hour: Array<{ hour: number; checks: number }>;                       // 0–23, company time
@@ -740,35 +800,47 @@ export const PUBLIC_MEDIA_BUCKET = 'content-assets';
 export const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
 export const SIGNED_URL_SECONDS = 24 * 60 * 60;
 
-// What company-media accepts, and what each becomes.
-export const MEDIA_MIME_KINDS: Readonly<Record<string, 'video' | 'image' | 'pdf'>> = {
+// What company-media accepts, and what each becomes. Audio (sprint 3) is for
+// broadcasts (voice notes / podcasts); prefer mp3 / m4a — iPhones don't play
+// webm / ogg everywhere.
+export type MediaKind = 'video' | 'image' | 'pdf' | 'audio';
+export const MEDIA_MIME_KINDS: Readonly<Record<string, MediaKind>> = {
   'video/mp4': 'video',
   'video/quicktime': 'video',
   'image/png': 'image',
   'image/jpeg': 'image',
   'application/pdf': 'pdf',
+  'audio/mpeg': 'audio',
+  'audio/mp4': 'audio',
+  'audio/x-m4a': 'audio',
+  'audio/webm': 'audio',
+  'audio/ogg': 'audio',
 };
 export const MEDIA_ACCEPT = 'video/mp4,video/quicktime,.mp4,.mov,image/png,image/jpeg,.png,.jpg,.jpeg';
 export const SOURCE_FILE_ACCEPT = 'image/png,image/jpeg,application/pdf,.png,.jpg,.jpeg,.pdf';
+export const AUDIO_ACCEPT = 'audio/mpeg,audio/mp4,audio/x-m4a,audio/webm,audio/ogg,.mp3,.m4a,.webm,.ogg,.oga';
 const EXT: Record<string, string> = {
   'video/mp4': 'mp4', 'video/quicktime': 'mov', 'image/png': 'png', 'image/jpeg': 'jpg', 'application/pdf': 'pdf',
+  'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/webm': 'webm', 'audio/ogg': 'ogg',
 };
 const EXT_MIME: Record<string, string> = {
   mp4: 'video/mp4', mov: 'video/quicktime', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', pdf: 'application/pdf',
+  mp3: 'audio/mpeg', m4a: 'audio/mp4', webm: 'audio/webm', ogg: 'audio/ogg', oga: 'audio/ogg',
 };
 
-export type MediaFolder = 'exercises' | 'routines' | 'content' | 'challenges';
+export type MediaFolder = 'exercises' | 'routines' | 'content' | 'challenges' | 'broadcasts';
 
 export interface UploadedMedia {
   bucket: typeof COMPANY_MEDIA_BUCKET;
   path: string;              // {company_id}/{folder}/{file}
   mime: string;
-  kind: 'video' | 'image' | 'pdf';
+  kind: MediaKind;
 }
 
 // The file's type from file.type or its extension; null when company-media won't take it.
+// Parameters are dropped ('audio/webm;codecs=opus' → 'audio/webm', as MediaRecorder reports it).
 export function mediaMimeOf(file: { type?: string; name?: string }): string | null {
-  const t = String(file?.type || '').toLowerCase();
+  const t = String(file?.type || '').toLowerCase().split(';')[0].trim();
   if (MEDIA_MIME_KINDS[t]) return t;
   const ext = String(file?.name || '').toLowerCase().split('.').pop() || '';
   return EXT_MIME[ext] || null;
@@ -836,7 +908,9 @@ export function mediaFieldsFrom(media: UploadedMedia | { youtube_id: string } | 
   if ('youtube_id' in media) {
     return { media_type: 'youtube', media_bucket: null, media_path: null, media_mime: null, media_youtube_id: media.youtube_id };
   }
-  if (media.kind === 'pdf') throw Object.assign(new Error('bad_media_type'), { code: 'bad_media_type' });
+  if (media.kind !== 'video' && media.kind !== 'image') {
+    throw Object.assign(new Error('bad_media_type'), { code: 'bad_media_type' });
+  }
   return { media_type: media.kind, media_bucket: media.bucket, media_path: media.path, media_mime: media.mime, media_youtube_id: null };
 }
 

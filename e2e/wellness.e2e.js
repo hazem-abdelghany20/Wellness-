@@ -61,7 +61,7 @@ describe('0 · stack', () => {
     const r = await fetch(`${URL}/auth/v1/health`, { headers: { apikey: ANON } });
     expect(r.status).toBe(200);
     const fns = readdirSync('supabase/functions').filter((f) => !f.startsWith('_'));
-    expect(fns.length).toBe(12);
+    expect(fns.length).toBe(13);
     for (const f of fns) {
       const o = await fetch(`${URL}/functions/v1/${f}`, { method: 'OPTIONS', headers: { apikey: ANON } });
       expect(o.status, `function ${f}`).toBeLessThan(400);
@@ -263,8 +263,14 @@ describe('2 · HR portal (Sara) + cross-portal', () => {
   it('broadcast: HR schedules → Amira’s notifications get it live', async () => {
     const amira = await login(E.amira);
     const cap = await listen(amira, 'notifications', `user_id=eq.${state.amira}`);
+    // Sprint 3: quiet hours (default on) hold a broadcast due at night until
+    // 08:00 company time; switch them off so "now" means now at any hour.
+    const q = await emp.supabase.rpc('hr_set_company_settings', { p_patch: { quiet_hours: false } });
+    expect(q.error).toBeNull();
     const b = await hr.scheduleBroadcast({ title_en: 'E2E hello', body_en: 'from HR', scope: 'all', scheduled_at: new Date().toISOString() });
+    await emp.supabase.rpc('hr_set_company_settings', { p_patch: { quiet_hours: true } });
     expect(b.id).toBeTruthy();
+    expect(b.status, 'due now → delivered by the save').toBe('sent');
     const got = await until(() => cap.events.find((e) => e.eventType === 'INSERT'));
     cap.stop();
     expect(got, 'no realtime notification received').toBeTruthy();
