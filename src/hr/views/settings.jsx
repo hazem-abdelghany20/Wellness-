@@ -62,7 +62,6 @@ function HRSettingsPage({ theme, S, lang, density }) {
 
   const aggregateOnly  = settings.aggregate_only ?? true;
   const minCohort      = settings.min_cohort ?? 5;
-  const quietHours     = settings.quiet_hours ?? true;
   const escalationMins = settings.escalation_mins ?? 15;
 
   const handleSave = async () => {
@@ -200,15 +199,6 @@ function HRSettingsPage({ theme, S, lang, density }) {
                   }}>{n}</button>
                 ))}
               </div>
-            </div>
-          </Panel>
-
-          <Panel theme={T} density={density}>
-            <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Quiet hours','ساعات الهدوء')}</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('Suppress broadcasts and nudges outside 08:00–20:00 local time.','منع البث والتنبيهات خارج ٠٨:٠٠–٢٠:٠٠ بالتوقيت المحلي.')}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Toggle theme={T} value={!!quietHours} onChange={(v)=>setSetting('quiet_hours', v)}/>
-              <span style={{ fontSize: 13, color: T.textMid }}>{quietHours ? s('On · 08:00–20:00','مفعَّل · ٠٨:٠٠–٢٠:٠٠') : s('Off','معطَّل')}</span>
             </div>
           </Panel>
 

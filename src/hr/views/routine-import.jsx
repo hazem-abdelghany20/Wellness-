@@ -7,6 +7,7 @@ import { readRoutineFile, downloadRoutineTemplate } from '../../shared/authoring
 import { libraryError } from '../../shared/authoring/errors.js';
 import { fmtNum, upcomingSunday, clean } from '../../shared/authoring/text.js';
 import { previewRoutineImport, importRoutine } from '../../lib/supabase-routines';
+import { BulkVideoPanel, bulkVideoApi } from './bulk-videos.jsx';
 
 function Stat({ theme, label, value, tone }) {
   const T = theme;
@@ -51,7 +52,7 @@ const fileTitle = (name) => clean(String(name || '').replace(/\.[a-z0-9]+$/i, ''
 
 // Import a routine from the coach's sheet: template → upload → preview
 // (problems, warnings, new exercises) → import (optionally assign).
-export function RoutineImportPanel({ theme, lang, density, teams = [], today, onImported, onClose, api }) {
+export function RoutineImportPanel({ theme, lang, density, teams = [], today, onImported, onClose, api, videoApi = bulkVideoApi }) {
   const T = theme;
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const preview = api?.preview || previewRoutineImport;
@@ -65,6 +66,7 @@ export function RoutineImportPanel({ theme, lang, density, teams = [], today, on
   const [startsOn, setStartsOn] = React.useState(() => upcomingSunday(today));
   const [busy, setBusy] = React.useState(null);       // 'read' | 'save'
   const [error, setError] = React.useState(null);
+  const [imported, setImported] = React.useState(null); // the import summary, once saved
 
   const header = () => ({
     title_en: clean(form.title_en), ...(clean(form.title_ar) ? { title_ar: clean(form.title_ar) } : {}),
@@ -111,6 +113,7 @@ export function RoutineImportPanel({ theme, lang, density, teams = [], today, on
         setError(s('No row could be imported. Fix the rows below and upload again.', 'مفيش صف ينفع يتضاف. صلّح الصفوف اللي تحت وارفع تاني.'));
         return;
       }
+      setImported(out);
       onImported?.(out);
     } catch (err) {
       setError(libraryError(err, lang));
@@ -121,6 +124,23 @@ export function RoutineImportPanel({ theme, lang, density, teams = [], today, on
 
   const problems = summary?.problems || [];
   const warnings = [...(parsed?.warnings || []), ...(summary?.warnings || [])];
+
+  // Step 4, after the import: give the exercises their videos, many at once.
+  if (imported) {
+    return (
+      <Panel theme={T} density={density} pad={false} style={{ marginBottom: DENSITY[density].gap }}>
+        <PanelHeader theme={T} density={density} title={s('Imported. Now add the demo videos (optional)', 'اتستورد. ضيف فيديوهات الشرح دلوقتي (اختياري)')}
+          subtitle={s('Pick all the coach’s videos at once: each file goes to the exercise with the same name.', 'اختار كل فيديوهات المدرب مرة واحدة: كل ملف بيروح للتمرين اللي بنفس الاسم.')}
+          right={<HRButton theme={T} variant="ghost" size="sm" icon="close" onClick={onClose}>{s('Close', 'قفل')}</HRButton>}/>
+        <div style={{ padding: DENSITY[density].cardPad }}>
+          <Field theme={T} label={s('4 · Upload many videos', '٤ · ارفع فيديوهات كتير')}>
+            <BulkVideoPanel theme={T} lang={lang} density={density} api={videoApi} embedded onClose={onClose}/>
+          </Field>
+          <HRButton theme={T} variant="secondary" size="sm" onClick={onClose}>{s('Skip, add them later', 'سيبها، هضيفها بعدين')}</HRButton>
+        </div>
+      </Panel>
+    );
+  }
 
   return (
     <Panel theme={T} density={density} pad={false} style={{ marginBottom: DENSITY[density].gap }}>
@@ -195,7 +215,7 @@ export function RoutineImportPanel({ theme, lang, density, teams = [], today, on
               <HRButton theme={T} variant="primary" icon="check" disabled={!!busy || !summary.items} onClick={doImport}>
                 {busy === 'save' ? s('Importing…', 'جارٍ الاستيراد…') : s(`Import ${summary.items} ${summary.items === 1 ? 'row' : 'rows'}`, `استورد ${fmtNum(summary.items, 'ar')} صف`)}
               </HRButton>
-              <span style={{ fontSize: 12, color: T.textMuted }}>{s('You can still edit every row afterwards.', 'تقدر تعدّل أي صف بعدين.')}</span>
+              <span style={{ fontSize: 12, color: T.textMuted }}>{s('You can still edit every row afterwards. Next, you can add all the videos at once.', 'تقدر تعدّل أي صف بعدين. وبعدها تقدر تضيف كل الفيديوهات مرة واحدة.')}</span>
             </div>
           </Field>
         )}
