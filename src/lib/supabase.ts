@@ -406,8 +406,10 @@ export interface HabitChallengeState {
   my_dates?: string[];
   my_count?: number;
   success_days?: number;
-  days_total?: number;
-  elapsed?: number;
+  days_total?: number;     // workdays in the challenge (5 a week)
+  days?: string[];         // those workdays (Sun–Thu dates); use instead of start_date + i
+  weeks?: number;          // 1–4 (HR's own challenges can run several weeks)
+  elapsed?: number;        // workdays so far
   team_pct?: number | null;
 }
 
@@ -426,7 +428,12 @@ export async function logHabit(challengeId: string, done = true): Promise<HabitC
 // Score tab: my points (this week, all time, last 6 weeks) plus my team's and
 // company's average per person. Group numbers are null when the group is
 // below the company's minimum cohort.
-export interface ScorePart { habit_days: number; weeks_done: number; articles: number }
+// routine_items: ticks (+2 each, max 20 a day); routine_full_days: days with
+// everything done (+10).
+export interface ScorePart {
+  habit_days: number; weeks_done: number; articles: number;
+  routine_items?: number; routine_full_days?: number;
+}
 export interface ScoreGroup {
   name?: string;
   members: number;
@@ -443,6 +450,8 @@ export interface Scorecard {
     week_parts: ScorePart;
     total_parts: ScorePart;
     weekly: { week_start: string; points: number }[];
+    // workdays in a row with a routine tick; days with a tick this week
+    routine?: { streak: number; best_streak: number; week_days: number };
   };
   team: ScoreGroup | null;
   company: ScoreGroup | null;

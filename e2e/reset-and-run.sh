@@ -19,6 +19,8 @@ supabase db reset
 q "update auth.users set encrypted_password = crypt('WellnessDemo!2026', gen_salt('bf')) where email like '%@demo.wellhouse.test'" >/dev/null
 # One statement in demo_seed.sql (feature_flags ON CONFLICT) is known to fail; the rest apply.
 docker exec -i "$DB" psql -U postgres -d postgres -q < supabase/demo_seed.sql >/dev/null 2>&1 || true
+# Sprint 2 demo routines, ticks, opt-ins and HR library items (Wellhouse Group).
+docker exec -i "$DB" psql -U postgres -d postgres -q -v ON_ERROR_STOP=1 < supabase/demo_seed_routines.sql >/dev/null
 
 eval "$(supabase status -o env | sed 's/^/export /')"
 export VITE_SUPABASE_URL="$API_URL" VITE_SUPABASE_ANON_KEY="$ANON_KEY" E2E_SERVICE_KEY="$SERVICE_ROLE_KEY"

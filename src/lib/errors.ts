@@ -18,6 +18,27 @@ export function friendlyError(err: unknown): FriendlyError {
         ? String((err as { message?: unknown }).message)
         : JSON.stringify(err);
 
+  // Sprint 2 library / routine codes (before the generic permission rule:
+  // public_item_read_only also carries SQLSTATE 42501).
+  if (/public_item_read_only/i.test(raw)) {
+    return { message: 'That item is in the Wellness House library. Use a copy to change it.', raw };
+  }
+  if (/item_not_due_today/i.test(raw)) {
+    return { message: 'That item isn’t on today’s list any more. Pull to refresh.', raw };
+  }
+  if (/\btoo_large\b|exceeded the maximum allowed size|Payload too large/i.test(raw)) {
+    return { message: 'That file is over 50 MB. Export it at 720p or paste a YouTube link.', raw };
+  }
+  if (/\bbad_type\b|invalid_mime_type|mime type .* is not supported/i.test(raw)) {
+    return { message: 'Use an MP4 or MOV video, or a PNG or JPEG picture.', raw };
+  }
+  if (/starts_in_the_past/i.test(raw)) {
+    return { message: 'Pick today or a later date.', raw };
+  }
+  if (/already_assigned/i.test(raw)) {
+    return { message: 'Those people already have this routine for those dates.', raw };
+  }
+
   // RLS denial (raised either by PostgREST policy enforcement or RAISE EXCEPTION ERRCODE=42501).
   if (/row-level security policy/i.test(raw) || /42501/.test(raw) || /not_authorized/i.test(raw)) {
     return { message: "You don't have permission to do that.", raw };
@@ -68,6 +89,12 @@ export function friendlyErrorI18n(err: unknown, lang: 'en' | 'ar'): string {
     'That referenced item doesn’t exist yet — schedule it first, then try again.': 'العنصر المرتبط غير موجود بعد — قم بجدولته أولاً ثم حاول مرة أخرى.',
     'Network problem — check your connection and try again.': 'مشكلة في الشبكة — تحقق من الاتصال.',
     'That challenge was archived. Pick another one.': 'تمت أرشفة هذا التحدي. اختر تحديًا آخر.',
+    'That item is in the Wellness House library. Use a copy to change it.': 'هذا العنصر من مكتبة Wellness House. استخدم نسخة منه لتعديله.',
+    'That item isn’t on today’s list any more. Pull to refresh.': 'العنصر ده مبقاش في قائمة النهارده. حدّث الصفحة.',
+    'That file is over 50 MB. Export it at 720p or paste a YouTube link.': 'الملف أكبر من ٥٠ ميجا. صدّره بجودة 720p أو حط لينك يوتيوب.',
+    'Use an MP4 or MOV video, or a PNG or JPEG picture.': 'استخدم فيديو MP4 أو MOV، أو صورة PNG أو JPEG.',
+    'Pick today or a later date.': 'اختر النهارده أو تاريخ بعده.',
+    'Those people already have this routine for those dates.': 'الناس دول عندهم الروتين ده بالفعل في التواريخ دي.',
     'Something went wrong.': 'حدث خطأ ما.',
   };
   return map[message] || message;
