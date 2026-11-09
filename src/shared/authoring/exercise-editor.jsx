@@ -62,7 +62,7 @@ export function ExerciseEditor({ theme, lang, density = 'comfortable', exercise,
           ? s('Public: every company can use it in their routines.', 'عام: كل الشركات تقدر تستخدمه في الروتين.')
           : s('Only your company sees it. Use it in any routine.', 'شركتك بس اللي بتشوفه. استخدمه في أي روتين.')}
         right={<HRButton theme={T} variant="ghost" size="sm" icon="close" onClick={onCancel}>{s('Close', 'قفل')}</HRButton>}/>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, padding: DENSITY[density].cardPad, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 24, padding: DENSITY[density].cardPad, alignItems: 'start' }}>
         <form onSubmit={submit} noValidate aria-label={s('Exercise', 'التمرين')}>
           <Field theme={T} label={s('Name', 'الاسم')}>
             <LangPair theme={T} lang={lang} form={form} base="name" label={s('Name', 'الاسم')} onChange={set} errors={errors}

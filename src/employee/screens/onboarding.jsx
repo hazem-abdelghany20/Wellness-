@@ -440,7 +440,7 @@ function ScreenName({ theme, t, dir, state, onNext, onBack }) {
           color: T.text, fontWeight: 400, letterSpacing: -0.6, marginTop: 28, marginBottom: 10,
         }}>{lang==='ar'?'كيف ننادي عليك؟':"What should we call you?"}</div>
         <div style={{ color: T.textMuted, fontSize: 14, lineHeight: 1.5, marginBottom: 26 }}>
-          {lang==='ar'?'اسمك يظهر فقط لك. فريقك يراك كـ "عضو مجهول" في لوحة المتصدرين.':'Your name is only visible to you. On leaderboards, your team sees "Anonymous member".'}
+          {lang==='ar'?'اسمك ما بيظهرش لحد غير لو اخترت تظهر في لوحة الشركة. تقدر تغيّر ده في أي وقت من صفحة "أنا".':'Your name stays private unless you choose to appear on the company board. You can change that any time in Me.'}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>

@@ -159,7 +159,7 @@ export function RoutineBuilder({
         right={<HRButton theme={T} variant="ghost" size="sm" icon="close" onClick={onCancel}>{s('Close', 'قفل')}</HRButton>}/>
 
       <form onSubmit={submit} noValidate aria-label={s('Routine', 'الروتين')}
-        style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 320px)', gap: 24, padding: DENSITY[density].cardPad, alignItems: 'start' }}>
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 24, padding: DENSITY[density].cardPad, alignItems: 'start' }}>
         <div style={{ minWidth: 0 }}>
           <Field theme={T} label={s('Name', 'الاسم')}>
             <LangPair theme={T} lang={lang} form={form} base="title" label={s('Routine name', 'اسم الروتين')} onChange={setField} errors={errors}
