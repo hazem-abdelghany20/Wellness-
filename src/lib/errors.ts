@@ -39,6 +39,10 @@ export function friendlyError(err: unknown): FriendlyError {
     return { message: 'That referenced item doesn’t exist yet — schedule it first, then try again.', raw };
   }
 
+  if (/template_archived/i.test(raw)) {
+    return { message: 'That challenge was archived. Pick another one.', raw };
+  }
+
   if (/Failed to fetch|NetworkError|ECONNREFUSED/i.test(raw)) {
     return { message: 'Network problem — check your connection and try again.', raw };
   }
@@ -63,6 +67,7 @@ export function friendlyErrorI18n(err: unknown, lang: 'en' | 'ar'): string {
     'That already exists — try a different value.': 'موجود مسبقًا — جرّب قيمة مختلفة.',
     'That referenced item doesn’t exist yet — schedule it first, then try again.': 'العنصر المرتبط غير موجود بعد — قم بجدولته أولاً ثم حاول مرة أخرى.',
     'Network problem — check your connection and try again.': 'مشكلة في الشبكة — تحقق من الاتصال.',
+    'That challenge was archived. Pick another one.': 'تمت أرشفة هذا التحدي. اختر تحديًا آخر.',
     'Something went wrong.': 'حدث خطأ ما.',
   };
   return map[message] || message;

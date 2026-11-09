@@ -314,6 +314,93 @@ export async function createChallengeTemplate(payload: {
   return data;
 }
 
+export async function updateChallengeTemplate(id: string, patch: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('challenge_templates')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Archived templates leave HR's picker and the default-week rotation;
+// weeks already scheduled keep running on their own copy of the payload.
+export async function setChallengeTemplateArchived(id: string, archived: boolean) {
+  return updateChallengeTemplate(id, { archived_at: archived ? new Date().toISOString() : null });
+}
+
+// Light list of library articles for the template builder's picker.
+export async function listArticleOptions() {
+  const { data, error } = await supabase
+    .from('content_items')
+    .select('id, slug, title_en, title_ar, kind, published')
+    .eq('kind', 'article')
+    .order('title_en');
+  if (error) throw error;
+  return data ?? [];
+}
+
+const CONTENT_BUCKET = 'content-assets';
+const MEDIA_EXT: Record<string, string> = {
+  'video/mp4': 'mp4', 'video/quicktime': 'mov', 'image/png': 'png', 'image/jpeg': 'jpg',
+};
+
+// Upload a challenge how-to video/image to `content-assets` with progress.
+// supabase-js storage has no progress events, so this posts to the Storage
+// REST endpoint with XHR using the signed-in admin's JWT. The bucket's RLS
+// (wellness admins only) and its size / type limits still apply server-side.
+export async function uploadChallengeMedia(
+  file: Blob,
+  opts: { contentType: string; onProgress?: (pct: number) => void; signal?: AbortSignal },
+): Promise<{ path: string; publicUrl: string }> {
+  const base = String(import.meta.env.VITE_SUPABASE_URL || '').replace(/\/+$/, '');
+  const anonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || '');
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) throw Object.assign(new Error('not_signed_in'), { status: 401 });
+
+  const ext = MEDIA_EXT[opts.contentType] || 'bin';
+  const path = `challenges/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  await new Promise<void>((resolve, reject) => {
+    const cancelled = () => Object.assign(new Error('Upload cancelled'), { name: 'AbortError' });
+    if (opts.signal?.aborted) { reject(cancelled()); return; }
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${base}/storage/v1/object/${CONTENT_BUCKET}/${path}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    if (anonKey) xhr.setRequestHeader('apikey', anonKey);
+    xhr.setRequestHeader('Content-Type', opts.contentType);
+    xhr.setRequestHeader('Cache-Control', 'max-age=3600');
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && opts.onProgress) opts.onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) { resolve(); return; }
+      let body: any = {};
+      try { body = JSON.parse(xhr.responseText || '{}'); } catch { /* not JSON */ }
+      reject(Object.assign(new Error(body.message || body.error || `Upload failed (${xhr.status})`), {
+        status: Number(body.statusCode) || xhr.status, code: body.error,
+      }));
+    };
+    xhr.onerror = () => reject(Object.assign(new Error('Network error'), { status: 0 }));
+    xhr.onabort = () => reject(cancelled());
+    opts.signal?.addEventListener('abort', () => xhr.abort(), { once: true });
+    xhr.send(file);
+  });
+
+  opts.onProgress?.(100);
+  const { data } = supabase.storage.from(CONTENT_BUCKET).getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}
+
+export async function deleteContentAsset(path: string) {
+  const { error } = await supabase.storage.from(CONTENT_BUCKET).remove([path]);
+  if (error) throw error;
+}
+
 // ── Reports ────────────────────────────────────────────────────
 
 export async function exportPlatformReport(kind: 'tenants' | 'usage', range: '7d' | '30d' | '90d') {
