@@ -4,10 +4,16 @@ import { HRIcon, HRButton, Panel, Badge } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useChallenges } from '../hooks/use-challenges.js';
 import { friendlyErrorI18n } from '../../lib/errors';
-import { habitCategory, mediaFromPayload } from '../../shared/habit-meta.js';
+import { habitCategory } from '../../shared/habit-meta.js';
+import { ChallengeBuilder } from './challenge-builder.jsx';
+import { saveChallengeTemplate, setLibraryStatus } from '../../lib/supabase-routines';
+import { libraryError } from '../../shared/authoring/errors.js';
+import { ConfirmButton } from '../../shared/authoring/ui.jsx';
+import { templateWeeks, templateSuccessDays, payloadMediaKind, challengeEnd } from '../../shared/authoring/challenge-form.js';
 
-// Weekly habit challenges. HR picks one template and one week (Sun → Thu),
-// optionally for one team. One challenge at a time for the same people.
+// Habit challenges. HR picks a template (Wellness House's or their own,
+// 1–4 weeks of Sun → Thu) and its first week, optionally for one team.
+// One challenge at a time for the same people.
 
 const iso = (d) => d.toISOString().slice(0, 10);
 
@@ -41,6 +47,8 @@ function HRChallengesPage({ theme, lang, density }) {
   const [teamId, setTeamId] = useState('');
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(null);
+  const [editing, setEditing] = useState(null); // { template, key }
+  const [archivingId, setArchivingId] = useState(null);
 
   if (loading) {
     return <div style={{ padding: '80px 0', textAlign: 'center', color: T.textMuted, fontSize: 13 }}>{s('Loading…', 'جارٍ التحميل…')}</div>;
@@ -49,14 +57,45 @@ function HRChallengesPage({ theme, lang, density }) {
   const pick = (p, k) => (lang === 'ar' ? (p?.[`${k}_ar`] || p?.[`${k}_en`]) : p?.[`${k}_en`]) || '';
   const tTitle = (r) => (lang === 'ar' ? (r.title_ar || r.title_en) : r.title_en);
   const arrow = lang === 'ar' ? '←' : '→';
+  const selected = templates.find((t) => t.id === templateId) || null;
+  const selWeeks = templateWeeks(selected);
   const weekLabel = (w) => {
     const rel = w.index === 0 ? s(' · this week', ' · الأسبوع ده') : w.index === 1 ? s(' · next week', ' · الأسبوع الجاي') : '';
-    return `${fmt(w.start, lang, { weekday: 'short', day: 'numeric', month: 'short' })} ${arrow} ${fmt(w.end, lang, { weekday: 'short', day: 'numeric', month: 'short' })}${rel}`;
+    // A multi-week challenge ends on the Thursday of its last week.
+    const end = challengeEnd(w.start, selWeeks) || w.end;
+    return `${fmt(w.start, lang, { weekday: 'short', day: 'numeric', month: 'short' })} ${arrow} ${fmt(end, lang, { weekday: 'short', day: 'numeric', month: 'short' })}${rel}`;
   };
+  const own = templates.filter((t) => t.company_id);
+  const shared = templates.filter((t) => !t.company_id);
+
+  const openBuilder = (template) => { setFlash(null); setEditing({ template, key: `${template?.id || 'new'}-${Date.now()}` }); };
+  async function handleSaveTemplate(input) {
+    const saved = await saveChallengeTemplate(input);
+    setEditing(null);
+    await refetch();
+    if (saved?.id) setTemplateId(saved.id);
+    setFlash({ kind: 'ok', text: input.id
+      ? s('Challenge saved. Weeks you schedule from now use the new version.', 'التحدي اتحفظ. الأسابيع اللي هتجدولها من دلوقتي هتاخد النسخة الجديدة.')
+      : s('Challenge created and picked below. Now choose its first week.', 'التحدي اتعمل واتختار تحت. اختار أول أسبوع ليه.') });
+  }
+  async function archiveTemplate(t) {
+    setArchivingId(t.id); setFlash(null);
+    try {
+      await setLibraryStatus('challenge_template', t.id, 'archived');
+      if (templateId === t.id) setTemplateId(null);
+      await refetch();
+      setFlash({ kind: 'ok', text: s('Archived. Weeks already scheduled keep running.', 'اتأرشف. الأسابيع المجدولة هتكمّل.') });
+    } catch (e) {
+      setFlash({ kind: 'err', text: libraryError(e, lang) });
+    } finally {
+      setArchivingId(null);
+    }
+  }
 
   const nextWeekStart = weeks.find((w) => w.index === 1)?.start;
+  // A multi-week challenge that started earlier can cover next week too.
   const nextWeekEmpty = nextWeekStart && !scheduled.some((c) =>
-    c.status !== 'cancelled' && c.start_date === nextWeekStart);
+    c.status !== 'cancelled' && c.start_date <= nextWeekStart && (c.end_date || c.start_date) >= nextWeekStart);
 
   const handleSchedule = async () => {
     if (!templateId || !weekStart) return;
@@ -72,7 +111,7 @@ function HRChallengesPage({ theme, lang, density }) {
         setFlash({ kind: 'err', text: s(`That week already has a challenge for these people: ${en || ''}. Pick another week or team.`,
                                         `الأسبوع ده فيه تحدي شغال لنفس الناس: ${ar || ''}. اختار أسبوع أو فريق تاني.`) });
       } else {
-        setFlash({ kind: 'err', text: friendlyErrorI18n(e, lang) });
+        setFlash({ kind: 'err', text: libraryError(e, lang) });
         // Archived since this page loaded: drop it from the picker.
         if (msg.includes('template_archived')) { setTemplateId(null); refetch(); }
       }
@@ -101,10 +140,16 @@ function HRChallengesPage({ theme, lang, density }) {
   return (
     <>
       <HRPageHeader theme={T}
-        eyebrow={s('One small habit per week', 'عادة صغيرة واحدة كل أسبوع')}
-        title={s('Weekly challenges', 'تحديات الأسبوع')}
-        sub={s('Employees tap "Did it" each day. No scores, no ranking. Everyone who does it 4 of 5 days gets a bronze reward.',
-               'الموظف بيضغط «عملتها» كل يوم. مفيش درجات ولا ترتيب. اللي يعملها ٤ من ٥ أيام ياخد مكافأة برونزية.')}/>
+        eyebrow={s('One small habit at a time', 'عادة صغيرة واحدة كل مرة')}
+        title={s('Challenges', 'التحديات')}
+        sub={s('Employees tap "Did it" each workday. No scores, no ranking. Everyone who reaches the days needed gets a bronze reward.',
+               'الموظف بيضغط «عملتها» كل يوم شغل. مفيش درجات ولا ترتيب. اللي يوصل لعدد الأيام المطلوب ياخد مكافأة برونزية.')}
+        right={!editing ? <HRButton theme={T} variant="primary" icon="plus" onClick={() => openBuilder(null)}>{s('Create your own challenge', 'اعمل تحدي بتاعك')}</HRButton> : null}/>
+
+      {editing && (
+        <ChallengeBuilder key={editing.key} theme={T} lang={lang} density={density} template={editing.template}
+          onSave={handleSaveTemplate} onCancel={() => setEditing(null)}/>
+      )}
 
       {error && (
         <Panel theme={T} density={density} style={{ marginBottom: DENSITY[density].gap }}>
@@ -124,14 +169,25 @@ function HRChallengesPage({ theme, lang, density }) {
         <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 14 }}>
           {s('1 · Pick a challenge', '١ · اختار التحدي')}
         </div>
+        {[
+          ['company', s('Your company', 'شركتك'), own],
+          ['public', s('Wellness House', 'Wellness House'), shared],
+        ].filter(([, , list]) => list.length).map(([groupId, groupLabel, list]) => (
+        <div key={groupId} style={{ marginBottom: 14 }}>
+        {own.length > 0 && (
+          <div style={{ fontSize: 12, color: T.textMid, fontWeight: 700, marginBottom: 8 }}>{groupLabel}</div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-          {templates.map((tp) => {
+          {list.map((tp) => {
             const p = tp.payload || {};
             const sel = tp.id === templateId;
             const cat = habitCategory(p.category);
-            const media = mediaFromPayload(p);
+            const mediaKind = payloadMediaKind(p);
+            const weeks = templateWeeks(tp);
+            const need = templateSuccessDays(tp);
             return (
-              <button key={tp.id} onClick={() => setTemplateId(tp.id)} style={{
+              <div key={tp.id} style={{ display: 'flex', flexDirection: 'column' }}>
+              <button onClick={() => setTemplateId(tp.id)} aria-pressed={sel} style={{ flex: 1,
                 textAlign: lang === 'ar' ? 'right' : 'left', cursor: 'pointer', fontFamily: 'inherit',
                 background: sel ? T.panelSunk : 'transparent', color: T.text,
                 border: `1.5px solid ${sel ? T.accent : T.border}`, borderRadius: 12, padding: 14,
@@ -140,13 +196,14 @@ function HRChallengesPage({ theme, lang, density }) {
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{tTitle(tp)}</div>
                   <span style={{ width: 10, height: 10, borderRadius: 99, background: p.badge_color || T.accent }}/>
                 </div>
-                {(cat || media) && (
+                {(cat || mediaKind || weeks > 1) && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                     {cat && <Badge theme={T} tone="neutral">{lang === 'ar' ? cat.ar : cat.en}</Badge>}
-                    {media && (
+                    {weeks > 1 && <Badge theme={T} tone="caution">{s(`${weeks} weeks`, weeks === 2 ? 'أسبوعين' : `${weeks} أسابيع`)}</Badge>}
+                    {mediaKind && (
                       <Badge theme={T} tone="info">
-                        <HRIcon name={media.type === 'image' ? 'eye' : 'play'} size={11}/>
-                        {media.type === 'image' ? s('How-to image', 'صورة توضيحية') : s('How-to video', 'فيديو توضيحي')}
+                        <HRIcon name={mediaKind === 'image' ? 'eye' : 'play'} size={11}/>
+                        {mediaKind === 'image' ? s('How-to image', 'صورة توضيحية') : s('How-to video', 'فيديو توضيحي')}
                       </Badge>
                     )}
                   </div>
@@ -156,19 +213,34 @@ function HRChallengesPage({ theme, lang, density }) {
                   {p.check_mode === 'next_morning'
                     ? s('Evening habit · logged next morning', 'عادة بالليل · بتتسجل الصبح')
                     : s('Daytime habit · logged same day', 'عادة بالنهار · بتتسجل نفس اليوم')}
-                  {' · '}{s(`${p.success_days || 4} of 5 days`, `${p.success_days || 4} من ٥ أيام`)}
+                  {' · '}{s(`${need} of ${weeks * 5} days`, `${need} من ${weeks * 5} يوم`)}
                 </div>
               </button>
+              {tp.company_id && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                  <HRButton theme={T} variant="ghost" size="sm" onClick={() => openBuilder(tp)}>{s('Edit', 'تعديل')}</HRButton>
+                  <ConfirmButton theme={T} lang={lang} label={s('Archive', 'أرشفة')} busy={archivingId === tp.id}
+                    question={s('Archive it?', 'تأرشفه؟')} yes={s('Yes, archive', 'أيوه، أرشف')} onConfirm={() => archiveTemplate(tp)}/>
+                </div>
+              )}
+              </div>
             );
           })}
         </div>
+        </div>
+        ))}
+        {templates.length === 0 && (
+          <div style={{ fontSize: 13, color: T.textMuted }}>{s('No challenges yet. Create your own above.', 'لسه مفيش تحديات. اعمل تحدي بتاعك من فوق.')}</div>
+        )}
 
         <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, margin: '20px 0 10px' }}>
-          {s('2 · Pick the week and who', '٢ · اختار الأسبوع ومين')}
+          {selWeeks > 1 ? s('2 · Pick the first week and who', '٢ · اختار أول أسبوع ومين') : s('2 · Pick the week and who', '٢ · اختار الأسبوع ومين')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: 10, alignItems: 'flex-end' }}>
           <div>
-            <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>{s('Week (Sun → Thu)', 'الأسبوع (الأحد ← الخميس)')}</div>
+            <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>
+              {selWeeks > 1 ? s(`Starts (${selWeeks} weeks, Sun → Thu)`, `يبدأ (${selWeeks} أسابيع، الأحد ← الخميس)`) : s('Week (Sun → Thu)', 'الأسبوع (الأحد ← الخميس)')}
+            </div>
             <select value={weekStart} onChange={(e) => setWeekStart(e.target.value)} style={field}>
               {weeks.map((w) => <option key={w.start} value={w.start}>{weekLabel(w)}</option>)}
             </select>
@@ -209,7 +281,7 @@ function HRChallengesPage({ theme, lang, density }) {
               {c.status === 'upcoming' || c.status === 'cancelled' ? '—' : c.status === 'active' ? (
                 <>
                   {s(`${c.participants} taking part so far`, `${c.participants} بيشاركوا لحد دلوقتي`)}
-                  <div style={{ fontSize: 11, color: T.textMuted }}>{s('Results after Thursday', 'النتيجة بعد الخميس')}</div>
+                  <div style={{ fontSize: 11, color: T.textMuted }}>{s(`Results after ${fmt(c.end_date, lang)}`, `النتيجة بعد ${fmt(c.end_date, lang)}`)}</div>
                 </>
               ) : (
                 <>

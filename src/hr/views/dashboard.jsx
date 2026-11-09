@@ -8,7 +8,40 @@ import { useHRAuth } from '../state/auth-context.jsx';
 import { JoinLinkCard } from '../../shared/join-link-card.jsx';
 
 // HR dashboard: participation only. Who takes part in the weekly
-// challenge, who completes it, and what people read. No health data.
+// challenge, who completes it, what people read, and (when a routine is
+// assigned) today's routine ticks. No health data.
+
+// Compact "Today's routine" card: shown only while a routine is assigned.
+function TodayRoutineCard({ theme, lang, density, routine, onOpen }) {
+  const T = theme;
+  const s = (en, ar) => (lang === 'ar' ? ar : en);
+  const num = (n) => (n == null ? '—' : lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(n) : String(n));
+  const r = routine || {};
+  const pct = r.pct_today;
+  return (
+    <Panel theme={T} density={density} style={{ marginBottom: DENSITY[density].gap }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 150 }}>
+          <div style={{ fontSize: 12, color: T.textMuted, fontWeight: 600 }}>{s("Today's routine", 'روتين النهارده')}</div>
+          <div className="display" style={{ fontSize: 30, color: T.text, lineHeight: 1.1, marginTop: 4 }}>
+            {num(r.done_today ?? 0)}<span style={{ color: T.textFaint, fontSize: 20 }}> / {num(r.due_today ?? 0)}</span>
+          </div>
+          <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{s('items done of items due', 'عناصر اتعملت من المطلوب')}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ height: 10, borderRadius: 99, background: T.panelSunk, overflow: 'hidden' }}>
+            <div style={{ width: `${Math.max(0, Math.min(100, pct || 0))}%`, height: '100%', background: T.accent, borderRadius: 99 }}/>
+          </div>
+          <div style={{ fontSize: 12, color: T.textMid, marginTop: 8 }}>
+            {pct != null ? s(`${pct}% done`, `${num(pct)}٪ اتعمل`) : s('% hidden: fewer than 5 people', 'النسبة مخفية: أقل من ٥')}
+            {' · '}{s(`${r.active_today ?? 0} of ${r.assigned_today ?? 0} people active today`, `${num(r.active_today ?? 0)} من ${num(r.assigned_today ?? 0)} نشطين النهارده`)}
+          </div>
+        </div>
+        <HRButton theme={T} size="sm" variant="secondary" iconR="arrow" onClick={onOpen}>{s('See the report', 'شوف التقرير')}</HRButton>
+      </div>
+    </Panel>
+  );
+}
 
 function HRDashboard({ theme, S, cfg, density, gap, range, companyName, firstName, setNav }) {
   const T = theme;
@@ -84,6 +117,10 @@ function HRDashboard({ theme, S, cfg, density, gap, range, companyName, firstNam
           </Panel>
         ))}
       </div>
+
+      {d.routine?.has_routine && (
+        <TodayRoutineCard theme={T} lang={lang} density={density} routine={d.routine} onOpen={() => setNav && setNav('report')}/>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)', gap, marginBottom: gap }}>
         <Panel theme={T} density={density} pad={false}>

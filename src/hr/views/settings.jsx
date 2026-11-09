@@ -5,6 +5,7 @@ import { HRPageHeader } from './_header.jsx';
 import { useSettings } from '../hooks/use-settings.js';
 import { useHRAppConfig } from '../state/app-config-context.jsx';
 import { JoinLinkCard } from '../../shared/join-link-card.jsx';
+import { RoutineSettingsPanels } from './settings-routine.jsx';
 
 // ── SETTINGS PAGE ────────────────────────────────────────────────
 function HRSettingsPage({ theme, S, lang, density }) {
@@ -140,6 +141,12 @@ function HRSettingsPage({ theme, S, lang, density }) {
             </Panel>
           )}
 
+          {/* Saved on their own through hr_set_company_settings; the page's
+              copy of settings is kept in step so "Save changes" below
+              never writes an older value back. */}
+          <RoutineSettingsPanels theme={T} lang={lang} density={density}
+            onSaved={(p) => setForm((prev) => (prev ? { ...prev, settings: { ...(prev.settings || {}), ...p } } : prev))}/>
+
           <Panel theme={T} density={density}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Company name','اسم الشركة')}</div>
             <input value={form.name} onChange={(e)=>setForm(prev => ({ ...prev, name: e.target.value }))} style={{
@@ -176,7 +183,7 @@ function HRSettingsPage({ theme, S, lang, density }) {
 
           <Panel theme={T} density={density}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Aggregate-only enforcement','الإلزام بالتجميع فقط')}</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('No individual records visible to HR. Min cohort enforced for all reports.','لا يمكن للموارد البشرية رؤية السجلات الفردية. يتم فرض حد أدنى للعينة لكل التقارير.')}</div>
+            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('No individual records visible to HR, except the people who choose to share their routine progress. Min cohort enforced for all reports.','لا يمكن للموارد البشرية رؤية السجلات الفردية، إلا للي يختاروا يشاركوا تقدمهم في الروتين. يتم فرض حد أدنى للعينة لكل التقارير.')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Toggle theme={T} value={!!aggregateOnly} onChange={(v)=>setSetting('aggregate_only', v)}/>
               <span style={{ fontSize: 13, color: T.textMid }}>{aggregateOnly ? s('Enforced','مفعَّل') : s('Disabled','معطَّل')}</span>
@@ -223,7 +230,7 @@ function HRSettingsPage({ theme, S, lang, density }) {
 
           <Panel theme={T} density={density}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Data retention','الاحتفاظ بالبيانات')}</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('The app collects no health or mood data. HR sees participation only: who joined a challenge, who completed it, and article reads.','التطبيق مش بيجمع أي بيانات عن الصحة أو المزاج. الـ HR بيشوف المشاركة بس: مين دخل التحدي، ومين كمّله، وقراية المقالات.')}</div>
+            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('The app collects no health or mood data. HR sees participation only, as counts: challenges joined and completed, routine items ticked, and article reads. Names appear only for people who choose to share their progress.','التطبيق مش بيجمع أي بيانات عن الصحة أو المزاج. الـ HR بيشوف المشاركة بس، كأرقام: التحديات اللي اتشارك فيها واتكمّلت، وعناصر الروتين اللي اتعلّم عليها، وقراية المقالات. الأسامي بتظهر بس للي يختاروا يشاركوا تقدمهم.')}</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <HRButton theme={T} variant="secondary">{s('View policy','عرض السياسة')}</HRButton>
               <HRButton theme={T} variant="ghost">{s('Request export','طلب تصدير')}</HRButton>

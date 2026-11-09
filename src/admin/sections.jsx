@@ -18,6 +18,8 @@ function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignO
     { id: 'roles',      icon: 'teams',       label: s('Users & Roles', 'المستخدمون والأدوار') },
     { id: 'content',    icon: 'content',     label: s('Content Library', 'مكتبة المحتوى') },
     { id: 'challenges', icon: 'challenges',  label: s('Challenge Templates', 'قوالب التحديات') },
+    { id: 'exercises',  icon: 'bolt',        label: s('Exercise Library', 'مكتبة التمارين') },
+    { id: 'routines',   icon: 'calendar',    label: s('Routine Library', 'مكتبة الروتين') },
     { id: 'integrations', icon: 'globe',     label: s('Integrations', 'التكاملات') },
     { id: 'localization', icon: 'mail',      label: s('Localization', 'التعريب') },
     { id: 'flags',      icon: 'sparkle',     label: s('Feature Flags', 'الخصائص التجريبية') },

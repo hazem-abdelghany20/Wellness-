@@ -9,6 +9,9 @@ import { HRChallengesPage } from './views/challenges.jsx';
 import { HRGiftsRoot }      from './views/gifts-root.jsx';
 import { HRBroadcastsPage } from './views/broadcasts.jsx';
 import { HRSettingsPage }   from './views/settings.jsx';
+import { HRExercisesPage }  from './views/exercises.jsx';
+import { HRRoutinesPage }   from './views/routines.jsx';
+import { HRRoutineReportPage } from './views/routine-report.jsx';
 import { HRAppConfigProvider, useHRAppConfig } from './state/app-config-context.jsx';
 import { HRAuthProvider, useHRAuth } from './state/auth-context.jsx';
 import { SignIn } from './views/sign-in.jsx';
@@ -78,7 +81,7 @@ function AppInner() {
       minHeight: '100vh', background: T.bg, color: T.text, display: 'flex',
       direction: dir, animation: 'dashIn .3s ease both',
     }}>
-      <Sidebar theme={T} S={S} active={nav} onNav={setNav}/>
+      <Sidebar theme={T} S={S} active={nav} onNav={setNav} lang={cfg.lang}/>
 
       <div style={{ flex: 1, minWidth: 0, background: T.page }}>
         <TopBar theme={T} S={S} dir={dir} range={range} onRange={setRange} onTweaks={tweaksAvailable ? () => setTweaksOpen(!tweaksOpen) : undefined} userName={userName} userEmail={userEmail} userRoleLabel={roleLabel} companyName={companyName}/>
@@ -88,6 +91,12 @@ function AppInner() {
             <HRDashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} range={range} companyName={companyName} firstName={firstName} setNav={setNav}/>
           ) : nav === 'people' ? (
             <HRPeoplePage theme={T} S={S} lang={cfg.lang} density={density}/>
+          ) : nav === 'exercises' ? (
+            <HRExercisesPage theme={T} lang={cfg.lang} density={density}/>
+          ) : nav === 'routines' ? (
+            <HRRoutinesPage theme={T} lang={cfg.lang} density={density}/>
+          ) : nav === 'report' ? (
+            <HRRoutineReportPage theme={T} lang={cfg.lang} density={density} setNav={setNav} companyName={companyName}/>
           ) : nav === 'content' ? (
             <HRContentPage theme={T} S={S} lang={cfg.lang} density={density}/>
           ) : nav === 'challenges' ? (

@@ -15,11 +15,16 @@ function EmptyRow({ theme, density, text }) {
   );
 }
 
-function Sidebar({ theme, S, active, onNav, collapsed }) {
+function Sidebar({ theme, S, active, onNav, collapsed, lang }) {
   const T = theme;
+  const ar = lang === 'ar';
+  // Sprint 2 sections carry their own EN / AR label and an existing icon.
   const items = [
     { id: 'dashboard', key: 'dashboard' },
     { id: 'people', key: 'people' },
+    { id: 'exercises', icon: 'bolt', label: ar ? 'التمارين' : 'Exercises' },
+    { id: 'routines', icon: 'calendar', label: ar ? 'الروتين' : 'Routines' },
+    { id: 'report', icon: 'reports', label: ar ? 'تقرير الروتين' : 'Routine report' },
     { id: 'content', key: 'content' },
     { id: 'challenges', key: 'challenges' },
     { id: 'gifts', key: 'gifts' },
@@ -61,8 +66,8 @@ function Sidebar({ theme, S, active, onNav, collapsed }) {
               fontSize: 13, fontWeight: 500, letterSpacing: -0.1,
               borderInlineStart: isActive ? `2px solid ${T.sidebarActive}` : '2px solid transparent',
             }}>
-              <HRIcon name={it.id} size={18}/>
-              {!collapsed && <span style={{ flex: 1, textAlign: 'start' }}>{S[it.key]}</span>}
+              <HRIcon name={it.icon || it.id} size={18}/>
+              {!collapsed && <span style={{ flex: 1, textAlign: 'start' }}>{it.label || S[it.key]}</span>}
               {!collapsed && it.badge && (
                 <span style={{
                   minWidth: 20, height: 18, padding: '0 6px', borderRadius: 999,
