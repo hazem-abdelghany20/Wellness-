@@ -2,47 +2,55 @@ import React from 'react';
 import { DENSITY } from '../../shared/tokens.jsx';
 import { HRIcon, HRButton, Panel, PanelHeader, Badge, AvatarMark } from '../../shared/components.jsx';
 import { useTenant } from '../hooks/use-tenant.js';
+import { PeopleImportPanel } from '../../shared/people-import-panel.jsx';
+import { JoinLinkCard } from '../../shared/join-link-card.jsx';
+import { AdminInviteResult, adminInviteErrorText } from '../../shared/admin-invite-result.jsx';
 
-function InviteAdminBox({ theme, lang, onInvite }) {
+function InviteAdminBox({ theme, lang, onInvite, companyName }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const [email, setEmail] = React.useState('');
+  const [name, setName] = React.useState('');
   const [busy, setBusy] = React.useState(false);
-  const [msg, setMsg] = React.useState(null);
+  const [err, setErr] = React.useState(null);
+  const [result, setResult] = React.useState(null);
 
   async function submit(e) {
     e.preventDefault();
     if (!email.trim()) return;
-    setBusy(true); setMsg(null);
+    setBusy(true); setErr(null); setResult(null);
     try {
-      await onInvite(email.trim());
-      setMsg({ tone: 'ok', text: s('Invite sent','تم إرسال الدعوة') });
-      setEmail('');
-    } catch (err) {
-      setMsg({ tone: 'err', text: err?.message || String(err) });
+      setResult(await onInvite(email.trim(), name.trim()));
+      setEmail(''); setName('');
+    } catch (ex) {
+      setErr(adminInviteErrorText(ex, lang));
     } finally {
       setBusy(false);
     }
   }
+
+  const inputStyle = {
+    height: 32, padding: '0 10px', borderRadius: 8,
+    background: T.panelSunk, border: `1px solid ${T.border}`,
+    color: T.text, fontSize: 12, outline: 'none',
+  };
 
   return (
     <form onSubmit={submit} style={{
       display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
       padding: 12, borderTop: `1px solid ${T.divider}`,
     }}>
+      <input value={name} onChange={(e) => setName(e.target.value)}
+        placeholder={s('Name (optional)','الاسم (اختياري)')}
+        style={{ ...inputStyle, flex: 1, minWidth: 160 }}/>
       <input value={email} onChange={(e) => setEmail(e.target.value)}
-        type="email" placeholder={s('admin@example.com','admin@example.com')}
-        style={{
-          flex: 1, minWidth: 200, height: 32, padding: '0 10px', borderRadius: 8,
-          background: T.panelSunk, border: `1px solid ${T.border}`,
-          color: T.text, fontSize: 12, outline: 'none',
-        }}/>
-      <HRButton theme={T} type="submit" disabled={busy || !email.trim()} icon="mail">
-        {busy ? s('Inviting…','جارٍ الدعوة…') : s('Invite admin','ادعُ مسؤولًا')}
+        type="email" dir="ltr" placeholder={s('admin@example.com','admin@example.com')}
+        style={{ ...inputStyle, flex: 1, minWidth: 200 }}/>
+      <HRButton theme={T} type="submit" disabled={busy || !email.trim()} icon="plus">
+        {busy ? s('Creating…','جارٍ الإنشاء…') : s('Invite HR admin','دعوة مسؤول موارد بشرية')}
       </HRButton>
-      {msg && (
-        <span style={{ fontSize: 12, color: msg.tone === 'ok' ? T.positive : T.danger }}>{msg.text}</span>
-      )}
+      {err && <span style={{ fontSize: 12, color: T.danger }}>{err}</span>}
+      {result && <AdminInviteResult theme={T} lang={lang} result={result} companyName={companyName}/>}
     </form>
   );
 }
@@ -50,7 +58,7 @@ function InviteAdminBox({ theme, lang, onInvite }) {
 function AdminTenantDetail({ theme, density, lang, tenant: tenantArg, onBack }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
-  const { tenant, loading, invite } = useTenant(tenantArg?.id);
+  const { tenant, loading, invite, refetch } = useTenant(tenantArg?.id);
 
   if (loading || !tenant) {
     return (
@@ -208,12 +216,29 @@ function AdminTenantDetail({ theme, density, lang, tenant: tenantArg, onBack }) 
       </div>
 
       {/* Invite admin */}
-      <Panel theme={T} density={density} pad={false}>
+      <Panel theme={T} density={density} pad={false} style={{ marginBottom: DENSITY[density].gap }}>
         <PanelHeader theme={T} density={density}
-          title={s('Invite admin','ادعُ مسؤولًا')}
-          subtitle={s('Send a company-admin invite for this tenant.','أرسل دعوة لمسؤول هذا العميل.')}/>
-        <InviteAdminBox theme={T} lang={lang} onInvite={invite}/>
+          title={s('Invite HR admin','دعوة مسؤول موارد بشرية')}
+          subtitle={s('Creates a personal HR sign-up link for this tenant. Nothing is emailed — copy the link and send it yourself.','ينشئ رابط تسجيل شخصيًا لبوابة الموارد البشرية لهذا العميل. لا يُرسل أي بريد — انسخ الرابط وأرسله بنفسك.')}/>
+        <InviteAdminBox theme={T} lang={lang} onInvite={invite} companyName={tenant.name}/>
       </Panel>
+
+      {/* Join link */}
+      {tenant.code && (
+        <Panel theme={T} density={density} pad={false} style={{ marginBottom: DENSITY[density].gap }}>
+          <PanelHeader theme={T} density={density}
+            title={s('Employee join link','رابط انضمام الموظفين')}
+            subtitle={s('Opens the employee app with this tenant’s company code filled in.','يفتح تطبيق الموظفين برمز شركة هذا العميل جاهزًا.')}/>
+          <div style={{ padding: DENSITY[density].cardPad }}>
+            <JoinLinkCard theme={T} lang={lang} code={tenant.code} companyName={tenant.name}/>
+          </div>
+        </Panel>
+      )}
+
+      {/* People import */}
+      <PeopleImportPanel theme={T} lang={lang} density={density}
+        companyId={tenant.id} companyName={tenant.name}
+        existingTeams={teams} onImported={() => refetch()}/>
     </div>
   );
 }

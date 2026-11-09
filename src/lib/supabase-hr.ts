@@ -318,7 +318,7 @@ export async function getCompanySettings() {
   const companyId = await resolveCompanyId();
   const { data, error } = await supabase
     .from('companies')
-    .select('id, name, slug, settings')
+    .select('id, name, slug, code, settings')
     .eq('id', companyId)
     .single();
   if (error) throw error;

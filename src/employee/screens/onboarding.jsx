@@ -5,12 +5,28 @@ import {
 } from '../design-system.jsx';
 import { useAuth } from '../state/auth-context.jsx';
 import { useProfile } from '../hooks/use-profile.js';
+import { readJoinParams } from '../../shared/people-import.js';
+
+// Drop ?code= / ?invite= once they've been used so a reload doesn't reuse them.
+function clearJoinParams() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('code') && !url.searchParams.has('invite')) return;
+    url.searchParams.delete('code');
+    url.searchParams.delete('invite');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  } catch { /* non-browser */ }
+}
 
 // --- screens-onboarding.jsx ---
 // Onboarding flow: code → consent → name → welcome
 
 function ScreenJoin({ theme, t, onNext, dir }) {
-  const [code, setCode] = React.useState('WH-4782');
+  // /?code=XXXX pre-fills the company code (join link / QR);
+  // /?invite=TOKEN is a personal invite and needs no code.
+  const params = React.useMemo(() => readJoinParams(typeof window === 'undefined' ? '' : window.location.search), []);
+  const inviteToken = params.invite;
+  const [code, setCode] = React.useState(params.code);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -30,12 +46,15 @@ function ScreenJoin({ theme, t, onNext, dir }) {
     }
     setErr(null); setBusy(true);
     try {
-      await signInWithCode(code, email.trim(), password);
+      await signInWithCode(code.trim(), email.trim(), password, inviteToken);
+      clearJoinParams();
       // Auth-driven routing in App.jsx will redirect to the next onboarding
       // step (or home) once the session lands; onNext is now a no-op.
       onNext?.();
     } catch (e) {
-      setErr(e?.message || (lang === 'ar' ? 'فشل تسجيل الدخول' : 'Sign-in failed'));
+      if (e?.code === 'no_invite') setErr(t('noInviteFound', { email: email.trim().toLowerCase() }));
+      else if (/invalid company code/i.test(e?.message || '')) setErr(t('invalidCompanyCode'));
+      else setErr(e?.message || (lang === 'ar' ? 'فشل تسجيل الدخول' : 'Sign-in failed'));
     } finally {
       setBusy(false);
     }
@@ -55,18 +74,28 @@ function ScreenJoin({ theme, t, onNext, dir }) {
           color: T.textMuted, marginBottom: 30,
         }}>{t('joinSubtitle')}</div>
 
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{t('companyCode')}</div>
-          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())}
-            disabled={busy}
-            style={{
-              width: '100%', height: 58, padding: '0 18px',
-              background: T.surface, border: `1px solid ${T.borderStrong}`,
-              borderRadius: 14, color: T.text, fontSize: 22, fontWeight: 600,
-              letterSpacing: 2, fontFamily: typeStyles(T).monoFont, boxSizing: 'border-box',
-              textAlign: dir === 'rtl' ? 'right' : 'left',
-            }}/>
-        </div>
+        {inviteToken ? (
+          <div role="status" style={{
+            marginBottom: 14, padding: '12px 14px', borderRadius: 12,
+            background: T.accentSoft, color: T.text, fontSize: 14, lineHeight: 1.45,
+            fontFamily: typeStyles(T).sansFont,
+          }}>{t('inviteNotice')}</div>
+        ) : (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{t('companyCodeOptional')}</div>
+            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())}
+              disabled={busy} aria-label={t('companyCode')} placeholder="AB-1234"
+              autoCapitalize="characters" autoComplete="off" spellCheck={false}
+              style={{
+                width: '100%', height: 58, padding: '0 18px',
+                background: T.surface, border: `1px solid ${T.borderStrong}`,
+                borderRadius: 14, color: T.text, fontSize: 22, fontWeight: 600,
+                letterSpacing: 2, fontFamily: typeStyles(T).monoFont, boxSizing: 'border-box',
+                textAlign: dir === 'rtl' ? 'right' : 'left',
+              }}/>
+            <div style={{ fontSize: 12, color: T.textMuted, marginTop: 6, fontFamily: typeStyles(T).sansFont }}>{t('companyCodeHint')}</div>
+          </div>
+        )}
 
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8, fontWeight: 600 }}>{lang === 'ar' ? 'البريد الإلكتروني' : 'Work email'}</div>

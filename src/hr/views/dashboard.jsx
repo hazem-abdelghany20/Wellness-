@@ -4,6 +4,8 @@ import { HRButton, Panel, PanelHeader, Badge } from '../../shared/components.jsx
 import { Broadcasts } from '../sections.jsx';
 import { useParticipation } from '../hooks/use-participation.js';
 import { useBroadcasts } from '../hooks/use-broadcasts.js';
+import { useHRAuth } from '../state/auth-context.jsx';
+import { JoinLinkCard } from '../../shared/join-link-card.jsx';
 
 // HR dashboard: participation only. Who takes part in the weekly
 // challenge, who completes it, and what people read. No health data.
@@ -15,6 +17,7 @@ function HRDashboard({ theme, S, cfg, density, gap, range, companyName, firstNam
   const num = (n) => (n == null ? '—' : lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(n) : String(n));
   const { data, loading, error } = useParticipation(range);
   const { list: broadcasts } = useBroadcasts();
+  const { company } = useHRAuth();
 
   const hour = new Date().getHours();
   const partOfDay = lang === 'ar'
@@ -55,6 +58,20 @@ function HRDashboard({ theme, S, cfg, density, gap, range, companyName, firstNam
       {error && (
         <Panel theme={T} density={density} style={{ marginBottom: gap }}>
           <div style={{ fontSize: 13, color: T.danger }}>{s('Could not load the dashboard.', 'تعذّر تحميل اللوحة.')}</div>
+        </Panel>
+      )}
+
+      {/* Getting started: until a handful of people are on the app, put the
+          join link where HR lands. */}
+      {company?.code && members < 5 && (
+        <Panel theme={T} density={density} pad={false} style={{ marginBottom: gap }}>
+          <PanelHeader theme={T} density={density}
+            title={s('Invite your team', 'ادعُ فريقك')}
+            subtitle={s('Share the join link or QR, or import everyone from a sheet.', 'شارك رابط الانضمام أو رمز QR، أو استورد الجميع من ملف.')}
+            right={<HRButton theme={T} size="sm" variant="secondary" icon="people" onClick={() => setNav && setNav('people')}>{s('Import people', 'استيراد الأشخاص')}</HRButton>}/>
+          <div style={{ padding: DENSITY[density].cardPad }}>
+            <JoinLinkCard theme={T} lang={lang} code={company.code} companyName={company.name} compact/>
+          </div>
         </Panel>
       )}
 

@@ -102,7 +102,7 @@ const PHONE_VARS = {
 
 function AppInner() {
   const { cfg, setCfg } = useAppConfig();
-  const { session, profile, loading: authLoading, profileLoaded } = useAuth();
+  const { session, profile, loading: authLoading, profileLoaded, joining } = useAuth();
   // App-level subscription — feeds the realtime bell badge.
   const { unreadCount } = useNotifications(session?.user?.id);
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
@@ -130,6 +130,9 @@ function AppInner() {
   // - Fully onboarded: route to main app.
   React.useEffect(() => {
     if (authLoading) return;
+    // Sign-in is still placing the account (invite / company lookup) — stay
+    // on the join screen so a "no invite found" error is shown there.
+    if (joining) return;
     if (session && !profileLoaded) return;
     if (!session) {
       // Unauthenticated users only sit on join.
@@ -148,7 +151,7 @@ function AppInner() {
         setScreen('challenges');
       }
     }
-  }, [authLoading, session, profile, profileLoaded, screen]);
+  }, [authLoading, session, profile, profileLoaded, screen, joining]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-avatar', avatar); }, [avatar]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-name', name); }, [name]);
   React.useEffect(() => {
@@ -210,7 +213,8 @@ function AppInner() {
   const setThemeKey = (k) => setCfg({ ...cfg, theme: k });
 
   // Splash while auth bootstraps, or while the routing effect is still resolving the initial screen.
-  if (authLoading || (session && !profileLoaded) || screen === null) {
+  const holdJoin = joining && screen === 'join';
+  if (!holdJoin && (authLoading || (session && !profileLoaded) || screen === null)) {
     return <Splash theme={theme}/>;
   }
 

@@ -22,9 +22,10 @@ function AppInner() {
   const userEmail = session?.user?.email || '';
   const userName = profile?.display_name || userEmail.split('@')[0] || '';
   const firstName = userName ? userName.split(/\s+/)[0] : '';
-  const roleLabel = role === 'company_admin' ? 'Company admin'
-                  : role === 'hr_admin'      ? 'HR admin'
-                  : isSuperadminEmail(userEmail) ? 'Platform admin'
+  // HR admin and company admin are one role in the UI.
+  const ar = cfg.lang === 'ar';
+  const roleLabel = role === 'company_admin' || role === 'hr_admin' ? (ar ? 'مسؤول الموارد البشرية' : 'HR admin')
+                  : isSuperadminEmail(userEmail) ? (ar ? 'مسؤول المنصة' : 'Platform admin')
                   : (role || '');
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [range, setRange] = React.useState('30d');

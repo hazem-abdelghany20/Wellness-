@@ -44,18 +44,34 @@ export async function createTenant(payload: { name: string; locale?: string; tim
   const { data, error } = await supabase.rpc('admin_create_tenant', {
     p_name:     payload.name,
     p_locale:   payload.locale   ?? 'en',
-    p_timezone: payload.timezone ?? 'UTC',
+    p_timezone: payload.timezone ?? 'Africa/Cairo',
     p_plan:     payload.plan     ?? 'starter',
   });
   if (error) throw error;
   return data;
 }
 
-export async function inviteCompanyAdmin(companyId: string, email: string) {
-  const { error } = await supabase.rpc('admin_invite_company_admin', {
-    p_company_id: companyId, p_email: email,
-  });
+// No email is sent. Returns the invite so the caller can show the HR sign-up
+// link (/hr.html?invite=TOKEN). existing_account: the email already has an
+// account in this company — they open the link and sign in with their current
+// password to become HR admin. 'already_admin': nothing to do.
+export interface AdminInviteResult {
+  status: 'invited' | 'already_admin';
+  existing_account?: boolean;
+  email: string;
+  name?: string | null;
+  role: string;
+  token?: string;
+  company_id: string;
+  expires_at?: string;
+}
+
+export async function inviteCompanyAdmin(companyId: string, email: string, name?: string) {
+  const args: Record<string, unknown> = { p_company_id: companyId, p_email: email };
+  if (name && name.trim()) args.p_name = name.trim();
+  const { data, error } = await supabase.rpc('admin_invite_company_admin', args);
   if (error) throw error;
+  return (data ?? null) as AdminInviteResult | null;
 }
 
 // ── Billing ────────────────────────────────────────────────────

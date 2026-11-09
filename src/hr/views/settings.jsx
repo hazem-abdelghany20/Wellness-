@@ -4,6 +4,7 @@ import { HRButton, Panel, Toggle } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { useSettings } from '../hooks/use-settings.js';
 import { useHRAppConfig } from '../state/app-config-context.jsx';
+import { JoinLinkCard } from '../../shared/join-link-card.jsx';
 
 // ── SETTINGS PAGE ────────────────────────────────────────────────
 function HRSettingsPage({ theme, S, lang, density }) {
@@ -128,6 +129,17 @@ function HRSettingsPage({ theme, S, lang, density }) {
         </Panel>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: DENSITY[density].gap }}>
+          {company?.code && (
+            <Panel theme={T} density={density}>
+              <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Join link','رابط الانضمام')}</div>
+              <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 14 }}>
+                {s('Employees open this link (or scan the QR) and sign up with their work email. Personal invite links come from People → Import people.',
+                   'يفتح الموظفون هذا الرابط (أو يمسحون رمز QR) ويسجلون ببريد العمل. الروابط الشخصية من صفحة الأشخاص ← استيراد الأشخاص.')}
+              </div>
+              <JoinLinkCard theme={T} lang={lang} code={company.code} companyName={company.name}/>
+            </Panel>
+          )}
+
           <Panel theme={T} density={density}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Company name','اسم الشركة')}</div>
             <input value={form.name} onChange={(e)=>setForm(prev => ({ ...prev, name: e.target.value }))} style={{

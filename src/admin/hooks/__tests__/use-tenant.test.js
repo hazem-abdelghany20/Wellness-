@@ -21,6 +21,15 @@ describe('useTenant', () => {
     expect(result.current.tenant.name).toBe('Acme');
   });
 
+  it('invite returns the HR sign-up invite (no email is sent)', async () => {
+    inviteCompanyAdmin.mockResolvedValue({ status: 'invited', email: 'boss@acme.com', token: 'tok', role: 'hr_admin', company_id: 't1' });
+    const { result } = renderHook(() => useTenant('t1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const res = await result.current.invite('boss@acme.com', 'Bassem');
+    expect(inviteCompanyAdmin).toHaveBeenCalledWith('t1', 'boss@acme.com', 'Bassem');
+    expect(res.token).toBe('tok');
+  });
+
   it('skips fetch when id is null', async () => {
     const { result } = renderHook(() => useTenant(null));
     await waitFor(() => expect(result.current.loading).toBe(false));
