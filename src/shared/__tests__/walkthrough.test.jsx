@@ -54,6 +54,22 @@ describe('useWalkthrough', () => {
     expect(onNavigate).toHaveBeenLastCalledWith('a');
   });
 
+  it('still starts when the app re-renders with a new navigate function and user object', () => {
+    vi.useFakeTimers();
+    const calls = [];
+    const { result, rerender } = renderHook(
+      ({ n }) => useWalkthrough({ key: 'employee', user: user(), steps, onNavigate: (s) => calls.push([n, s]) }),
+      { initialProps: { n: 0 } },
+    );
+    act(() => { vi.advanceTimersByTime(300); });
+    rerender({ n: 1 });
+    act(() => { vi.advanceTimersByTime(300); });
+    rerender({ n: 2 });
+    act(() => { vi.advanceTimersByTime(800); });
+    expect(result.current.open).toBe(true);
+    expect(calls.at(-1)).toEqual([2, 'a']);
+  });
+
   it('does not start when already seen or when autoStart is off', () => {
     vi.useFakeTimers();
     const a = renderHook(() => useWalkthrough({ key: 'hr', user: user({ tours_seen: { hr: 'x' } }), steps }));

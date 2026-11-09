@@ -32,20 +32,26 @@ export async function markTourSeen(user, key) {
 export function useWalkthrough({ key, user, steps, onNavigate, autoStart = true }) {
   const [index, setIndex] = React.useState(-1);
   const startedFor = React.useRef(null);
+  // Portals pass a fresh navigate function on every render; keep the latest
+  // in a ref so the auto-start timer isn't cancelled by re-renders.
+  const navRef = React.useRef(onNavigate);
+  navRef.current = onNavigate;
+  const userRef = React.useRef(user);
+  userRef.current = user;
 
   const goTo = React.useCallback((i) => {
     const step = steps[i];
-    if (step?.screen && onNavigate) onNavigate(step.screen);
+    if (step?.screen && navRef.current) navRef.current(step.screen);
     setIndex(i);
-  }, [steps, onNavigate]);
+  }, [steps]);
 
+  const userId = user?.id;
   React.useEffect(() => {
-    if (!autoStart || !user || startedFor.current === user.id) return;
-    startedFor.current = user.id;
-    if (tourSeen(user, key)) return;
-    const id = setTimeout(() => goTo(0), 700);
+    if (!autoStart || !userId || startedFor.current === userId) return;
+    if (tourSeen(userRef.current, key)) { startedFor.current = userId; return; }
+    const id = setTimeout(() => { startedFor.current = userId; goTo(0); }, 700);
     return () => clearTimeout(id);
-  }, [autoStart, user, key, goTo]);
+  }, [autoStart, userId, key, goTo]);
 
   const close = React.useCallback(() => {
     setIndex(-1);
