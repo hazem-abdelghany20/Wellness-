@@ -4,6 +4,7 @@ import { useHabitChallenge } from '../hooks/use-habit-challenge.js';
 import { getContentBySlug, listSignatureChallenges } from '../../lib/supabase';
 import { SignaturePathCard, IconBtn, fmtNum } from '../components/shared.jsx';
 import { toPlayerItem } from '../lib/content-item.js';
+import { HabitMedia } from '../components/habit-media.jsx';
 
 // Weekly habit challenge: one small daily action, Sun → Thu, chosen by HR.
 // No scores and no ranking — a "Did it" tap, five day dots, and one shared
@@ -127,6 +128,7 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
         </div>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 28, color: T.text, marginTop: 8, lineHeight: 1.15 }}>{title}</div>
         <div style={{ color: T.textMid || T.text, fontSize: 15, lineHeight: 1.5, marginTop: 10 }}>{pick('action')}</div>
+        <HabitMedia theme={T} lang={lang} payload={p} title={title}/>
       </Card>
     );
   }
@@ -167,6 +169,8 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
           <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, color: T.text, lineHeight: 1.1, flex: 1 }}>{title}</div>
         </div>
         <div style={{ color: T.text, fontSize: 16, lineHeight: 1.55 }}>{pick('action')}</div>
+        {/* How-to video or image, only when the template has one */}
+        <HabitMedia theme={T} lang={lang} payload={p} title={title}/>
 
         <div style={{ marginTop: 20 }}>
           {state.can_log ? (

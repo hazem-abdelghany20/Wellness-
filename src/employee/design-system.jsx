@@ -111,6 +111,8 @@ function Icon({ name, size = 22, stroke, fill = 'none', style = {} }) {
     chevR: <><path d="M9 6l6 6-6 6"/></>,
     chevL: <><path d="M15 6l-6 6 6 6"/></>,
     edit:  <><path d="M16 4l4 4-12 12H4v-4L16 4z"/><path d="M14 6l4 4"/></>,
+    drop:  <><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></>,
+    image: <><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></>,
   };
   return (
     <svg viewBox="0 0 24 24" style={s} fill={fill} stroke={stroke || 'currentColor'} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
