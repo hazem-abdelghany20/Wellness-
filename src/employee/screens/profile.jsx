@@ -8,6 +8,7 @@ import { guideHref } from '../../shared/walkthrough.jsx';
 import { useProfile } from '../hooks/use-profile.js';
 import { useWallet } from '../hooks/use-wallet.js';
 import { fmtNum } from '../components/shared.jsx';
+import { PrivacySettings } from '../components/privacy-settings.jsx';
 
 function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey, state, onReplayTour }) {
   const T = theme;
@@ -114,6 +115,9 @@ function ScreenProfile({ theme, t, dir, go, lang, setLang, themeKey, setThemeKey
           <Icon name={lang === 'ar' ? 'chevL' : 'chev'} size={16} style={{ color: T.textMuted }}/>
         </Card>
       </div>
+
+      <div style={{ height: 16 }}/>
+      <PrivacySettings theme={T} lang={lang}/>
 
       <div style={{ height: 16 }}/>
       <SectionLabel theme={T}>{t('language')} · {lang==='ar'?'المظهر':'Appearance'}</SectionLabel>

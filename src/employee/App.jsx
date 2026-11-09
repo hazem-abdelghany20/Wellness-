@@ -13,6 +13,7 @@ import {
   ScreenJoin, ScreenConsent, ScreenName, ScreenWelcome,
 } from './screens/onboarding.jsx';
 import { ScreenHabitChallenge } from './screens/habit-challenge.jsx';
+import { ScreenToday } from './screens/today.jsx';
 import { ScreenProfile }  from './screens/profile.jsx';
 import { ScreenScorecard } from './screens/scorecard.jsx';
 import { ScreenLibrary, ScreenPlayer } from './screens/content.jsx';
@@ -26,60 +27,22 @@ import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx'
 import { AuthProvider, useAuth } from './state/auth-context.jsx';
 import { Splash } from './screens/splash.jsx';
 import { useNotifications } from './hooks/use-notifications.js';
+import { useRoutineToday } from './hooks/use-routine-today.js';
 import { useWalkthrough, WalkthroughCard } from '../shared/walkthrough.jsx';
-import { EMPLOYEE_TOUR } from '../shared/tours.js';
+import { employeeTourSteps } from './lib/tour-steps.js';
+import { TabBar } from './components/tab-bar.jsx';
 
-const TOUR_SCREENS = ['challenges', 'library', 'score', 'profile'];
+const TOUR_SCREENS = ['today', 'challenges', 'library', 'score', 'profile'];
 
 const ONBOARDING_SCREENS = ['join', 'consent', 'name', 'welcome'];
-const MAIN_SCREENS = ['challenges', 'library', 'score', 'profile', 'mine', 'player', 'notifs', 'competition-path'];
+const MAIN_SCREENS = ['today', 'challenges', 'library', 'score', 'profile', 'mine', 'player', 'notifs', 'competition-path'];
 // Screens removed when the app went to Challenge / Library / Score / Me; a saved one lands on Challenges.
 const RETIRED_SCREENS = ['home', 'checkin', 'breathe', 'progress', 'baseline', 'goals'];
+// How long the splash waits for today's routine before landing anyway.
+const LANDING_WAIT_MS = 4000;
 
 // --- app.jsx ---
 // Main app — state, routing, Tweaks, nav
-
-function TabBar({ theme, t, dir, active, onTab }) {
-  const T = theme;
-  const tabs = [
-    { id: 'challenges', icon: 'trophy', label: dir === 'rtl' ? 'التحدي' : 'Challenge' },
-    { id: 'library', icon: 'library', label: dir === 'rtl' ? 'المكتبة' : 'Library' },
-    { id: 'score', icon: 'chart', label: dir === 'rtl' ? 'نقاطي' : 'Score' },
-    { id: 'profile', icon: 'user', label: dir === 'rtl' ? 'أنا' : 'Me' },
-  ];
-  return (
-    <div style={{
-      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40,
-      paddingBottom: 'var(--wp-bottom)', paddingTop: 8,
-      background: `linear-gradient(to top, ${T.bg} 70%, transparent)`,
-    }}>
-      <div style={{
-        margin: '0 16px', background: T.surface,
-        border: `1px solid ${T.border}`, borderRadius: 22,
-        padding: 6, display: 'flex',
-        boxShadow: T.isDark ? '0 10px 30px rgba(0,0,0,0.35)' : '0 10px 30px rgba(0,0,0,0.08)',
-      }}>
-        {tabs.map(tab => {
-          const isActive = active === tab.id;
-          return (
-            <button key={tab.id} onClick={() => onTab(tab.id)}
-              aria-label={tab.label} aria-current={isActive ? 'page' : undefined} style={{
-              flex: 1, height: 52, borderRadius: 14,
-              background: isActive ? T.accent : 'transparent',
-              color: isActive ? T.accentInk : T.textMuted,
-              border: 'none', cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
-              transition: 'background .2s',
-            }}>
-              <Icon name={tab.icon} size={19}/>
-              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{tab.label}</div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // Real phones get the app full-screen (respecting the notch / home bar);
 // wider screens keep the iPhone frame, which is handy for demos.
@@ -120,6 +83,19 @@ function AppInner() {
   const [competitionId, setCompetitionId] = React.useState(null);
   const [avatar, setAvatar] = React.useState(() => localStorage.getItem('wellness-plus-avatar') || 'monogram');
   const [name, setName] = React.useState(() => localStorage.getItem('wellness-plus-name') || '');
+  const onboarded = !!(profile?.onboarded || profile?.onboarded_at);
+  // Today's routine: decides whether there is a Today tab, and feeds it.
+  const routine = useRoutineToday(!!session && onboarded);
+  const hasRoutine = routine.ready && routine.assigned;
+  const [landingTimedOut, setLandingTimedOut] = React.useState(false);
+  // True while the person sits on a screen the app picked (not one they tapped),
+  // so a routine that loads late can still move them to Today.
+  const autoLanded = React.useRef(false);
+  React.useEffect(() => {
+    if (!onboarded || routine.ready) return undefined;
+    const id = setTimeout(() => setLandingTimedOut(true), LANDING_WAIT_MS);
+    return () => clearTimeout(id);
+  }, [onboarded, routine.ready]);
 
   const tweaksAvailable = import.meta.env.DEV ||
     new URLSearchParams(window.location.search).get('tweaks') === '1';
@@ -150,12 +126,24 @@ function AppInner() {
         setScreen('consent');
       }
     } else {
-      // Fully onboarded — never show onboarding screens again.
+      // Fully onboarded — never show onboarding screens again. Land on Today
+      // when HR gave a routine (wait a moment for it), else on Challenge.
       if (screen === null || ONBOARDING_SCREENS.includes(screen) || RETIRED_SCREENS.includes(screen)) {
-        setScreen('challenges');
+        if (!routine.ready && !landingTimedOut && screen === null) return;
+        autoLanded.current = true;
+        setScreen(hasRoutine ? 'today' : 'challenges');
       }
     }
-  }, [authLoading, session, profile, profileLoaded, screen, joining]);
+  }, [authLoading, session, profile, profileLoaded, screen, joining, routine.ready, hasRoutine, landingTimedOut]);
+
+  // The routine arrived after we landed: move to Today once. A Today screen
+  // with no routine (HR ended it) falls back to Challenge.
+  React.useEffect(() => {
+    if (!routine.ready || !screen) return;
+    if (hasRoutine && autoLanded.current && screen === 'challenges') setScreen('today');
+    if (!hasRoutine && screen === 'today') setScreen('challenges');
+    autoLanded.current = false;
+  }, [routine.ready, hasRoutine, screen]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-avatar', avatar); }, [avatar]);
   React.useEffect(() => { localStorage.setItem('wellness-plus-name', name); }, [name]);
   React.useEffect(() => {
@@ -189,6 +177,7 @@ function AppInner() {
   }, [lang, dir]);
 
   const go = (s, extra) => {
+    autoLanded.current = false;
     if (s === 'competition-path' && extra?.id) {
       setCompetitionId(extra.id);
     }
@@ -216,13 +205,13 @@ function AppInner() {
   const setLang = (l) => setCfg({ ...cfg, lang: l });
   const setThemeKey = (k) => setCfg({ ...cfg, theme: k });
 
-  const onboarded = !!(profile?.onboarded || profile?.onboarded_at);
+  const tourSteps = React.useMemo(() => employeeTourSteps(hasRoutine), [hasRoutine]);
   const tour = useWalkthrough({
     key: 'employee',
     user: session?.user,
-    steps: EMPLOYEE_TOUR,
+    steps: tourSteps,
     onNavigate: go,
-    autoStart: onboarded && TOUR_SCREENS.includes(screen),
+    autoStart: onboarded && TOUR_SCREENS.includes(screen) && (routine.ready || landingTimedOut),
   });
 
   // Splash while auth bootstraps, or while the routing effect is still resolving the initial screen.
@@ -236,14 +225,19 @@ function AppInner() {
     case 'join':     content = <ScreenJoin theme={theme} t={t} dir={dir} onNext={() => go('consent')}/>; break;
     case 'consent':  content = <ScreenConsent theme={theme} t={t} dir={dir} onNext={() => go('name')} onBack={() => go('join')}/>; break;
     case 'name':     content = <ScreenName theme={theme} t={t} dir={dir} state={state} onNext={() => go('welcome')} onBack={() => go('consent')}/>; break;
-    case 'welcome':  content = <ScreenWelcome theme={theme} t={t} dir={dir} state={state} onNext={() => go('challenges')}/>; break;
+    case 'welcome':  content = <ScreenWelcome theme={theme} t={t} dir={dir} state={state} onNext={() => { go(hasRoutine ? 'today' : 'challenges'); autoLanded.current = true; }}/>; break;
     case 'library':  content = <ScreenLibrary theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
     case 'player':   content = <ScreenPlayer theme={theme} t={t} dir={dir} go={go} state={state}/>; break;
-    case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go}/>; break;
+    case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go} backTo={hasRoutine ? 'today' : 'challenges'}/>; break;
     case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'competition-path': content = <ScreenCompetitionPath theme={theme} t={t} dir={dir} go={go} challengeId={competitionId}/>; break;
-    case 'score':    content = <ScreenScorecard theme={theme} dir={dir} go={go}/>; showTabs = true; break;
+    case 'score':    content = <ScreenScorecard theme={theme} dir={dir} go={go} hasRoutine={hasRoutine}/>; showTabs = true; break;
     case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state} onReplayTour={tour.start}/>; showTabs = true; break;
+    case 'today':
+      content = hasRoutine
+        ? <ScreenToday theme={theme} dir={dir} go={go} state={state} routine={routine}/>
+        : <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>;
+      showTabs = true; break;
     case 'challenges':
     default:         content = <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>; showTabs = true;
   }
@@ -262,7 +256,7 @@ function AppInner() {
                  style={{ position: 'absolute', inset: 0, animation: 'screenIn .35s ease both' }}>
               {content}
             </div>
-            {showTabs && <TabBar theme={theme} t={t} dir={dir} active={screen} onTab={go}/>}
+            {showTabs && <TabBar theme={theme} t={t} dir={dir} active={hasRoutine || screen !== 'today' ? screen : 'challenges'} onTab={go} hasToday={hasRoutine}/>}
             <WalkthroughCard tour={tour} lang={lang} placement="sheet"
               bottomOffset={showTabs ? 'calc(var(--wp-tabpad) + 4px)' : 24}
               colors={{ panel: theme.surface, text: theme.text, muted: theme.textMuted, border: theme.border, accent: theme.accent, accentInk: theme.accentInk }}/>

@@ -12,6 +12,8 @@ function HabitMedia({ theme, lang, payload, title = '', style = {} }) {
   if (!m) return null;
 
   const isImage = m.type === 'image';
+  // Exercise media (resolveMedia) can carry a poster: show it first, load the clip on play.
+  const poster = typeof payload?.poster_url === 'string' && /^https?:\/\//i.test(payload.poster_url) ? payload.poster_url : null;
   const label = isImage ? s('See how', 'شوف إزاي') : s('Watch how', 'اتفرج إزاي');
   const a11y = title ? s(`How to do it: ${title}`, `إزاي تعملها: ${title}`) : s('How to do it', 'إزاي تعملها');
   const frame = {
@@ -37,7 +39,8 @@ function HabitMedia({ theme, lang, payload, title = '', style = {} }) {
   } else if (m.type === 'video') {
     body = (
       <div style={frame}>
-        <video src={m.url} controls playsInline preload="metadata" aria-label={a11y}
+        <video src={m.url} controls playsInline preload={poster ? 'none' : 'metadata'} aria-label={a11y}
+          poster={poster || undefined}
           style={{ display: 'block', width: '100%', maxHeight: 420, background: '#000' }}/>
       </div>
     );

@@ -57,7 +57,7 @@ function isToday(iso) {
       && d.getDate() === now.getDate();
 }
 
-function ScreenNotifs({ theme, t, dir, go }) {
+function ScreenNotifs({ theme, t, dir, go, backTo = 'challenges' }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const { session } = useAuth();
@@ -80,7 +80,7 @@ function ScreenNotifs({ theme, t, dir, go }) {
   return (
     <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 40, boxSizing: 'border-box' }}>
       <div style={{ padding: '14px 22px 6px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <TopBack theme={T} onBack={() => go('challenges')} dir={dir}/>
+        <TopBack theme={T} onBack={() => go(backTo)} dir={dir}/>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 26, letterSpacing: -0.4, color: T.text, flex: 1 }}>
           {lang==='ar'?'الإشعارات':'Notifications'}
         </div>

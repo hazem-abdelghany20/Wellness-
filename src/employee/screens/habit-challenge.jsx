@@ -5,19 +5,14 @@ import { getContentBySlug, listSignatureChallenges } from '../../lib/supabase';
 import { SignaturePathCard, IconBtn, fmtNum } from '../components/shared.jsx';
 import { toPlayerItem } from '../lib/content-item.js';
 import { HabitMedia } from '../components/habit-media.jsx';
+import { challengeDays, groupByWeek, challengeWeeks } from '../lib/challenge-days.js';
 
-// Weekly habit challenge: one small daily action, Sun → Thu, chosen by HR.
-// No scores and no ranking — a "Did it" tap, five day dots, and one shared
-// team bar.
+// Habit challenge: one small daily action, Sun → Thu, chosen by HR. Usually
+// one week; HR's own challenges can run 2–4 weeks. No scores and no ranking —
+// a "Did it" tap, a dot per workday (from the server's `days`), and one
+// shared team bar.
 
 const num = (n, lang) => (lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(n) : String(n));
-
-// 'YYYY-MM-DD' + n days, without local-timezone drift.
-function addDays(iso, n) {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
 
 function dayLabel(iso, lang) {
   return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short', timeZone: 'UTC' })
@@ -34,6 +29,9 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const { state, loading, saving, error, toggle } = useHabitChallenge();
+  const days = challengeDays(state);
+  const weeks = challengeWeeks(state, days);
+  const multiWeek = weeks > 1;
   const [articleBusy, setArticleBusy] = React.useState(false);
   const unread = app?.unreadCount || 0;
   // Sabr / Niyyah / Ramadan: optional personal paths, separate from the
@@ -69,7 +67,7 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
       <div style={{ padding: '16px 22px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
        <div style={{ minWidth: 0 }}>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>
-          {s('This week', 'تحدي الأسبوع')}
+          {multiWeek ? s('Your challenge', 'التحدي بتاعك') : s('This week', 'تحدي الأسبوع')}
         </div>
         {state?.challenge && (
           <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>
@@ -133,8 +131,7 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
     );
   }
 
-  const days = Array.from({ length: state.days_total || 5 }, (_, i) => addDays(c.start_date, i));
-  const done = new Set(state.my_dates || []);
+  const done = new Set((state.my_dates || []).map((d) => String(d).slice(0, 10)));
   const target = state.target_date;
   const need = state.success_days || 4;
   const count = state.my_count || 0;
@@ -197,9 +194,16 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
           )}
         </div>
 
-        {/* Five day dots */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 22 }}>
-          {days.map((d) => {
+        {/* A dot per workday; one row per week when the challenge runs several weeks */}
+        {groupByWeek(days).map((w, wi) => (
+        <div key={w.weekStart} style={{ marginTop: wi === 0 ? 22 : 14 }}>
+        {multiWeek && (
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: T.textMuted, marginBottom: 8 }}>
+            {s(`Week ${wi + 1} of ${weeks}`, `الأسبوع ${num(wi + 1, lang)} من ${num(weeks, lang)}`)}
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          {w.days.map((d) => {
             const isDone = done.has(d);
             const isTarget = d === target;
             const isPast = d < target;
@@ -221,6 +225,8 @@ function ScreenHabitChallenge({ theme, dir, go, state: app }) {
             );
           })}
         </div>
+        </div>
+        ))}
 
         <div style={{ marginTop: 16, fontSize: 14, color: earned ? T.positive || T.accent : T.textMuted, textAlign: 'center', lineHeight: 1.5 }}>
           {earned

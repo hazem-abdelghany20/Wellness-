@@ -5,6 +5,8 @@ import {
 import { TopBack } from './onboarding.jsx';
 import { IconBtn, kindLabel } from '../components/shared.jsx';
 import { useContent } from '../hooks/use-content.js';
+import { useLibrary } from '../hooks/use-library.js';
+import { splitLibrary, isFact } from '../lib/library-sections.js';
 import { markArticleOpened, saveContentProgress } from '../../lib/supabase';
 
 // --- screens-content.jsx ---
@@ -36,13 +38,113 @@ function normalizeItem(row) {
     kind: row.kind || 'audio',
     mins: row.duration_mins ?? row.mins ?? 0,
     cat: row.category,
+    pinned: !!row.pinned,
+    featured: !!row.featured,
+    scope: row.scope || (row.company_id ? 'company' : 'public'),
     title: { en: row.title_en || '', ar: row.title_ar || row.title_en || '' },
+    desc: (row.description_en || row.description_ar)
+      ? { en: row.description_en || row.description_ar || '', ar: row.description_ar || row.description_en || '' }
+      : null,
     // body_en/body_ar are filled for articles + a short "what to expect"
     // blurb for audio/video. Falls back to en in ar if ar missing.
     body: (row.body_en || row.body_ar)
       ? { en: row.body_en || '', ar: row.body_ar || row.body_en || '' }
       : null,
   };
+}
+
+// A fact: one or two lines, shown in full. No read time, nothing to open.
+function FactCard({ theme, lang, item }) {
+  const T = theme;
+  const text = (item.body && (item.body[lang] || item.body.en)) || (item.desc && (item.desc[lang] || item.desc.en)) || '';
+  return (
+    <Card theme={T} pad={16} radius={18} style={{ borderInlineStart: `4px solid ${T.accent}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, letterSpacing: 0.8, color: T.accent, fontWeight: 700, textTransform: 'uppercase' }}>
+        <Icon name="sparkle" size={14}/>{lang === 'ar' ? 'معلومة' : 'Fact'}
+        {item.pinned && <PinnedTag theme={T} lang={lang}/>}
+      </div>
+      <div style={{ fontSize: 15, color: T.text, fontWeight: 600, marginTop: 8, lineHeight: 1.4 }}>
+        {item.title?.[lang] || item.title?.en || ''}
+      </div>
+      {text && <div style={{ fontSize: 14, color: T.textMuted, marginTop: 6, lineHeight: 1.55 }}>{text}</div>}
+    </Card>
+  );
+}
+
+function PinnedTag({ theme: T, lang }) {
+  return (
+    <span style={{
+      padding: '2px 7px', borderRadius: 999, background: T.accent, color: T.accentInk,
+      fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
+    }}>{lang === 'ar' ? 'مثبّت' : 'Pinned'}</span>
+  );
+}
+
+function ItemCard({ theme, t, lang, it, go, num }) {
+  const T = theme;
+  return (
+    <Card theme={T} pad={0} radius={18} onClick={() => go('player', { item: it })}
+          style={{ overflow: 'hidden', cursor: 'pointer' }}>
+      <div style={{
+        height: 100, position: 'relative',
+        background: it.kind === 'video'
+          ? `linear-gradient(135deg, ${T.accent}44, ${T.surfaceAlt})`
+          : it.kind === 'article'
+          ? `linear-gradient(135deg, ${T.surfaceAlt}, ${T.surface})`
+          : `linear-gradient(135deg, ${T.accentSoft}, ${T.surfaceAlt})`,
+      }}>
+        <div style={{ position: 'absolute', top: 10, insetInlineStart: 10, display: 'flex', gap: 6 }}>
+          <div style={{
+            padding: '3px 8px', borderRadius: 999,
+            background: T.bg + 'cc', color: T.text,
+            fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
+          }}>{kindLabel(it.kind, lang)}</div>
+          {it.pinned && <PinnedTag theme={T} lang={lang}/>}
+        </div>
+        <div style={{ position: 'absolute', top: 14, insetInlineEnd: 14, color: T.textFaint, opacity: 0.5 }}>
+          <Icon name={(CATEGORIES.find((c) => c.id === it.cat) || CATEGORIES[0]).icon} size={36}/>
+        </div>
+        <div style={{
+          position: 'absolute', bottom: 10, insetInlineEnd: 10,
+          width: 32, height: 32, borderRadius: 999,
+          background: T.accent, color: T.accentInk,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name={it.kind === 'article' ? 'book' : 'play'} size={14}/>
+        </div>
+      </div>
+      <div style={{ padding: '10px 12px 14px' }}>
+        <div style={{ fontSize: 13, color: T.text, fontWeight: 500, lineHeight: 1.3, minHeight: 34 }}>
+          {it.title?.[lang] || it.title?.en || ''}
+        </div>
+        {it.mins > 0 && <div style={{ fontSize: 11, color: T.textMuted, marginTop: 6 }}>{num(it.mins)} {t('minutes')}</div>}
+      </div>
+    </Card>
+  );
+}
+
+// Facts full width first, then the rest as two-column cards.
+function LibrarySection({ theme, t, lang, title, label, sub, items, go, num, testId }) {
+  const T = theme;
+  if (!items.length) return null;
+  const facts = items.filter(isFact);
+  const rest = items.filter((it) => !isFact(it));
+  return (
+    <section aria-label={label || (typeof title === 'string' ? title : undefined)} data-testid={testId} style={{ marginBottom: 18 }}>
+      <SectionLabel theme={T}>{title}</SectionLabel>
+      {sub && <div style={{ color: T.textMuted, fontSize: 12, padding: '0 20px 10px', marginTop: -6 }}>{sub}</div>}
+      {facts.length > 0 && (
+        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: rest.length ? 12 : 0 }}>
+          {facts.map((it) => <FactCard key={it.id} theme={T} lang={lang} item={it}/>)}
+        </div>
+      )}
+      {rest.length > 0 && (
+        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {rest.map((it) => <ItemCard key={it.id} theme={T} t={t} lang={lang} it={it} go={go} num={num}/>)}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function ScreenLibrary({ theme, t, dir, go }) {
@@ -52,23 +154,31 @@ function ScreenLibrary({ theme, t, dir, go }) {
   const [query, setQuery] = React.useState('');
   const [searching, setSearching] = React.useState(false);
 
-  const { items: rawItems, featured: rawFeatured, loading } = useContent(cat === 'all' ? null : cat);
+  const { rows, loading } = useLibrary();
 
-  if (loading && (!rawItems || rawItems.length === 0)) {
+  if (loading && (!rows || rows.length === 0)) {
     return <ContentLoading theme={T} dir={dir}/>;
   }
 
   const num = (n) => (lang === 'ar' ? new Intl.NumberFormat('ar-EG').format(n) : String(n));
-  const featured = (rawFeatured || []).map(normalizeItem).filter(Boolean);
   const q = query.trim().toLowerCase();
-  const heroItem = q ? null : featured[0];
-  const items = (rawItems || []).map(normalizeItem).filter(Boolean)
-    // the hero card already shows this one
-    .filter((it) => !(cat === 'all' && heroItem && it.id === heroItem.id))
-    .filter((it) => !q || `${it.title?.en || ''} ${it.title?.ar || ''}`.toLowerCase().includes(q));
+  const keep = (it) => (cat === 'all' || it.cat === cat)
+    && (!q || `${it.title?.en || ''} ${it.title?.ar || ''} ${it.body?.en || ''} ${it.body?.ar || ''}`.toLowerCase().includes(q));
+  const sections = splitLibrary(rows);
+  const company = sections.company.map(normalizeItem).filter(Boolean);
+  const pub = sections.public.map(normalizeItem).filter(Boolean);
+
+  // Hero: the first pinned article / audio (company first), else Wellness House's featured one.
+  const openable = (it) => !isFact(it);
+  const heroItem = (q || cat !== 'all') ? null
+    : ([...company, ...pub].find((it) => it.pinned && openable(it)) || pub.find((it) => it.featured && openable(it)) || null);
+  const notHero = (it) => !(heroItem && it.id === heroItem.id);
+  const companyItems = company.filter(notHero).filter(keep);
+  const publicItems = pub.filter(notHero).filter(keep);
+  const nothing = companyItems.length === 0 && publicItems.length === 0;
 
   return (
-    <div style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
+    <div dir={dir} data-testid="screen-library" style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
       <div style={{ padding: '16px 22px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 30, letterSpacing: -0.5, color: T.text }}>
           {lang==='ar' ? 'المكتبة' : 'Library'}
@@ -97,7 +207,7 @@ function ScreenLibrary({ theme, t, dir, go }) {
       </div>
 
       {/* Featured hero */}
-      {cat === 'all' && heroItem && (
+      {heroItem && (
         <div style={{ padding: '0 16px 18px' }}>
           <Card theme={T} pad={0} radius={24} style={{ overflow: 'hidden', cursor: 'pointer' }}
                 onClick={() => go('player', { item: heroItem })}>
@@ -114,7 +224,7 @@ function ScreenLibrary({ theme, t, dir, go }) {
                 <rect width="100%" height="100%" fill="url(#wave)"/>
               </svg>
               <div style={{
-                position: 'absolute', bottom: 16, right: 16,
+                position: 'absolute', bottom: 16, insetInlineEnd: 16,
                 width: 56, height: 56, borderRadius: 999,
                 background: T.accentInk, color: T.accent,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -122,7 +232,9 @@ function ScreenLibrary({ theme, t, dir, go }) {
             </div>
             <div style={{ padding: '16px 18px 18px' }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>
-                {kindLabel(heroItem.kind, lang)} · {num(heroItem.mins)} {lang==='ar'?'د':'MIN'} · {lang==='ar'?'موصى به':'FOR YOU'}
+                {kindLabel(heroItem.kind, lang)}{heroItem.mins > 0 ? <> · {num(heroItem.mins)} {lang==='ar'?'د':'MIN'}</> : null} · {heroItem.pinned
+                  ? (heroItem.scope === 'company' ? (lang==='ar'?'من شركتك':'FROM YOUR COMPANY') : (lang==='ar'?'مثبّت':'PINNED'))
+                  : (lang==='ar'?'موصى به':'FOR YOU')}
               </div>
               <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: T.text, marginTop: 6, letterSpacing: -0.3, lineHeight: 1.2 }}>
                 {heroItem.title?.[lang] || heroItem.title?.en || ''}
@@ -132,8 +244,14 @@ function ScreenLibrary({ theme, t, dir, go }) {
         </div>
       )}
 
-      <SectionLabel theme={T}>{lang==='ar'?'استكشف':'Explore'}</SectionLabel>
-      {items.length === 0 ? (
+      <LibrarySection theme={T} t={t} lang={lang} go={go} num={num} items={companyItems} testId="library-company"
+        title={lang === 'ar' ? 'من شركتك' : 'From your company'}
+        sub={lang === 'ar' ? 'مكتوبة من فريق الـ HR في شركتك.' : 'Written by your HR team.'}/>
+      <LibrarySection theme={T} t={t} lang={lang} go={go} num={num} items={publicItems} testId="library-public"
+        title={lang === 'ar' ? <>من <bdi>Wellness House</bdi></> : 'From Wellness House'}
+        label={lang === 'ar' ? 'من Wellness House' : 'From Wellness House'}/>
+
+      {nothing && (
         <div style={{ padding: '0 16px' }}>
           <Card theme={T} pad={16}>
             <div style={{ fontSize: 13, color: T.textMuted, textAlign: 'center' }}>
@@ -143,46 +261,6 @@ function ScreenLibrary({ theme, t, dir, go }) {
             </div>
           </Card>
         </div>
-      ) : (
-      <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {items.map(it => (
-          <Card key={it.id} theme={T} pad={0} radius={18} onClick={() => go('player', { item: it })}
-                style={{ overflow: 'hidden', cursor: 'pointer' }}>
-            <div style={{
-              height: 100, position: 'relative',
-              background: it.kind === 'video'
-                ? `linear-gradient(135deg, ${T.accent}44, ${T.surfaceAlt})`
-                : it.kind === 'article'
-                ? `linear-gradient(135deg, ${T.surfaceAlt}, ${T.surface})`
-                : `linear-gradient(135deg, ${T.accentSoft}, ${T.surfaceAlt})`,
-            }}>
-              <div style={{
-                position: 'absolute', top: 10, left: 10,
-                padding: '3px 8px', borderRadius: 999,
-                background: T.bg + 'cc', color: T.text,
-                fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
-              }}>{kindLabel(it.kind, lang)}</div>
-              <div style={{ position: 'absolute', top: 14, insetInlineEnd: 14, color: T.textFaint, opacity: 0.5 }}>
-                <Icon name={(CATEGORIES.find((c) => c.id === it.cat) || CATEGORIES[0]).icon} size={36}/>
-              </div>
-              <div style={{
-                position: 'absolute', bottom: 10, right: 10,
-                width: 32, height: 32, borderRadius: 999,
-                background: T.accent, color: T.accentInk,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Icon name={it.kind === 'article' ? 'book' : 'play'} size={14}/>
-              </div>
-            </div>
-            <div style={{ padding: '10px 12px 14px' }}>
-              <div style={{ fontSize: 13, color: T.text, fontWeight: 500, lineHeight: 1.3, minHeight: 34 }}>
-                {it.title?.[lang] || it.title?.en || ''}
-              </div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 6 }}>{num(it.mins)} {t('minutes')}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
       )}
     </div>
   );

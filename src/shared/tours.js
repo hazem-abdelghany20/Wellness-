@@ -2,47 +2,51 @@
 // Managers use the employee app, so they get the employee tour.
 
 export const EMPLOYEE_TOUR = [
+  // Steps with `needs: 'routine'` only show when HR has given the person a
+  // daily routine (the Today tab exists); the employee app filters them.
+  {
+    screen: 'today',
+    needs: 'routine',
+    title_en: 'What to do now',
+    title_ar: 'تعمل إيه دلوقتي',
+    body_en: 'Today shows your routine in time order. The highlighted one is next, and the ring shows how much is done.',
+    body_ar: 'النهارده بيعرض الروتين بتاعك بالترتيب حسب الوقت. اللي متعلّم عليه هو اللي عليه الدور، والدايرة بتوريك خلّصت قد إيه.',
+  },
+  {
+    screen: 'today',
+    needs: 'routine',
+    title_en: 'Watch, then tick',
+    title_ar: 'اتفرّج، وبعدين علّم',
+    body_en: 'Tap a row to watch how and read the steps. Tap the circle when you have done it; tap again to undo. Each one adds 2 points.',
+    body_ar: 'دوس على أي سطر علشان تتفرّج إزاي وتقرا الخطوات. دوس على الدايرة لما تخلّصه، ودوس تاني لو عايز تتراجع. كل واحد بيزوّدك نقطتين.',
+  },
   {
     screen: 'challenges',
     title_en: "This week's challenge",
     title_ar: 'تحدّي الأسبوع',
-    body_en: 'One small habit, Sunday to Thursday. Do it on 4 of the 5 days and you earn a reward.',
-    body_ar: 'عادة صغيرة واحدة من الأحد للخميس. اعملها ٤ أيام من ٥ وتاخد مكافأة.',
-  },
-  {
-    screen: 'challenges',
-    title_en: 'One tap a day',
-    title_ar: 'دوسة واحدة في اليوم',
-    body_en: 'When you have done it, tap "Did it today". If the challenge has a "Watch how" video, it shows you exactly what to do.',
-    body_ar: 'لما تعملها دوس "عملتها النهارده". ولو التحدي فيه فيديو "اتفرّج إزاي"، هيوريك تعملها بالظبط.',
-  },
-  {
-    screen: 'challenges',
-    title_en: 'Your team, together',
-    title_ar: 'فريقك مع بعض',
-    body_en: 'One shared bar for your team. There is no ranking and nobody is singled out.',
-    body_ar: 'شريط واحد للفريق كله. مفيش ترتيب ومحدش بيتحط تحت المجهر.',
+    body_en: 'One small habit, Sunday to Thursday. Tap "Did it today" when you have done it. Do it on 4 of the 5 days and you earn a reward.',
+    body_ar: 'عادة صغيرة واحدة من الأحد للخميس. دوس "عملتها النهارده" لما تعملها. اعملها ٤ أيام من ٥ وتاخد مكافأة.',
   },
   {
     screen: 'library',
-    title_en: 'Short reads',
-    title_ar: 'قراءات قصيرة',
-    body_en: '3 to 6 minute articles from Wellness House. Every one you finish adds 5 points.',
-    body_ar: 'مقالات من ٣ لـ ٦ دقايق من Wellness House. كل مقال تخلّصه بيزوّدك ٥ نقط.',
+    title_en: 'From your company and Wellness House',
+    title_ar: 'من شركتك ومن Wellness House',
+    body_en: 'Posts and quick facts from your HR team come first, then short reads from Wellness House. Every article you finish adds 5 points.',
+    body_ar: 'البوستات والمعلومات السريعة من الـ HR بتاعك الأول، وبعدها قراءات قصيرة من Wellness House. كل مقال تخلّصه بيزوّدك ٥ نقط.',
   },
   {
     screen: 'score',
-    title_en: 'Your score is private',
-    title_ar: 'نقطك ليك إنت بس',
-    body_en: 'Only you see your points. If your team is small, you see the company average instead, so nobody can be identified.',
-    body_ar: 'محدش غيرك بيشوف نقطك. ولو فريقك صغير بتشوف متوسط الشركة بدل الفريق، علشان محدش يتعرف.',
+    title_en: 'Your score, and the board',
+    title_ar: 'نقطك، واللوحة',
+    body_en: 'Only you see your points. If your company turns on the board, it shows teams, and names only of people who chose to show theirs.',
+    body_ar: 'محدش غيرك بيشوف نقطك. ولو شركتك شغّلت اللوحة، بتعرض الفرق، والأسامي بس للي اختاروا يظهروها.',
   },
   {
     screen: 'profile',
-    title_en: 'Make it yours',
-    title_ar: 'خليه على مزاجك',
-    body_en: 'Switch to Arabic, change the look, and see your rewards here. You can replay this tour from this page any time.',
-    body_ar: 'من هنا تغيّر اللغة والشكل وتشوف مكافآتك. وتقدر تعيد الجولة دي من الصفحة دي في أي وقت.',
+    title_en: 'Privacy, language and help',
+    title_ar: 'الخصوصية واللغة والمساعدة',
+    body_en: 'Choose if your name shows on the board or your progress goes to HR. Switch to Arabic, and replay this tour or open the guide here.',
+    body_ar: 'اختار لو اسمك يظهر على اللوحة أو تقدّمك يوصل للـ HR. غيّر اللغة، وأعد الجولة دي أو افتح الدليل من هنا.',
   },
 ];
 
