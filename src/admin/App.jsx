@@ -12,6 +12,8 @@ import { AdminAuditView }                  from './views/audit.jsx';
 import { AdminRolesView }                  from './views/roles.jsx';
 import { AdminLocalizationView }           from './views/localization.jsx';
 import { AdminChallengeTemplatesView }     from './views/challenge-templates.jsx';
+import { AdminPublicExercisesView }        from './views/public-exercises.jsx';
+import { AdminPublicRoutinesView }         from './views/public-routines.jsx';
 import { AdminTenantDetail } from './views/tenant-detail.jsx';
 import { AdminBilling }      from './views/billing.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
@@ -119,6 +121,10 @@ function AppInner() {
             <AdminLocalizationView theme={T} density={safeDensity} lang={lang}/>
           ) : active === 'challenges' ? (
             <AdminChallengeTemplatesView theme={T} density={safeDensity} lang={lang}/>
+          ) : active === 'exercises' ? (
+            <AdminPublicExercisesView theme={T} density={safeDensity} lang={lang}/>
+          ) : active === 'routines' ? (
+            <AdminPublicRoutinesView theme={T} density={safeDensity} lang={lang}/>
           ) : (
             <AdminOverview theme={T} density={safeDensity} chartStyle={chartStyle} layout={layout} lang={lang} onOpenTenant={setOpenTenant}/>
           )}
