@@ -267,7 +267,7 @@ function TemplateBuilder({ theme, density, lang, template, articles, onSave, onC
               'إجراء يومي صغير لأسبوع من الأحد إلى الخميس. يختاره فريق الموارد البشرية من صفحة التحديات.')}
         right={<HRButton theme={T} variant="ghost" size="sm" icon="close" onClick={onCancel}>{s('Close', 'إغلاق')}</HRButton>}/>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 400px)', gap: 24, padding: DENSITY[density].cardPad, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: 24, padding: DENSITY[density].cardPad, alignItems: 'start' }}>
         <form onSubmit={submit} noValidate>
           <Field theme={T} label={s('Name', 'الاسم')}>
             {pair('name', s('Name', 'الاسم'), { max: LIMITS.name, placeholderEn: 'The Water Bottle', placeholderAr: 'قزازة المية' })}
