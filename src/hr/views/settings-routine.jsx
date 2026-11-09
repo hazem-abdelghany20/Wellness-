@@ -25,6 +25,8 @@ export const TIMEZONES = [
   { id: 'UTC', en: 'UTC', ar: 'UTC' },
 ];
 
+const arDigits = (t) => String(t).replace(/\d/g, (c) => '٠١٢٣٤٥٦٧٨٩'[Number(c)]);
+
 const RECOGNITION = [
   { id: 'off', en: 'Off', ar: 'مقفول',
     hint_en: 'No board. Nobody sees how others are doing.', hint_ar: 'مفيش لوحة. محدش بيشوف الباقيين عاملين إيه.' },
@@ -34,7 +36,7 @@ const RECOGNITION = [
     hint_en: 'Also names people who chose to appear, by what they did. Never anything about health.', hint_ar: 'وكمان أسامي اللي اختاروا يظهروا، باللي عملوه بس. عمره ما بيظهر حاجة عن الصحة.' },
 ];
 
-// Routine, recognition, names and time zone. Every change saves on its own.
+// Routine, recognition, names, quiet hours and time zone. Every change saves on its own.
 // onSaved(patch) lets the page keep its own copy of companies.settings in step.
 export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
   const T = theme;
@@ -75,6 +77,9 @@ export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
   if (!cfg) return null;
 
   const zones = TIMEZONES.some((z) => z.id === cfg.timezone) ? TIMEZONES : [{ id: cfg.timezone, en: cfg.timezone, ar: cfg.timezone }, ...TIMEZONES];
+  const quietOn = cfg.quiet_hours !== false;
+  const quietFrom = cfg.quiet_window?.from || '20:00';
+  const quietTo = cfg.quiet_window?.to || '08:00';
 
   return (
     <>
@@ -113,6 +118,24 @@ export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
           <Toggle theme={T} value={!!cfg.hr_people_view} onChange={(v) => save('hr_people_view', v)}/>
           <span style={{ fontSize: 13, color: T.textMid }}>{cfg.hr_people_view ? s('On', 'مفتوح') : s('Off', 'مقفول')}</span>
           {note('hr_people_view')}
+        </div>
+      </Panel>
+
+      <Panel theme={T} density={density}>
+        {title(s('Quiet hours', 'ساعات الهدوء'))}
+        {sub(s(`When this is on, messages from HR arrive only between ${quietTo} and ${quietFrom} company time. One set for the night waits until ${quietTo}.`,
+               `لما ده يبقى شغال، رسايل الـ HR بتوصل بس من ${arDigits(quietTo)} لـ ${arDigits(quietFrom)} بتوقيت الشركة. اللي متجدولة بالليل بتستنى لحد ${arDigits(quietTo)}.`))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Toggle theme={T} value={quietOn} onChange={(v) => save('quiet_hours', v)}/>
+          <span style={{ fontSize: 13, color: T.textMid }}>
+            {quietOn ? s(`On · ${quietTo}–${quietFrom}`, `شغالة · ${arDigits(quietTo)}–${arDigits(quietFrom)}`) : s('Off: messages go at any hour', 'مقفولة: الرسايل بتوصل في أي وقت')}
+          </span>
+          {note('quiet_hours')}
+        </div>
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.divider}`, fontSize: 12, color: T.textMuted, lineHeight: 1.55 }}>
+          <strong style={{ color: T.textMid }}>{s('Routine reminders: ', 'تذكيرات الروتين: ')}</strong>
+          {s('Employees switch reminders on in their app; iPhone users must add the app to the Home Screen first. Reminders follow the routine times, not quiet hours.',
+             'الموظفين بيشغّلوا التذكيرات من التطبيق بتاعهم؛ ومستخدمين الآيفون لازم يضيفوا التطبيق للشاشة الرئيسية الأول. التذكيرات بتمشي على مواعيد الروتين، مش ساعات الهدوء.')}
         </div>
       </Panel>
 

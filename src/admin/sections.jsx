@@ -9,8 +9,26 @@ import { useSystemHealth } from './hooks/use-system-health.js';
 // (App.jsx never rendered them) and have been removed.
 
 // ── SIDEBAR ──────────────────────────────────────────────────────
-function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignOut }) {
+// Under 1000px the sidebar shrinks to icons (labels become tooltips).
+function useNarrow(maxWidth = 999) {
+  const query = `(max-width: ${maxWidth}px)`;
+  const get = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? !!window.matchMedia(query).matches : false);
+  const [narrow, setNarrow] = React.useState(get);
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia(query);
+    const on = () => setNarrow(!!mq.matches);
+    on();
+    if (mq.addEventListener) mq.addEventListener('change', on); else mq.addListener?.(on);
+    return () => { if (mq.removeEventListener) mq.removeEventListener('change', on); else mq.removeListener?.(on); };
+  }, [query]);
+  return narrow;
+}
+
+function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignOut, collapsed: forced }) {
   const T = theme;
+  const narrow = useNarrow();
+  const collapsed = forced ?? narrow;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const items = [
     { id: 'overview',   icon: 'dashboard',   label: s('Overview', 'نظرة عامة') },
@@ -44,27 +62,27 @@ function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignO
   const [menuOpen, setMenuOpen] = React.useState(false);
 
   return (
-    <aside style={{
-      width: 232, flexShrink: 0, background: T.sidebarBg, color: T.sidebarText,
-      display: 'flex', flexDirection: 'column',
+    <aside data-collapsed={collapsed || undefined} style={{
+      width: collapsed ? 68 : 232, flexShrink: 0, background: T.sidebarBg, color: T.sidebarText,
+      display: 'flex', flexDirection: 'column', transition: 'width .2s',
       borderInlineEnd: `1px solid rgba(245,241,232,0.06)`,
       position: 'sticky', top: 0, height: '100vh', zIndex: 10,
     }}>
-      <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: collapsed ? '18px 14px' : '18px 20px', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 10 }}>
         <img src="/wellness-mark.png" alt="" style={{ height: 22, filter: 'brightness(0) invert(1)' }}/>
-        <div style={{ flex: 1 }}>
+        {!collapsed && <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: T.sidebarMark, letterSpacing: -0.3, lineHeight: 1 }}>
             Wellness<span style={{ color: T.sidebarActive }}>+</span>
           </div>
           <div style={{ fontSize: 9.5, color: 'rgba(245,241,232,0.45)', letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: 700, marginTop: 2 }}>
             {s('Admin Console','وحدة الإدارة')}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Env switcher — display-only. We only ship one env from this UI
           so the chevron used to imply a non-existent switcher. */}
-      <div style={{ padding: '4px 14px 12px' }}>
+      {!collapsed && <div style={{ padding: '4px 14px 12px' }}>
         <div style={{
           background: 'rgba(245,241,232,0.06)', borderRadius: 10,
           padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8,
@@ -76,15 +94,15 @@ function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignO
             <div style={{ fontSize: 12, color: T.sidebarMark, fontWeight: 600 }}>production · eu-west</div>
           </div>
         </div>
-      </div>
+      </div>}
 
-      <div style={{ padding: '0 14px' }}>
+      <div style={{ padding: collapsed ? '0 10px' : '0 14px' }}>
         {items.map(it => {
           const isActive = active === it.id;
           return (
-            <button key={it.id} onClick={() => onNav(it.id)} style={{
-              width: '100%', padding: '9px 12px',
-              display: 'flex', alignItems: 'center', gap: 12,
+            <button key={it.id} onClick={() => onNav(it.id)} title={collapsed ? it.label : undefined} aria-label={collapsed ? it.label : undefined} style={{
+              width: '100%', padding: collapsed ? '10px 12px' : '9px 12px',
+              display: 'flex', alignItems: 'center', gap: 12, justifyContent: collapsed ? 'center' : 'flex-start',
               background: isActive ? 'rgba(245,181,68,0.12)' : 'transparent',
               color: isActive ? T.sidebarActive : T.sidebarText,
               border: 'none', borderRadius: 10, cursor: 'pointer', marginBottom: 2,
@@ -92,8 +110,8 @@ function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignO
               borderInlineStart: isActive ? `2px solid ${T.sidebarActive}` : '2px solid transparent',
             }}>
               <HRIcon name={it.icon} size={18}/>
-              <span style={{ flex: 1, textAlign: 'start' }}>{it.label}</span>
-              {it.badge && (
+              {!collapsed && <span style={{ flex: 1, textAlign: 'start' }}>{it.label}</span>}
+              {!collapsed && it.badge && (
                 <span style={{
                   minWidth: 20, height: 18, padding: '0 6px', borderRadius: 999,
                   background: '#F5B544', color: '#1A1206',
@@ -122,17 +140,18 @@ function AdminSidebar({ theme, active, onNav, lang, user, profile, role, onSignO
           title={onSignOut ? s('Profile menu','قائمة الملف') : undefined}
         >
           <AvatarMark theme={T} name={displayName} size={32}/>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          {!collapsed && <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: T.sidebarMark, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
             <div style={{ fontSize: 11, color: 'rgba(245,241,232,0.5)' }}>{roleLabel}</div>
-          </div>
-          <HRIcon name="more" size={16} stroke="rgba(245,241,232,0.55)"/>
+          </div>}
+          {!collapsed && <HRIcon name="more" size={16} stroke="rgba(245,241,232,0.55)"/>}
         </button>
         {menuOpen && onSignOut && (
           <div
             role="menu"
             style={{
-              position: 'absolute', insetInlineStart: 14, insetInlineEnd: 14, bottom: 64,
+              position: 'absolute', insetInlineStart: 14, insetInlineEnd: collapsed ? 'auto' : 14, bottom: 64,
+              minWidth: collapsed ? 200 : undefined,
               background: T.panel, border: `1px solid ${T.border}`, borderRadius: 10,
               padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,0.35)', zIndex: 20,
             }}

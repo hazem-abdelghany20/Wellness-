@@ -10,12 +10,14 @@ export function rangeLabel(range, lang) {
   return lang === 'ar' ? `آخر ${new Intl.NumberFormat('ar-EG').format(n)} يوم` : `Last ${n} days`;
 }
 
-// A team row's display name: the team, "Small teams (3)" or "No team".
+// A team row's display name: the team, "Other teams (3)" or "No team".
+// Since sprint 3 the grouped row (small: true) holds teams under the floor,
+// teams folded in to protect privacy and no-team people under the floor.
 export function teamRowLabel(row, lang) {
   if (row.small) {
-    return lang === 'ar'
-      ? `فرق صغيرة (${new Intl.NumberFormat('ar-EG').format(row.teams || 0)})`
-      : `Small teams (${row.teams || 0})`;
+    const c = Number(row.teams) || 0;
+    if (lang === 'ar') return c ? `فرق تانية (${new Intl.NumberFormat('ar-EG').format(c)})` : 'فرق تانية';
+    return c ? `Other teams (${c})` : 'Other teams';
   }
   if (row.no_team) return lang === 'ar' ? 'من غير فريق' : 'No team';
   return row.name || (lang === 'ar' ? 'فريق' : 'Team');
@@ -61,6 +63,8 @@ export function shapeRoutineReport(report, lang) {
     maxDayDue: Math.max(1, ...byDay.map((d) => d.due || 0)),
     teams,
     smallTeamsHidden: !!r.small_teams_hidden,
+    teamsFolded: r.teams_folded || 0,
+    breakdownSuppressed: !!r.breakdown_suppressed,
     exercises,
     hours,
     maxHour: Math.max(1, ...hours.map((h) => h.checks)),
@@ -112,8 +116,9 @@ export function reportSheets(report, people, lang) {
       rows: [
         [t('Team', 'الفريق'), t('Department', 'القسم'), t('Members', 'العدد'), t('Active', 'نشطين'), t('Active %', 'نسبة النشاط'),
           t('Done', 'اتعمل'), t('Due', 'المطلوب'), t('Completion', 'الإنجاز'), t('Items a day', 'عناصر في اليوم')],
-        ...shaped.teams.map((x) => [x.label, x.department || '', x.members, x.active, pctCell(x.active_pct), x.done, x.due,
-          pctCell(x.completion_pct), x.avg_items_per_day ?? '—']),
+        ...(shaped.breakdownSuppressed ? [] : shaped.teams.map((x) => [x.label, x.department || '', x.members, x.active, pctCell(x.active_pct), x.done, x.due,
+          pctCell(x.completion_pct), x.avg_items_per_day ?? '—'])),
+        ...(shaped.breakdownSuppressed ? [[msgOf(TEAMS_SUPPRESSED, lang)]] : shaped.teamsFolded ? [[msgOf(TEAMS_FOLDED, lang)]] : []),
       ],
     },
     {
@@ -143,6 +148,18 @@ export function reportSheets(report, people, lang) {
   }
   return sheets;
 }
+
+const msgOf = (m, lang) => (lang === 'ar' ? m.ar : m.en);
+
+// Privacy lines for the team breakdown (sprint 3 secondary suppression).
+export const TEAMS_FOLDED = msg(
+  'Some teams are grouped into “Other teams” to protect privacy.',
+  'فيه فرق متجمّعة في «فرق تانية» علشان نحافظ على الخصوصية.',
+);
+export const TEAMS_SUPPRESSED = msg(
+  'Teams are grouped to protect privacy: too few people to show any team on its own.',
+  'الفرق متجمّعة علشان نحافظ على الخصوصية: العدد قليل ومينفعش فريق يظهر لوحده.',
+);
 
 export const PEOPLE_WHY = msg(
   'Only people who chose, in their app, to share their progress with HR are named here. Everyone else is only counted, never named.',

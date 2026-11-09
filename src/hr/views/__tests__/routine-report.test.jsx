@@ -44,7 +44,7 @@ describe('HR routine report', () => {
     expect(screen.getByText('31% of today’s items')).toBeInTheDocument();
     expect(screen.getByText('40%')).toBeInTheDocument();
     expect(screen.getByText('Finance')).toBeInTheDocument();
-    expect(screen.getByText('Small teams (3)')).toBeInTheDocument();
+    expect(screen.getByText('Other teams (3)')).toBeInTheDocument();
     expect(screen.getByText(/Some small teams together are still under 5 people/)).toBeInTheDocument();
     const names = screen.getAllByText(/Neck release|Wall push-ups/).map((n) => n.textContent);
     expect(names).toEqual(['Neck release', 'Wall push-ups']);
@@ -60,6 +60,19 @@ describe('HR routine report', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Export .xlsx' }));
     await waitFor(() => expect(files.downloadRoutineReport).toHaveBeenCalledWith(expect.objectContaining({ range: '14d' }),
       expect.objectContaining({ enabled: false }), { lang: 'en', companyName: 'Nile' }));
+  });
+
+  it('says when teams are folded for privacy, and replaces the table when no team can be shown', async () => {
+    lib.getRoutineReport.mockResolvedValueOnce(report({ teams_folded: 1, small_teams_hidden: false }));
+    const { unmount } = view();
+    expect(await screen.findByText('Other teams (3)')).toBeInTheDocument();
+    expect(screen.getByText(/Some teams are grouped into “Other teams” to protect privacy/)).toBeInTheDocument();
+    unmount();
+
+    lib.getRoutineReport.mockResolvedValueOnce(report({ breakdown_suppressed: true, teams_folded: 2, by_team: [] }));
+    view({ lang: 'ar' });
+    expect(await screen.findByText(/الفرق متجمّعة علشان نحافظ على الخصوصية/)).toBeInTheDocument();
+    expect(screen.queryByText('Finance')).not.toBeInTheDocument();
   });
 
   it('lists people who share their progress when the company view is on', async () => {

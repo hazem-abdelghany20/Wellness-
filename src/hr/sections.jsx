@@ -164,7 +164,8 @@ function Broadcasts({ theme, S, lang, density, onNew, list = [] }) {
         {rows.length === 0 ? (
           <EmptyRow theme={T} density={density} text={lang==='ar'?'لا توجد إعلانات':'No broadcasts yet'}/>
         ) : rows.map((b, i) => {
-          const when = b.scheduled_at ? new Date(b.scheduled_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB', { month: 'short', day: 'numeric' }) : '';
+          const at = b.sent_at || b.deliver_at || b.scheduled_at;
+          const when = at ? new Date(at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB', { month: 'short', day: 'numeric' }) : '';
           const title = (lang==='ar' && b.title_ar) ? b.title_ar : b.title_en;
           return (
             <div key={b.id || i} style={{
@@ -173,9 +174,11 @@ function Broadcasts({ theme, S, lang, density, onNew, list = [] }) {
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {b.has_audio && <HRIcon name="headphones" size={12} style={{ marginInlineEnd: 6, verticalAlign: -1 }}/>}{title}
+                </div>
                 <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
-                  {b.scope === 'team' ? (lang==='ar'?'فريق':'Team') : (lang==='ar'?'كل الموظفين':'All staff')} · {when}
+                  {b.scope === 'team' ? (b.team_name || (lang==='ar'?'فريق':'Team')) : (lang==='ar'?'كل الموظفين':'All staff')} · {when}
                 </div>
               </div>
               <Badge theme={T} tone={b.status === 'sent' ? 'positive' : b.status === 'cancelled' ? 'neutral' : 'info'}>{statusLabel(b.status)}</Badge>

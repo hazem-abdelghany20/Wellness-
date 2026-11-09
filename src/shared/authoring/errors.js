@@ -8,6 +8,7 @@ const SETTING_LABELS = {
   recognition: msg('Recognition', 'التقدير'),
   weekly_habit_enabled: msg('Weekly habit', 'عادة الأسبوع'),
   hr_people_view: msg('Show names', 'إظهار الأسماء'),
+  quiet_hours: msg('Quiet hours', 'ساعات الهدوء'),
   timezone: msg('Time zone', 'المنطقة الزمنية'),
   min_cohort: msg('Minimum group size', 'أقل عدد للمجموعة'),
 };

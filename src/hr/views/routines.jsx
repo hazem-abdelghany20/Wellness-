@@ -57,8 +57,8 @@ function HRRoutinesPage({ theme, lang, density, api = hrRoutineApi }) {
     await loadAssignments();
   }
 
+  // The import panel stays open on its "add the videos" step.
   function onImported(summary) {
-    setImporting(false);
     setFlash({ kind: 'ok', text: s(
       `Imported ${summary.items} rows${summary.exercises_created ? ` and ${summary.exercises_created} new exercises` : ''}. Check the routine below${summary.assignment_id ? '' : ', then assign it'}.`,
       `اتضاف ${fmtNum(summary.items, 'ar')} صف${summary.exercises_created ? ` و${fmtNum(summary.exercises_created, 'ar')} تمرين جديد` : ''}. راجع الروتين تحت${summary.assignment_id ? '' : '، وبعدين وزّعه'}.`) });
