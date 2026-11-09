@@ -37,6 +37,7 @@ export async function getRoster() {
   const { data, error } = await supabase
     .from('profiles')
     .select('id, display_name, avatar_kind, role, team_id, teams(name, department)')
+    .is('deleted_at', null)
     .order('display_name');
   if (error) throw error;
   return data ?? [];
