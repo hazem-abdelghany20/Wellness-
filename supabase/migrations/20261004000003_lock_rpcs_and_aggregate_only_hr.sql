@@ -49,7 +49,13 @@ END $$;
 -- EXECUTE is checked when a trigger is created, not when it fires.
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.update_streak()   FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
+-- rls_auto_enable() exists only on the hosted project (created by hand), so
+-- guard it: a database rebuilt from migrations doesn't have it.
+DO $$ BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
+  END IF;
+END $$;
 GRANT  EXECUTE ON FUNCTION public.handle_new_user() TO supabase_auth_admin, service_role;
 GRANT  EXECUTE ON FUNCTION public.update_streak()   TO service_role;
 

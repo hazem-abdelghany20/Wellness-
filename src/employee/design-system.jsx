@@ -113,6 +113,8 @@ function Icon({ name, size = 22, stroke, fill = 'none', style = {} }) {
     edit:  <><path d="M16 4l4 4-12 12H4v-4L16 4z"/><path d="M14 6l4 4"/></>,
     drop:  <><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></>,
     image: <><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></>,
+    sun:   <><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></>,
+    file:  <><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><path d="M14 3v5h5"/></>,
   };
   return (
     <svg viewBox="0 0 24 24" style={s} fill={fill} stroke={stroke || 'currentColor'} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">

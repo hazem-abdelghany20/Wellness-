@@ -96,13 +96,16 @@ export async function setBilling(companyId: string, patch: Record<string, unknow
 
 // ── Content (global) ───────────────────────────────────────────
 
+// Public (Wellness House) content only. Wellness admins can read every row,
+// so companies' private articles (company_id set, sprint 2) are left out
+// here; filtered client-side so this still works before that column exists.
 export async function listGlobalContent() {
   const { data, error } = await supabase
     .from('content_items')
     .select('*')
     .order('sort_order');
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).filter((r: any) => !r.company_id);
 }
 
 export async function updateContent(id: string, patch: Record<string, unknown>) {
@@ -291,13 +294,14 @@ export async function setString(key: string, lang: string, value: string) {
 
 // ── Challenge templates ────────────────────────────────────────
 
+// Public templates only (companies' own HR challenges have company_id set).
 export async function listChallengeTemplates() {
   const { data, error } = await supabase
     .from('challenge_templates')
     .select('*')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).filter((r: any) => !r.company_id);
 }
 
 export async function createChallengeTemplate(payload: {

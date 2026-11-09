@@ -45,29 +45,83 @@ export async function getRoster() {
 
 // ── Content ────────────────────────────────────────────────────
 
-export async function getContentLibrary() {
-  const { data, error } = await supabase
-    .from('content_items')
-    .select('*')
-    .order('sort_order');
-  if (error) throw error;
-  return data ?? [];
+// PostgREST "function not found": the live database doesn't have the sprint 2
+// SQL (20261110000001) yet. The content screen then works as before.
+function rpcMissing(error: { code?: string; message?: string } | null) {
+  return !!error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message || ''));
 }
 
+// A public (Wellness House) row as this company sees it: hidden = shown as
+// 'hidden' / unpublished so the current Publish toggle reads right.
+function companyView(row: any) {
+  if (row?.scope === 'public' && row.hidden) return { ...row, status: 'hidden', published: false };
+  return row;
+}
+
+// Public + our own content, pinned first, with scope / hidden / pinned flags
+// (see listLibrary in supabase-routines.ts).
+export async function getContentLibrary() {
+  const { data, error } = await supabase.rpc('library_list', { p_type: 'content', p_scope: 'all' });
+  if (rpcMissing(error)) {
+    const old = await supabase.from('content_items').select('*').order('sort_order');
+    if (old.error) throw old.error;
+    return old.data ?? [];
+  }
+  if (error) throw error;
+  return ((data ?? []) as any[]).map(companyView);
+}
+
+// Shared (public) rows are never written: publish / unpublish hides or shows
+// the item for this company only, pinned pins it. Our own rows are saved
+// through save_content_item. Any other change to a public row is refused.
 export async function updateContentItem(contentId: string, patch: Record<string, unknown>) {
-  const normalized = { ...patch };
-  if ('published' in normalized && !('status' in normalized)) {
-    normalized.status = normalized.published ? 'published' : 'draft';
+  const { data: row, error: readErr } = await supabase
+    .from('content_items')
+    .select('*')
+    .eq('id', contentId)
+    .single();
+  if (readErr) throw readErr;
+  if (!row || !('company_id' in row)) {
+    // Database without company_id yet: previous behaviour.
+    const normalized = { ...patch };
+    if ('published' in normalized && !('status' in normalized)) {
+      normalized.status = normalized.published ? 'published' : 'draft';
+    }
+    const { data, error } = await supabase.from('content_items').update(normalized).eq('id', contentId).select().single();
+    if (error) throw error;
+    return data;
   }
 
-  const { data, error } = await supabase
-    .from('content_items')
-    .update(normalized)
-    .eq('id', contentId)
-    .select()
-    .single();
+  const wantsPublished = 'status' in patch ? patch.status === 'published'
+    : 'published' in patch ? !!patch.published : undefined;
+
+  if (row.company_id == null) {
+    const allowed = new Set(['status', 'published', 'pinned']);
+    const other = Object.keys(patch).filter((k) => !allowed.has(k));
+    if (other.length) throw Object.assign(new Error('public_item_read_only'), { code: '42501' });
+    const { data: pref, error } = await supabase.rpc('hr_set_library_pref', {
+      p_item_type: 'content', p_item_id: contentId,
+      p_hidden: wantsPublished === undefined ? null : !wantsPublished,
+      p_pinned: 'pinned' in patch ? !!patch.pinned : null,
+      p_sort_order: null,
+    });
+    if (error) throw error;
+    return companyView({ ...row, scope: 'public', can_edit: false, hidden: !!pref?.hidden, pinned: !!pref?.pinned });
+  }
+
+  const input: Record<string, unknown> = { id: contentId, ...patch };
+  delete input.published;
+  delete input.pinned;
+  if (wantsPublished !== undefined) input.status = wantsPublished ? 'published' : 'draft';
+  const { data, error } = await supabase.rpc('save_content_item', { p_input: input });
   if (error) throw error;
-  return data;
+  if ('pinned' in patch) {
+    const { error: pinErr } = await supabase.rpc('hr_set_library_pref', {
+      p_item_type: 'content', p_item_id: contentId, p_hidden: null, p_pinned: !!patch.pinned, p_sort_order: null,
+    });
+    if (pinErr) throw pinErr;
+  }
+  return { ...(data as any), scope: 'company', can_edit: true };
 }
 
 export async function assignContent(contentId: string, scope: 'all' | 'team', teamId?: string) {
@@ -99,7 +153,9 @@ export async function getParticipationOverview(range: '7d' | '30d' | '90d' = '30
 // Archived templates (Wellness House admin) are left out of the picker;
 // weeks already scheduled from them keep running. Filtered here rather than
 // with .is('archived_at', null) so the picker still loads on a database
-// that hasn't got the archived_at column yet.
+// that hasn't got the archived_at column yet. Since sprint 2 this returns
+// public templates plus the company's own (company_id set; payload.weeks
+// 1–4); RLS hides other companies' templates.
 export async function listHabitTemplates() {
   const { data, error } = await supabase
     .from('challenge_templates')

@@ -2,14 +2,18 @@ import React from 'react';
 import { typeStyles, Icon, Button, Card, SectionLabel } from '../design-system.jsx';
 import { useScorecard } from '../hooks/use-scorecard.js';
 import { fmtNum } from '../components/shared.jsx';
+import { RecognitionBoard } from '../components/recognition-board.jsx';
+import { routineWeekPoints, ROUTINE_FULL_WEEK } from '../lib/routine-today.js';
 
 // Score tab: your points, and your team's average next to the company's.
-// Points come from the challenge and the library only. No names, no ranking:
-// group numbers are averages and only show for groups of 5+.
+// Points come from the challenge, the routine and the library. Only you see
+// your points. Group numbers are averages and only show for groups of 5+.
+// The company board (when HR turns it on) shows effort only, never points.
 
-// A full challenge week: 5 days × 10 + 20 bonus. The ring fills against it.
+// A full challenge week: 5 days × 10 + 20 bonus. The ring fills against it,
+// plus 5 full routine days (20 + 10 each) when a routine is assigned.
 const FULL_WEEK = 70;
-const POINTS = { habit_days: 10, weeks_done: 20, articles: 5 };
+const POINTS = { habit_days: 10, weeks_done: 20, articles: 5, routine_full_days: 10 };
 
 const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -56,13 +60,13 @@ function weekLabel(iso, lang) {
 // Staggered entrance for each block.
 const enter = (i) => ({ animation: `scIn .55s cubic-bezier(.2,.8,.2,1) ${0.08 * i}s both` });
 
-function ScoreRing({ theme: T, value, lang }) {
+function ScoreRing({ theme: T, value, lang, full = FULL_WEEK }) {
   const size = 188, stroke = 12;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const on = useMounted(120);
-  const frac = Math.min(1, value / FULL_WEEK);
-  const over = value >= FULL_WEEK;
+  const frac = Math.min(1, value / full);
+  const over = value >= full;
   return (
     <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
       {/* soft glow behind the ring */}
@@ -112,9 +116,9 @@ function Stat({ theme: T, label, value, lang, delay }) {
   );
 }
 
-function WeekBars({ theme: T, weeks, lang }) {
+function WeekBars({ theme: T, weeks, lang, full = FULL_WEEK }) {
   const on = useMounted(200);
-  const max = Math.max(FULL_WEEK, ...weeks.map((w) => w.points));
+  const max = Math.max(full, ...weeks.map((w) => w.points));
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 132, padding: '4px 2px 0' }}>
       {weeks.map((w, i) => {
@@ -173,7 +177,7 @@ function CompareBars({ theme: T, rows, lang }) {
   );
 }
 
-function ScreenScorecard({ theme, dir, go }) {
+function ScreenScorecard({ theme, dir, go, hasRoutine = false }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const s = (en, ar) => (lang === 'ar' ? ar : en);
@@ -221,37 +225,64 @@ function ScreenScorecard({ theme, dir, go }) {
   }
 
   const me = data.me;
-  const parts = me.week_parts;
+  const parts = me.week_parts || {};
   const group = data.team || data.company;
   const isTeam = !!data.team;
   const quiet = me.week === 0;
+  const routine = me.routine || null;
+  const rp = routineWeekPoints(me);
+  // Routine rows show once a routine is assigned or has ever earned points.
+  const showRoutine = hasRoutine || rp.items > 0 || (me.total_parts?.routine_items || 0) > 0 || (routine?.best_streak || 0) > 0;
+  const full = FULL_WEEK + (showRoutine ? ROUTINE_FULL_WEEK : 0);
 
   const breakdown = [
-    { key: 'habit_days', icon: 'check', color: T.accent, label: s('Challenge days', 'أيام التحدي'), count: parts.habit_days },
-    { key: 'weeks_done', icon: 'trophy', color: '#F5B544', label: s('Week completed', 'أسبوع مكتمل'), count: parts.weeks_done },
-    { key: 'articles', icon: 'book', color: T.positive || T.accent, label: s('Articles finished', 'مقالات خلصتها'), count: parts.articles },
-  ];
+    ...(showRoutine ? [
+      { key: 'routine_items', icon: 'sun', color: T.accent, label: s('Routine items ticked', 'تمارين الروتين اللي علّمت عليها'),
+        count: rp.items, detail: s(`${rp.items} × 2, up to 20 a day`, `${fmtNum(rp.items, lang)} × ${fmtNum(2, lang)}، لحد ${fmtNum(20, lang)} في اليوم`), points: rp.itemPoints },
+      { key: 'routine_full_days', icon: 'flame', color: '#F5B544', label: s('Full routine days', 'أيام الروتين الكاملة'), count: rp.fullDays, points: rp.fullDayPoints },
+    ] : []),
+    { key: 'habit_days', icon: 'check', color: T.accent, label: s('Challenge days', 'أيام التحدي'), count: parts.habit_days || 0 },
+    { key: 'weeks_done', icon: 'trophy', color: '#F5B544', label: s('Week completed', 'أسبوع مكتمل'), count: parts.weeks_done || 0 },
+    { key: 'articles', icon: 'book', color: T.positive || T.accent, label: s('Articles finished', 'مقالات خلصتها'), count: parts.articles || 0 },
+  ].map((b) => ({ ...b, points: b.points ?? b.count * POINTS[b.key] }));
 
   return shell(
     <>
       {/* Hero: this week's ring + all-time stats */}
       <Card theme={T} pad={22} radius={26} style={{ ...enter(0), overflow: 'hidden', position: 'relative' }}>
-        <ScoreRing theme={T} value={me.week} lang={lang}/>
+        <ScoreRing theme={T} value={me.week} lang={lang} full={full}/>
         <div style={{ textAlign: 'center', fontSize: 13, color: T.textMuted, marginTop: 14, lineHeight: 1.5 }}>
           {quiet
-            ? s('A fresh week. Log today in the challenge to get going.', 'أسبوع جديد. سجّل النهارده في التحدي وابدأ.')
-            : s(`A full challenge week is ${FULL_WEEK} points.`, `أسبوع التحدي الكامل = ${fmtNum(FULL_WEEK, lang)} نقطة.`)}
+            ? (showRoutine
+              ? s('A fresh week. Tick your first routine item today to get going.', 'أسبوع جديد. علّم على أول تمرين في الروتين النهارده وابدأ.')
+              : s('A fresh week. Log today in the challenge to get going.', 'أسبوع جديد. سجّل النهارده في التحدي وابدأ.'))
+            : showRoutine
+              ? s(`A full week with your routine is ${full} points.`, `الأسبوع الكامل مع الروتين = ${fmtNum(full, lang)} نقطة.`)
+              : s(`A full challenge week is ${FULL_WEEK} points.`, `أسبوع التحدي الكامل = ${fmtNum(FULL_WEEK, lang)} نقطة.`)}
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
           <Stat theme={T} label={s('All time', 'من الأول')} value={me.total} lang={lang} delay={300}/>
           <Stat theme={T} label={s('Best week', 'أحسن أسبوع')} value={me.best_week} lang={lang} delay={420}/>
           <Stat theme={T} label={s('Weeks completed', 'أسابيع مكتملة')} value={me.total_parts.weeks_done} lang={lang} delay={540}/>
         </div>
+        {showRoutine && routine && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 10 }} data-testid="routine-streak">
+            <Stat theme={T} label={s('Routine streak (days)', 'أيام الروتين ورا بعض')} value={routine.streak || 0} lang={lang} delay={660}/>
+            <Stat theme={T} label={s('Best streak', 'أحسن سلسلة')} value={routine.best_streak || 0} lang={lang} delay={780}/>
+            <Stat theme={T} label={s('Routine days this week', 'أيام روتين الأسبوع ده')} value={routine.week_days || 0} lang={lang} delay={900}/>
+          </div>
+        )}
         {quiet && (
           <div style={{ marginTop: 16 }}>
-            <Button theme={T} variant="primary" icon="trophy" onClick={() => go('challenges')} style={{ width: '100%' }}>
-              {s('Go to this week’s challenge', 'روح لتحدي الأسبوع')}
-            </Button>
+            {hasRoutine ? (
+              <Button theme={T} variant="primary" icon="sun" onClick={() => go('today')} style={{ width: '100%' }}>
+                {s('Go to today’s list', 'روح لقايمة النهارده')}
+              </Button>
+            ) : (
+              <Button theme={T} variant="primary" icon="trophy" onClick={() => go('challenges')} style={{ width: '100%' }}>
+                {s('Go to this week’s challenge', 'روح لتحدي الأسبوع')}
+              </Button>
+            )}
           </div>
         )}
       </Card>
@@ -272,22 +303,25 @@ function ScreenScorecard({ theme, dir, go }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>{b.label}</div>
                 <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
-                  {fmtNum(b.count, lang)} × {fmtNum(POINTS[b.key], lang)}
+                  {b.detail || <>{fmtNum(b.count, lang)} × {fmtNum(POINTS[b.key], lang)}</>}
                 </div>
               </div>
               <div style={{ fontFamily: typeStyles(T).displayFont, fontSize: 22, color: b.count ? T.text : T.textFaint }}>
-                <bdi dir="ltr">+<CountUp value={b.count * POINTS[b.key]} lang={lang} delay={400 + i * 100}/></bdi>
+                <bdi dir="ltr">+<CountUp value={b.points} lang={lang} delay={400 + i * 100}/></bdi>
               </div>
             </div>
           ))}
         </Card>
       </div>
 
+      {/* Company board: only when HR turned it on */}
+      <RecognitionBoard theme={T} lang={lang} style={enter(2)}/>
+
       {/* Last 6 weeks */}
       <div style={enter(2)}>
         <SectionLabel theme={T} style={{ padding: '0 6px', margin: '4px 0 10px' }}>{s('Last 6 weeks', 'آخر ٦ أسابيع')}</SectionLabel>
         <Card theme={T} pad={18} radius={20}>
-          <WeekBars theme={T} weeks={me.weekly || []} lang={lang}/>
+          <WeekBars theme={T} weeks={me.weekly || []} lang={lang} full={full}/>
         </Card>
       </div>
 
@@ -331,6 +365,10 @@ function ScreenScorecard({ theme, dir, go }) {
         <SectionLabel theme={T} style={{ padding: '0 6px', margin: '4px 0 10px' }}>{s('How points work', 'النقاط بتتحسب إزاي')}</SectionLabel>
         <Card theme={T} pad={18} radius={20} alt>
           {[
+            ...(showRoutine ? [
+              [s('Each routine item you tick (up to 20 a day)', 'كل تمرين في الروتين تعلّم عليه (لحد ٢٠ في اليوم)'), '+2'],
+              [s('Every item done in a day', 'تخلّص كل تمارين اليوم'), '+10'],
+            ] : []),
             [s('Each challenge day you log', 'كل يوم تسجّله في التحدي'), '+10'],
             [s('Complete the week (4 of 5 days)', 'تكمّل الأسبوع (٤ من ٥ أيام)'), '+20'],
             [s('Each article you read to the end', 'كل مقال تقراه للآخر'), '+5'],

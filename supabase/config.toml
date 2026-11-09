@@ -60,6 +60,13 @@ public = false
 file_size_limit = "10MiB"
 allowed_mime_types = ["image/*"]
 
+# Sprint 2: private per-company media ({company_id}/… paths, signed URLs).
+# Same settings as migration 20261110000001.
+[storage.buckets.company-media]
+public = false
+file_size_limit = "50MiB"
+allowed_mime_types = ["video/mp4", "video/quicktime", "image/png", "image/jpeg", "application/pdf"]
+
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
