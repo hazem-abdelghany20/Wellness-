@@ -43,10 +43,10 @@ export const EMPLOYEE_TOUR = [
   },
   {
     screen: 'profile',
-    title_en: 'Privacy, language and help',
-    title_ar: 'الخصوصية واللغة والمساعدة',
-    body_en: 'Choose if your name shows on the board or your progress goes to HR. Switch to Arabic, and replay this tour or open the guide here.',
-    body_ar: 'اختار لو اسمك يظهر على اللوحة أو تقدّمك يوصل للـ HR. غيّر اللغة، وأعد الجولة دي أو افتح الدليل من هنا.',
+    title_en: 'Reminders, privacy and help',
+    title_ar: 'التذكيرات والخصوصية والمساعدة',
+    body_en: 'Switch on reminders for a nudge at each routine time. Choose if your name shows on the board or your progress goes to HR. Switch to Arabic, replay this tour or open the guide here.',
+    body_ar: 'شغّل التذكيرات علشان يجيلك تنبيه في ميعاد كل تمرين. اختار لو اسمك يظهر على اللوحة أو تقدّمك يوصل للـ HR. غيّر اللغة، أو أعد الجولة دي، أو افتح الدليل من هنا.',
   },
 ];
 

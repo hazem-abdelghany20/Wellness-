@@ -5,6 +5,7 @@ import { HabitMedia } from '../components/habit-media.jsx';
 import { Sheet } from '../components/sheet.jsx';
 import { TopTodayStrip } from '../components/recognition-board.jsx';
 import { Confetti } from '../confetti.jsx';
+import { ReminderPrompt } from '../components/reminders.jsx';
 import { useRoutineWeek } from '../hooks/use-routine-week.js';
 import { resolveMedia, getMediaUrl, itemText } from '../../lib/supabase-routines';
 import {
@@ -209,7 +210,9 @@ function ProgressCard({ theme: T, lang, progress, streak }) {
   );
 }
 
-function ExerciseSheet({ theme: T, lang, item, onClose, onToggle, onMute }) {
+// readOnly (week view, another day): watch and read only — no Done, no Mute.
+// dayLabel names that day in the pills.
+function ExerciseSheet({ theme: T, lang, item, onClose, onToggle, onMute, readOnly = false, dayLabel }) {
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const { title, setsReps } = itemText(item, lang);
   const ex = item.exercise;
@@ -236,7 +239,7 @@ function ExerciseSheet({ theme: T, lang, item, onClose, onToggle, onMute }) {
 
   return (
     <Sheet theme={T} lang={lang} title={<bdi>{title}</bdi>} onClose={onClose} labelId="wp-exercise-title"
-      footer={(
+      footer={readOnly ? null : (
         <>
           {item.checked ? (
             <Button theme={T} variant="secondary" onClick={() => onToggle(item.id, false)} style={{ width: '100%' }}>
@@ -250,6 +253,7 @@ function ExerciseSheet({ theme: T, lang, item, onClose, onToggle, onMute }) {
         </>
       )}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {dayLabel && <span style={pill(T)}>{dayLabel}</span>}
         <span style={pill(T)}><Icon name="calendar" size={13}/><TimeLabel theme={T} time={item.at_time} lang={lang}/></span>
         {setsReps && <span style={pill(T)}><bdi>{setsReps}</bdi></span>}
         {areas && <span style={pill(T)}>{areas}</span>}
@@ -269,7 +273,7 @@ function ExerciseSheet({ theme: T, lang, item, onClose, onToggle, onMute }) {
       {helps && <div style={{ marginTop: 14 }}>{label(s('What it helps', 'بتفيد في إيه'))}<div style={{ fontSize: 15, color: T.text, lineHeight: 1.55 }}>{helps}</div></div>}
       {note && <div style={{ marginTop: 14 }}>{label(s('Note', 'ملاحظة'))}<div style={{ fontSize: 15, color: T.text, lineHeight: 1.55 }}>{note}</div></div>}
 
-      <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      {!readOnly && <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => onMute(item.id, !item.muted)} aria-pressed={!!item.muted} style={{
           background: 'transparent', border: `1px solid ${T.border}`, borderRadius: 999, padding: '7px 12px',
           color: T.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -280,10 +284,10 @@ function ExerciseSheet({ theme: T, lang, item, onClose, onToggle, onMute }) {
         </button>
         <span style={{ fontSize: 12, color: T.textMuted }}>
           {item.muted
-            ? s('You won’t get a reminder for this one. Reminders are coming soon.', 'مش هيجيلك تذكير للتمرين ده. التذكيرات جاية قريب.')
-            : s('Turns off the reminder for just this one. Reminders are coming soon.', 'بيقفل التذكير للتمرين ده بس. التذكيرات جاية قريب.')}
+            ? s('No reminder for this one. The others still come.', 'مش هيجيلك تذكير للتمرين ده. الباقيين هيوصلوا عادي.')
+            : s('Stops this one’s reminder. The others still come.', 'بيوقف تذكير التمرين ده بس. الباقيين هيوصلوا عادي.')}
         </span>
-      </div>
+      </div>}
     </Sheet>
   );
 }
@@ -293,13 +297,31 @@ const pill = (T) => ({
   background: T.chipBg, border: `1px solid ${T.border}`, color: T.text, fontSize: 13, fontWeight: 600,
 });
 
-function WeekSheet({ theme: T, lang, onClose, sourceUrl, sourceKind }) {
+// todayItems / onToggle / onMute: today's live list, so an item opened from
+// today's column keeps its Done and Mute. Other days open read-only.
+function WeekSheet({ theme: T, lang, onClose, sourceUrl, sourceKind, todayItems, onToggle, onMute }) {
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const n = (x) => fmtNum(x, lang);
   const { week, loading, error, refetch } = useRoutineWeek(true);
   const [picked, setPicked] = React.useState(null);
+  const [viewing, setViewing] = React.useState(null); // { id, date }
   const days = week?.days || [];
   const day = days.find((d) => d.date === picked) || days.find((d) => d.is_today) || days[0];
+
+  if (viewing) {
+    const vDay = days.find((d) => d.date === viewing.date);
+    const weekItem = vDay?.items.find((i) => i.id === viewing.id);
+    const live = vDay?.is_today ? (todayItems || []).find((i) => i.id === viewing.id) : null;
+    if (weekItem || live) {
+      const back = () => setViewing(null);
+      if (live) {
+        return <ExerciseSheet theme={T} lang={lang} item={{ ...weekItem, ...live, exercise: live.exercise || weekItem?.exercise || null }}
+          onClose={back} onToggle={onToggle} onMute={onMute}/>;
+      }
+      return <ExerciseSheet theme={T} lang={lang} item={weekItem} onClose={back} readOnly
+        dayLabel={fmtDateLong(vDay.date, lang)}/>;
+    }
+  }
 
   let body;
   if (loading && !week) {
@@ -356,16 +378,29 @@ function WeekSheet({ theme: T, lang, onClose, sourceUrl, sourceKind }) {
               <div role="list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {day.items.map((it) => {
                   const { title, setsReps } = itemText(it, lang);
+                  const media = hasMedia(it.exercise);
                   return (
-                    <div role="listitem" key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 2px', borderBottom: `1px solid ${T.border}` }}>
-                      <TimeLabel theme={T} time={it.at_time} lang={lang} style={{ width: 48, flexShrink: 0, fontSize: 13, fontWeight: 700, color: T.textMuted }}/>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}><bdi>{title}</bdi></div>
-                        {setsReps && <div style={{ fontSize: 12, color: T.textMuted }}><bdi>{setsReps}</bdi></div>}
-                      </div>
-                      {it.checked
-                        ? <Icon name="check" size={18} style={{ color: T.accent }}/>
-                        : !day.is_future && <span style={{ fontSize: 12, color: T.textMuted }}>{s('Not yet', 'لسه')}</span>}
+                    <div role="listitem" key={it.id} style={{ borderBottom: `1px solid ${T.border}` }}>
+                      <button type="button" onClick={() => setViewing({ id: it.id, date: day.date })} style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 2px',
+                        background: 'transparent', border: 'none', color: T.text, cursor: 'pointer',
+                        textAlign: 'start', fontFamily: 'inherit',
+                      }}>
+                        <TimeLabel theme={T} time={it.at_time} lang={lang} style={{ width: 48, flexShrink: 0, fontSize: 13, fontWeight: 700, color: T.textMuted }}/>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}><bdi>{title}</bdi></div>
+                          {setsReps && <div style={{ fontSize: 12, color: T.textMuted }}><bdi>{setsReps}</bdi></div>}
+                        </div>
+                        {media && (
+                          <span aria-hidden="true" style={{
+                            width: 26, height: 26, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center',
+                            background: T.chipBg, color: T.text, border: `1px solid ${T.border}`,
+                          }}><Icon name="play" size={10}/></span>
+                        )}
+                        {it.checked
+                          ? <Icon name="check" size={18} style={{ color: T.accent }}/>
+                          : !day.is_future && <span style={{ fontSize: 12, color: T.textMuted }}>{s('Not yet', 'لسه')}</span>}
+                      </button>
                     </div>
                   );
                 })}
@@ -398,7 +433,9 @@ const linkBtn = (T) => ({
   boxSizing: 'border-box',
 });
 
-function ScreenToday({ theme, dir, go, state: app, routine }) {
+// openItemId: opened from a reminder (?open=today&item=…): that item's
+// sheet opens once today's list is here; onOpenHandled clears it.
+function ScreenToday({ theme, dir, go, state: app, routine, openItemId = null, onOpenHandled }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const s = (en, ar) => (lang === 'ar' ? ar : en);
@@ -409,6 +446,12 @@ function ScreenToday({ theme, dir, go, state: app, routine }) {
   const today = React.useMemo(() => withClock(raw, now), [raw, now]);
   const [openId, setOpenId] = React.useState(null);
   const [weekOpen, setWeekOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!openItemId || !today) return;
+    if ((today.items || []).some((i) => i.id === openItemId)) { setWeekOpen(false); setOpenId(openItemId); }
+    onOpenHandled?.();
+  }, [openItemId, today]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Confetti once, when the last item gets ticked (not on load).
   const allDone = !!today?.progress?.all_done;
@@ -477,7 +520,10 @@ function ScreenToday({ theme, dir, go, state: app, routine }) {
         <ExerciseSheet theme={T} lang={lang} item={openItem} onClose={() => setOpenId(null)}
           onToggle={onToggle} onMute={(id, m) => mute?.(id, m)}/>
       )}
-      {weekOpen && <WeekSheet theme={T} lang={lang} onClose={() => setWeekOpen(false)} sourceUrl={sourceUrl} sourceKind={source?.kind}/>}
+      {weekOpen && (
+        <WeekSheet theme={T} lang={lang} onClose={() => setWeekOpen(false)} sourceUrl={sourceUrl} sourceKind={source?.kind}
+          todayItems={today?.items} onToggle={onToggle} onMute={(id, m) => mute?.(id, m)}/>
+      )}
     </div>
   );
 
@@ -544,6 +590,8 @@ function ScreenToday({ theme, dir, go, state: app, routine }) {
       <ProgressCard theme={T} lang={lang} progress={today.progress} streak={today.streak}/>
 
       {next && <NextCard theme={T} lang={lang} item={next} onOpen={setOpenId} onToggle={onToggle}/>}
+
+      <ReminderPrompt theme={T} lang={lang} remindersOn={!!today.reminders?.enabled}/>
 
       {saveError && (
         <div role="alert" style={{ fontSize: 13, color: T.negative, textAlign: 'center' }}>

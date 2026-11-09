@@ -5,6 +5,8 @@ import {
 import { TopBack } from './onboarding.jsx';
 import { useAuth } from '../state/auth-context.jsx';
 import { useNotifications } from '../hooks/use-notifications.js';
+import { useBroadcastMedia } from '../hooks/use-broadcast-media.js';
+import { AudioPlayer } from '../components/audio-player.jsx';
 
 const KIND_STYLE = {
   streak:           { icon: 'flame',   tone: 'accent'   },
@@ -57,11 +59,30 @@ function isToday(iso) {
       && d.getDate() === now.getDate();
 }
 
-function ScreenNotifs({ theme, t, dir, go, backTo = 'challenges' }) {
+// focusBroadcastId: opened from a broadcast's push (?open=notifs&broadcast=…):
+// that message is highlighted, scrolled to and marked read.
+function ScreenNotifs({ theme, t, dir, go, backTo = 'challenges', focusBroadcastId = null, onFocusHandled }) {
   const T = theme;
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const { session } = useAuth();
   const { list, loading, markRead, markAllRead } = useNotifications(session?.user?.id);
+  const audio = useBroadcastMedia(list);
+  const [highlight, setHighlight] = React.useState(null);
+  const focusRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!focusBroadcastId || loading) return;
+    const n = list.find((x) => x.broadcast_id === focusBroadcastId);
+    if (n) {
+      setHighlight(n.id);
+      if (!n.read) Promise.resolve(markRead(n.id)).catch(() => {});
+    }
+    onFocusHandled?.();
+  }, [focusBroadcastId, loading, list]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  React.useEffect(() => {
+    if (highlight) focusRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  }, [highlight]);
 
   if (loading) return <NotifsLoading theme={T} dir={dir}/>;
 
@@ -106,41 +127,56 @@ function ScreenNotifs({ theme, t, dir, go, backTo = 'challenges' }) {
           <div style={{ padding: '0 16px' }}>
             <Card theme={T} pad={0} radius={20}>
               {sec.items.map((n, i) => {
-                const style = KIND_STYLE[n.kind] || KIND_STYLE.system;
+                const media = n.broadcast_id ? audio[n.broadcast_id] : null;
+                const style = media ? { icon: 'headphones', tone: 'accent' } : (KIND_STYLE[n.kind] || KIND_STYLE.system);
                 const c = pickColor(T, style.tone);
                 const unread = !n.read;
+                const focused = highlight != null && highlight === n.id;
                 const title = pickText(n, 'title', lang);
                 const body  = pickText(n, 'body', lang);
                 return (
-                  <button key={n.id ?? i} onClick={() => unread && markRead(n.id)}
+                  <div key={n.id ?? i} ref={focused ? focusRef : undefined}
+                    data-notif-id={n.id} aria-current={focused ? 'true' : undefined}
                     style={{
-                      width: '100%', textAlign: dir === 'rtl' ? 'right' : 'left',
-                      background: 'transparent', border: 'none', padding: 0,
-                      cursor: unread ? 'pointer' : 'default',
-                    }}>
-                    <div style={{
-                      display: 'flex', gap: 12, padding: '14px 16px', alignItems: 'flex-start',
+                      background: focused ? T.accentSoft : 'transparent',
                       borderBottom: i < sec.items.length - 1 ? `1px solid ${T.border}` : 'none',
+                      borderRadius: focused ? 16 : 0, transition: 'background .3s',
                     }}>
+                    <button onClick={() => unread && markRead(n.id)}
+                      style={{
+                        width: '100%', textAlign: 'start', fontFamily: 'inherit',
+                        background: 'transparent', border: 'none', padding: 0,
+                        cursor: unread ? 'pointer' : 'default',
+                      }}>
                       <div style={{
-                        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                        background: c + '22', color: c,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}><Icon name={style.icon} size={18}/></div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.4, fontWeight: unread ? 600 : 500 }}>
-                          {title}
-                        </div>
-                        {body ? (
-                          <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2, lineHeight: 1.4 }}>
-                            {body}
+                        display: 'flex', gap: 12, padding: media ? '14px 16px 4px' : '14px 16px', alignItems: 'flex-start',
+                      }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                          background: c + '22', color: c,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}><Icon name={style.icon} size={18}/></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, color: T.text, lineHeight: 1.4, fontWeight: unread ? 600 : 500 }}>
+                            {title}
                           </div>
-                        ) : null}
-                        <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>{relTime(n.created_at, lang)}</div>
+                          {body ? (
+                            <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2, lineHeight: 1.4 }}>
+                              {body}
+                            </div>
+                          ) : null}
+                          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>{relTime(n.created_at, lang)}</div>
+                        </div>
+                        {unread && <div style={{ width: 8, height: 8, borderRadius: 999, background: T.accent, marginTop: 6 }}/>}
                       </div>
-                      {unread && <div style={{ width: 8, height: 8, borderRadius: 999, background: T.accent, marginTop: 6 }}/>}
-                    </div>
-                  </button>
+                    </button>
+                    {media && (
+                      <div style={{ padding: '0 16px 14px', paddingInlineStart: 64 }}>
+                        <AudioPlayer theme={T} lang={lang} broadcastId={n.broadcast_id}
+                          durationS={media.media_duration_s} title={title}/>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </Card>

@@ -2,14 +2,15 @@ import React from 'react';
 import { Card, SectionLabel } from '../design-system.jsx';
 import { ToggleRow } from './toggle.jsx';
 import { useMyPrefs } from '../hooks/use-my-prefs.js';
+import { RemindersSetting } from './reminders.jsx';
 
-// Me → Privacy: the two opt-ins (sprint 2 §5) and the reminders switch,
-// which stays "coming soon" until push reminders are built. Both opt-ins
-// are off until the employee turns them on, and can be turned off any time.
+// Me → Privacy: the two opt-ins (sprint 2 §5) and the reminders switch
+// (sprint 3, Web Push). Both opt-ins are off until the employee turns them
+// on, and can be turned off any time.
 function PrivacySettings({ theme, lang }) {
   const T = theme;
   const s = (en, ar) => (lang === 'ar' ? ar : en);
-  const { prefs, loading, error, saving, saveError, set, refetch } = useMyPrefs();
+  const { prefs, loading, error, saving, saveError, set, replace, refetch } = useMyPrefs();
 
   let body;
   if (loading && !prefs) {
@@ -56,10 +57,7 @@ function PrivacySettings({ theme, lang }) {
         {failed('share_with_hr') && <div role="alert" style={{ fontSize: 12, color: T.negative, padding: '0 10px 10px' }}>{s('Could not save. Try again.', 'ما اتحفظش. جرّب تاني.')}</div>}
 
         <div style={{ height: 1, background: T.border, margin: '0 10px' }}/>
-        <ToggleRow theme={T} id="pref-reminders" disabled badge={s('Coming soon', 'قريب')}
-          label={s('Reminders', 'التذكيرات')}
-          hint={s('A nudge at each routine time, if you want one.', 'تنبيه في ميعاد كل تمرين، لو عايز.')}
-          checked={false}/>
+        <RemindersSetting theme={T} lang={lang} remindersOn={!!prefs.routine_reminders} onPrefs={replace}/>
       </>
     );
   }

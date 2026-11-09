@@ -31,6 +31,8 @@ import { useRoutineToday } from './hooks/use-routine-today.js';
 import { useWalkthrough, WalkthroughCard } from '../shared/walkthrough.jsx';
 import { employeeTourSteps } from './lib/tour-steps.js';
 import { TabBar } from './components/tab-bar.jsx';
+import { useOpenLink } from './hooks/use-open-link.js';
+import { refreshPushSubscription } from '../lib/push';
 
 const TOUR_SCREENS = ['today', 'challenges', 'library', 'score', 'profile'];
 
@@ -81,6 +83,8 @@ function AppInner() {
   const [joined, setJoined] = React.useState(false);
   const [playerItem, setPlayerItem] = React.useState(null);
   const [competitionId, setCompetitionId] = React.useState(null);
+  // What a notification asked a screen to open: { item } on Today, { broadcast } on Notifications.
+  const [target, setTarget] = React.useState(null);
   const [avatar, setAvatar] = React.useState(() => localStorage.getItem('wellness-plus-avatar') || 'monogram');
   const [name, setName] = React.useState(() => localStorage.getItem('wellness-plus-name') || '');
   const onboarded = !!(profile?.onboarded || profile?.onboarded_at);
@@ -178,6 +182,7 @@ function AppInner() {
 
   const go = (s, extra) => {
     autoLanded.current = false;
+    setTarget(null);
     if (s === 'competition-path' && extra?.id) {
       setCompetitionId(extra.id);
     }
@@ -214,6 +219,40 @@ function AppInner() {
     autoStart: onboarded && TOUR_SCREENS.includes(screen) && (routine.ready || landingTimedOut),
   });
 
+  // Sprint 3 — reminders and HR broadcasts as Web Push.
+  // Re-save this browser's push subscription for whoever is signed in (and
+  // in their language). Never prompts; nothing happens without one.
+  const userId = session?.user?.id;
+  const pushLang = cfg.lang === 'ar' ? 'ar' : 'en';
+  const pushLangRef = React.useRef(pushLang);
+  pushLangRef.current = pushLang;
+  React.useEffect(() => {
+    if (!userId || !onboarded) return;
+    refreshPushSubscription({ lang: pushLang }).catch(() => {});
+  }, [userId, onboarded, pushLang]);
+
+  // Open from a notification: jump to Today (that item's sheet) or to
+  // Notifications (that broadcast), once signed in and past the splash.
+  const [link, clearLink] = useOpenLink({
+    onSubscriptionChanged: () => { refreshPushSubscription({ lang: pushLangRef.current }).catch(() => {}); },
+  });
+  const clearTarget = React.useCallback(() => setTarget(null), []);
+  React.useEffect(() => {
+    if (!link || !onboarded || !screen || ONBOARDING_SCREENS.includes(screen)) return;
+    if (link.open === 'today' && !routine.ready) return;
+    autoLanded.current = false;
+    if (link.open === 'notifs') {
+      setScreen('notifs');
+      setTarget(link.broadcast ? { broadcast: link.broadcast, n: link.n } : null);
+    } else if (hasRoutine) {
+      setScreen('today');
+      setTarget(link.item ? { item: link.item, n: link.n } : null);
+    } else {
+      setScreen('challenges');
+    }
+    clearLink();
+  }, [link, onboarded, screen, routine.ready, hasRoutine, clearLink]);
+
   // Splash while auth bootstraps, or while the routing effect is still resolving the initial screen.
   const holdJoin = joining && screen === 'join';
   if (!holdJoin && (authLoading || (session && !profileLoaded) || screen === null)) {
@@ -228,14 +267,16 @@ function AppInner() {
     case 'welcome':  content = <ScreenWelcome theme={theme} t={t} dir={dir} state={state} onNext={() => { go(hasRoutine ? 'today' : 'challenges'); autoLanded.current = true; }}/>; break;
     case 'library':  content = <ScreenLibrary theme={theme} t={t} dir={dir} go={go}/>; showTabs = true; break;
     case 'player':   content = <ScreenPlayer theme={theme} t={t} dir={dir} go={go} state={state}/>; break;
-    case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go} backTo={hasRoutine ? 'today' : 'challenges'}/>; break;
+    case 'notifs':   content = <ScreenNotifs theme={theme} t={t} dir={dir} go={go} backTo={hasRoutine ? 'today' : 'challenges'}
+                       focusBroadcastId={target?.broadcast || null} onFocusHandled={clearTarget}/>; break;
     case 'mine':     content = <ScreenMine theme={theme} t={t} dir={dir} go={go}/>; break;
     case 'competition-path': content = <ScreenCompetitionPath theme={theme} t={t} dir={dir} go={go} challengeId={competitionId}/>; break;
     case 'score':    content = <ScreenScorecard theme={theme} dir={dir} go={go} hasRoutine={hasRoutine}/>; showTabs = true; break;
     case 'profile':  content = <ScreenProfile theme={theme} t={t} dir={dir} go={go} lang={lang} setLang={setLang} themeKey={cfg.theme} setThemeKey={setThemeKey} state={state} onReplayTour={tour.start}/>; showTabs = true; break;
     case 'today':
       content = hasRoutine
-        ? <ScreenToday theme={theme} dir={dir} go={go} state={state} routine={routine}/>
+        ? <ScreenToday theme={theme} dir={dir} go={go} state={state} routine={routine}
+            openItemId={target?.item || null} onOpenHandled={clearTarget}/>
         : <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>;
       showTabs = true; break;
     case 'challenges':

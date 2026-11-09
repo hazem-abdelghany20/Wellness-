@@ -18,4 +18,11 @@ describe('employeeTourSteps', () => {
     expect(text).toMatch(/guide/);
     expect(text).toMatch(/HR/);
   });
+  it('the Me step says where reminders are switched on, with or without a routine', () => {
+    for (const has of [true, false]) {
+      const me = employeeTourSteps(has).find((s) => s.screen === 'profile');
+      expect(me.body_en).toMatch(/reminders/);
+      expect(me.body_ar).toMatch(/التذكيرات/);
+    }
+  });
 });
