@@ -6,7 +6,7 @@
  *   - never cache /rest/v1/ or /functions/v1/ (Supabase API + edge fns).
  *   - bump VERSION whenever sw.js changes to force precache refresh.
  */
-const VERSION = 'wellness-v2';
+const VERSION = 'wellness-v3';
 const PRECACHE = `${VERSION}-precache`;
 const RUNTIME  = `${VERSION}-runtime`;
 
