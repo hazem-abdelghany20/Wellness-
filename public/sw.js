@@ -179,8 +179,12 @@ self.addEventListener('notificationclick', (event) => {
     const win = wins.find((c) => new URL(c.url).origin === self.location.origin);
     if (win) {
       try { await win.focus(); } catch { /* focus can be refused */ }
-      win.postMessage({ type: 'OPEN_URL', url });
-      try { if ('navigate' in win && win.url !== url) await win.navigate(url); } catch { /* uncontrolled */ }
+      // The employee app handles OPEN_URL itself (and cleans its address bar),
+      // so only navigate a window that is on another page (HR / admin / guide).
+      const onEmployeeApp = ['/', '/index.html'].includes(new URL(win.url).pathname);
+      if (onEmployeeApp) { win.postMessage({ type: 'OPEN_URL', url }); return; }
+      try { if ('navigate' in win) { await win.navigate(url); return; } } catch { /* uncontrolled */ }
+      await self.clients.openWindow(url);
       return;
     }
     await self.clients.openWindow(url);
