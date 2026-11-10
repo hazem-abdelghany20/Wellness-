@@ -22,6 +22,7 @@ const participation = vi.hoisted(() => ({ data: null, loading: false, error: nul
 vi.mock('../../hooks/use-participation.js', () => ({ useParticipation: () => participation }));
 vi.mock('../../hooks/use-broadcasts.js', () => ({ useBroadcasts: () => ({ list: [] }) }));
 vi.mock('../../state/auth-context.jsx', () => ({ useHRAuth: () => ({ company: { name: 'Nile' } }) }));
+vi.mock('../dashboard-teams.jsx', () => ({ DashboardTeamsCard: () => null }));
 
 import { HRContentPage } from '../content.jsx';
 import { HRChallengesPage } from '../challenges.jsx';

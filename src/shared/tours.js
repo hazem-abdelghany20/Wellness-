@@ -43,10 +43,10 @@ export const EMPLOYEE_TOUR = [
   },
   {
     screen: 'profile',
-    title_en: 'Privacy, language and help',
-    title_ar: 'الخصوصية واللغة والمساعدة',
-    body_en: 'Choose if your name shows on the board or your progress goes to HR. Switch to Arabic, and replay this tour or open the guide here.',
-    body_ar: 'اختار لو اسمك يظهر على اللوحة أو تقدّمك يوصل للـ HR. غيّر اللغة، وأعد الجولة دي أو افتح الدليل من هنا.',
+    title_en: 'Reminders, privacy and help',
+    title_ar: 'التذكيرات والخصوصية والمساعدة',
+    body_en: 'Switch on reminders for a nudge at each routine time. Choose if your name shows on the board or your progress goes to HR. Switch to Arabic, replay this tour or open the guide here.',
+    body_ar: 'شغّل التذكيرات علشان يجيلك تنبيه في ميعاد كل تمرين. اختار لو اسمك يظهر على اللوحة أو تقدّمك يوصل للـ HR. غيّر اللغة، أو أعد الجولة دي، أو افتح الدليل من هنا.',
   },
 ];
 
@@ -55,8 +55,8 @@ export const HR_TOUR = [
     screen: 'dashboard',
     title_en: 'Participation, not health data',
     title_ar: 'مشاركة، مش بيانات صحية',
-    body_en: 'These numbers show who took part, what was read and how today\'s routine is going. Nothing about anyone\'s sleep, stress or mood ever reaches this portal.',
-    body_ar: 'الأرقام دي بتوضح مين شارك وإيه اللي اتقرا وروتين النهارده ماشي إزاي. ولا أي حاجة عن نوم أو ضغط أو مزاج حد بتوصل للبوابة دي.',
+    body_en: 'These numbers show who took part, what was read, how today\'s routine is going and how each team is doing. Nothing about anyone\'s sleep, stress or mood ever reaches this portal.',
+    body_ar: 'الأرقام دي بتوضح مين شارك وإيه اللي اتقرا وروتين النهارده ماشي إزاي وكل فريق عامل إيه. ولا أي حاجة عن نوم أو ضغط أو مزاج حد بتوصل للبوابة دي.',
   },
   {
     screen: 'people',
@@ -66,11 +66,18 @@ export const HR_TOUR = [
     body_ar: 'ارفع شيت بالموظفين وفرقهم، وبعدها نزّل شيت الدعوات باللينك الخاص لكل واحد. عايز لينك واحد للكل؟ موجود في الإعدادات ومعاه QR.',
   },
   {
+    screen: 'people:teams',
+    title_en: 'Teams and team leads',
+    title_ar: 'الفرق وقادة الفرق',
+    body_en: 'Create, rename or delete teams here. In the People tab, tick several people to move them in one go, or press "Make team lead" on a row. A new lead sees their lead features within an hour.',
+    body_ar: 'اعمل الفرق أو غيّر أساميها أو احذفها من هنا. ومن تبويب الأشخاص علّم على كذا حد علشان تنقلهم مرة واحدة، أو دوس «اجعله قائد الفريق» في السطر. القائد الجديد بيشوف مميزاته خلال ساعة.',
+  },
+  {
     screen: 'exercises',
     title_en: 'Your exercises',
     title_ar: 'تمارينك',
-    body_en: 'Add each exercise once: its name, sets × reps and a demo (upload the coach\'s video or paste a YouTube link). Or use one from the Wellness House library.',
-    body_ar: 'ضيف كل تمرين مرة واحدة: الاسم والعدد وفيديو الشرح (ارفع فيديو المدرب أو حط لينك يوتيوب). أو استخدم تمرين من مكتبة Wellness House.',
+    body_en: 'Add each exercise once with its sets × reps and a demo video or YouTube link. Got all the coach\'s videos? "Upload many videos" matches each file to the exercise with the same name.',
+    body_ar: 'ضيف كل تمرين مرة واحدة بالعدد وفيديو الشرح أو لينك يوتيوب. معاك كل فيديوهات المدرب؟ «ارفع فيديوهات كتير» بيوصّل كل ملف بالتمرين اللي بنفس الاسم.',
   },
   {
     screen: 'routines',
@@ -83,8 +90,8 @@ export const HR_TOUR = [
     screen: 'report',
     title_en: 'See how it\'s going',
     title_ar: 'شوف ماشي إزاي',
-    body_en: 'Today\'s ticks, day by day, by team, the most and least done exercises, and the hours people tick. Small teams are grouped so nobody is singled out. Export it to Excel.',
-    body_ar: 'علامات النهارده، يوم بيوم، بالفريق، التمارين الأكتر والأقل، والساعات اللي الناس بتعلّم فيها. الفرق الصغيرة متجمّعة علشان محدش يتعرف. وتقدر تصدّره Excel.',
+    body_en: 'Today\'s ticks, day by day, by team, the most and least done exercises, and the hours people tick. Small teams are grouped as "Other teams" so nobody is singled out. Export it to Excel.',
+    body_ar: 'علامات النهارده، يوم بيوم، بالفريق، التمارين الأكتر والأقل، والساعات اللي الناس بتعلّم فيها. الفرق الصغيرة متجمّعة في «فرق تانية» علشان محدش يتعرف. وتقدر تصدّره Excel.',
   },
   {
     screen: 'challenges',
@@ -94,18 +101,18 @@ export const HR_TOUR = [
     body_ar: 'اختار عادة من Wellness House، أو اعمل تحدي بتاعك، مثلاً «اشرب مية» لمدة أسبوعين. اختار أول أسبوع ليه، للكل أو لفريق.',
   },
   {
-    screen: 'content',
-    title_en: 'Your articles and theirs',
-    title_ar: 'مقالاتك ومقالاتهم',
-    body_en: 'Write short articles or one-line facts for your company. In the Wellness House tab you can hide or pin their articles for your company only.',
-    body_ar: 'اكتب مقالات قصيرة أو معلومات في سطر لشركتك. ومن تبويب Wellness House تقدر تخفي أو تثبّت مقالاتهم لشركتك بس.',
+    screen: 'broadcasts',
+    title_en: 'Messages, in your own voice',
+    title_ar: 'رسايل، بصوتك',
+    body_en: 'Write to everyone or one team, now or at a set time. Add a voice message: upload an audio file or record it right here. A message set for the night waits for 08:00.',
+    body_ar: 'ابعت للكل أو لفريق، دلوقتي أو في وقت تحدده. ضيف رسالة صوتية: ارفع ملف صوت أو سجّلها من هنا. الرسالة المتجدولة بالليل بتستنى لحد ٨ الصبح.',
   },
   {
     screen: 'settings',
-    title_en: 'Recognition and time zone',
-    title_ar: 'التقدير والمنطقة الزمنية',
-    body_en: 'Choose who sees effort: off, teams only, or teams plus people who opt in. Set your time zone, and pause the weekly habit while a routine runs.',
-    body_ar: 'اختار مين يشوف المجهود: مقفول، الفرق بس، أو الفرق واللي يوافقوا. وظبط المنطقة الزمنية، ووقّف عادة الأسبوع وقت ما الروتين شغال.',
+    title_en: 'Recognition, quiet hours and time zone',
+    title_ar: 'التقدير وساعات الهدوء والمنطقة الزمنية',
+    body_en: 'Choose who sees effort, set your time zone and quiet hours, and pause the weekly habit while a routine runs. Reminders are each employee\'s choice in their app.',
+    body_ar: 'اختار مين يشوف المجهود، وظبط المنطقة الزمنية وساعات الهدوء، ووقّف عادة الأسبوع وقت ما الروتين شغال. التذكيرات اختيار كل موظف من التطبيق بتاعه.',
   },
 ];
 

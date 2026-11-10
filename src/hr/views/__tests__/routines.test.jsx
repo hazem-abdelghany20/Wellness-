@@ -186,6 +186,11 @@ describe('HR routines', () => {
     await waitFor(() => expect(lib.getRoutineDetail).toHaveBeenCalledWith('r-imp'));
     expect(await screen.findByDisplayValue('coach plan')).toBeInTheDocument();
     expect(screen.getByText(/Imported 1 rows/)).toBeInTheDocument();
+    // The import panel moves on to "add the videos", many at once.
+    expect(screen.getByText('Imported. Now add the demo videos (optional)')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Pick videos' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip, add them later' }));
+    expect(screen.queryByText('Imported. Now add the demo videos (optional)')).not.toBeInTheDocument();
   });
 
   it('explains a sheet without an exercise column', async () => {

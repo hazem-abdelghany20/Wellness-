@@ -6,6 +6,7 @@ import { useParticipation } from '../hooks/use-participation.js';
 import { useBroadcasts } from '../hooks/use-broadcasts.js';
 import { useHRAuth } from '../state/auth-context.jsx';
 import { JoinLinkCard } from '../../shared/join-link-card.jsx';
+import { DashboardTeamsCard } from './dashboard-teams.jsx';
 
 // HR dashboard: participation only. Who takes part in the weekly
 // challenge, who completes it, what people read, and (when a routine is
@@ -174,6 +175,10 @@ function HRDashboard({ theme, S, cfg, density, gap, range, companyName, firstNam
             </div>
           </div>
         </Panel>
+      </div>
+
+      <div style={{ marginBottom: gap }}>
+        <DashboardTeamsCard theme={T} lang={lang} density={density} companyId={company?.id || null} setNav={setNav}/>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap, marginBottom: gap }}>

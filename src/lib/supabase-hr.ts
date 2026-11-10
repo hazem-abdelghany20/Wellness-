@@ -212,8 +212,14 @@ export async function listScheduledChallenges() {
 }
 
 // ── Broadcasts ─────────────────────────────────────────────────
+// Sprint 3: these go through the hr_*_broadcast RPCs (delivery at the set
+// time, quiet hours, audio — full API in ./supabase-broadcasts). Before that
+// SQL is live they fall back to the old table / edge-function calls.
 
 export async function listBroadcasts() {
+  const rpc = await supabase.rpc('hr_list_broadcasts', { p_limit: 100 });
+  if (!rpc.error) return (rpc.data ?? []) as any[];
+  if (!rpcMissing(rpc.error)) throw rpc.error;
   const { data, error } = await supabase
     .from('broadcasts')
     .select('*')
@@ -228,12 +234,18 @@ export async function scheduleBroadcast(payload: {
   scope: 'all' | 'team'; team_id?: string;
   scheduled_at: string;
 }) {
+  const rpc = await supabase.rpc('hr_save_broadcast', { p_input: payload });
+  if (!rpc.error) return rpc.data as any;
+  if (!rpcMissing(rpc.error)) throw rpc.error;
   const { data, error } = await supabase.functions.invoke('hr-schedule-broadcast', { body: payload });
   if (error) throw error;
   return (data as any).broadcast;
 }
 
 export async function cancelBroadcast(id: string) {
+  const rpc = await supabase.rpc('hr_cancel_broadcast', { p_broadcast_id: id });
+  if (!rpc.error) return;
+  if (!rpcMissing(rpc.error)) throw rpc.error;
   const { error } = await supabase
     .from('broadcasts')
     .update({ status: 'cancelled' })

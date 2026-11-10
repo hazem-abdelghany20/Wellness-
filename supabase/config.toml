@@ -61,11 +61,12 @@ file_size_limit = "10MiB"
 allowed_mime_types = ["image/*"]
 
 # Sprint 2: private per-company media ({company_id}/… paths, signed URLs).
-# Same settings as migration 20261110000001.
+# Same settings as migrations 20261110000001 + 20261111000001 (audio).
 [storage.buckets.company-media]
 public = false
 file_size_limit = "50MiB"
-allowed_mime_types = ["video/mp4", "video/quicktime", "image/png", "image/jpeg", "application/pdf"]
+allowed_mime_types = ["video/mp4", "video/quicktime", "image/png", "image/jpeg", "application/pdf",
+                      "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/webm", "audio/ogg"]
 
 [auth]
 enabled = true
@@ -142,3 +143,8 @@ s3_host = "env(S3_HOST)"
 s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Sprint 3: called by the per-minute pg_cron job with x-cron-secret (no JWT).
+# Deploy with: supabase functions deploy send-reminders --no-verify-jwt
+[functions.send-reminders]
+verify_jwt = false

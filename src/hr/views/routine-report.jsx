@@ -3,7 +3,7 @@ import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader, Badge, AvatarMark } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { Tabs, Loading, EmptyState, Flash } from '../../shared/authoring/ui.jsx';
-import { shapeRoutineReport, REPORT_RANGES, rangeLabel, PEOPLE_WHY } from '../../shared/authoring/report-shape.js';
+import { shapeRoutineReport, REPORT_RANGES, rangeLabel, PEOPLE_WHY, TEAMS_FOLDED, TEAMS_SUPPRESSED } from '../../shared/authoring/report-shape.js';
 import { downloadRoutineReport } from '../../shared/authoring/sheet-files.js';
 import { libraryError } from '../../shared/authoring/errors.js';
 import { fmtNum, fmtPct, fmtDate, msgText } from '../../shared/authoring/text.js';
@@ -147,8 +147,10 @@ function HRRoutineReportPage({ theme, lang, density, setNav, companyName }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap, marginBottom: gap }}>
         <Panel theme={T} density={density} pad={false}>
           <PanelHeader theme={T} density={density} title={s('By team', 'بالفريق')}
-            subtitle={s(`Teams under ${shaped.minCohort} people are grouped as “Small teams”.`, `الفرق الأقل من ${n(shaped.minCohort)} متجمّعة في «فرق صغيرة».`)}/>
-          {shaped.teams.length === 0 ? (
+            subtitle={s(`Teams under ${shaped.minCohort} people are grouped as “Other teams”.`, `الفرق الأقل من ${n(shaped.minCohort)} متجمّعة في «فرق تانية».`)}/>
+          {shaped.breakdownSuppressed ? (
+            <div role="note" style={{ padding: DENSITY[density].cardPad, fontSize: 13, color: T.textMid, lineHeight: 1.55 }}>{msgText(TEAMS_SUPPRESSED, lang)}</div>
+          ) : shaped.teams.length === 0 ? (
             <div style={{ padding: DENSITY[density].cardPad, fontSize: 13, color: T.textMuted }}>{s('No team is big enough to show yet.', 'مفيش فريق كبير كفاية يظهر لسه.')}</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -181,7 +183,12 @@ function HRRoutineReportPage({ theme, lang, density, setNav, companyName }) {
               </table>
             </div>
           )}
-          {shaped.smallTeamsHidden && (
+          {!shaped.breakdownSuppressed && shaped.teamsFolded > 0 && (
+            <div role="note" style={{ padding: '10px 14px', fontSize: 11, color: T.textMuted, borderTop: `1px solid ${T.divider}` }}>
+              {msgText(TEAMS_FOLDED, lang)}
+            </div>
+          )}
+          {!shaped.breakdownSuppressed && shaped.smallTeamsHidden && (
             <div style={{ padding: '10px 14px', fontSize: 11, color: T.textMuted, borderTop: `1px solid ${T.divider}` }}>
               {s(`Some small teams together are still under ${shaped.minCohort} people, so they aren’t shown.`,
                  `فيه فرق صغيرة مع بعض لسه أقل من ${n(shaped.minCohort)}، فمش ظاهرة.`)}

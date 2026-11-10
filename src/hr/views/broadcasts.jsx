@@ -1,224 +1,145 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DENSITY } from '../../shared/tokens.jsx';
-import { HRButton, Panel, Badge } from '../../shared/components.jsx';
+import { HRButton, HRIcon, Panel, Badge } from '../../shared/components.jsx';
+import { Flash, Loading, ConfirmButton, SectionTitle } from '../../shared/authoring/ui.jsx';
+import { libraryError, errorCode } from '../../shared/authoring/errors.js';
+import { pickLang } from '../../shared/authoring/text.js';
 import { HRPageHeader } from './_header.jsx';
-import { useBroadcasts } from '../hooks/use-broadcasts.js';
-import { listCompanyTeams } from '../../lib/supabase-hr';
-import { friendlyErrorI18n } from '../../lib/errors';
+import { BroadcastComposer } from './broadcast-composer.jsx';
+import { broadcastApi, browserTimeZone } from '../lib/broadcast-api.js';
+import { groupBroadcasts, deliveryLine, reachLine, fmtDuration, broadcastErrorCopy } from '../lib/broadcast-schedule.js';
 
 // ── BROADCASTS PAGE ──────────────────────────────────────────────
-function HRBroadcastsPage({ theme, S, lang, density }) {
+// Messages from HR to everyone or one team: now or at a set time (company
+// time; quiet hours hold night ones until the morning), text and/or a voice
+// message. Scheduled ones can be edited or cancelled until they go.
+function HRBroadcastsPage({ theme, lang, density, api = broadcastApi, recorderEnv }) {
   const T = theme;
-  const s = (en, ar) => lang === 'ar' ? ar : en;
-  const { list, loading, schedule, cancel } = useBroadcasts();
+  const s = (en, ar) => (lang === 'ar' ? ar : en);
+  const gap = DENSITY[density].gap;
+  const [list, setList] = React.useState(null);
+  const [loadError, setLoadError] = React.useState(null);
+  const [company, setCompany] = React.useState(null);
   const [teams, setTeams] = React.useState([]);
-  React.useEffect(() => { listCompanyTeams().then(setTeams).catch(() => setTeams([])); }, []);
+  const [editing, setEditing] = React.useState(null);
+  const [composerKey, setComposerKey] = React.useState(0);
+  const [flash, setFlash] = React.useState(null);
+  const [busyId, setBusyId] = React.useState(null);
+  const topRef = React.useRef(null);
 
-  const [titleEn, setTitleEn] = useState('');
-  const [titleAr, setTitleAr] = useState('');
-  const [bodyEn,  setBodyEn]  = useState('');
-  const [bodyAr,  setBodyAr]  = useState('');
-  const [segment, setSegment] = useState('all');
-  const [teamId, setTeamId] = useState('');
-  const [when, setWhen] = useState(''); // datetime-local
-  const [busy, setBusy] = useState(false);
-  const [flash, setFlash] = useState(null);
-  const [cancelError, setCancelError] = useState(null);
+  const load = React.useCallback(async () => {
+    try { setList(await api.list()); setLoadError(null); }
+    catch (e) { setLoadError(e); setList((l) => l || []); }
+  }, [api]);
 
-  if (loading) {
-    return (
-      <div style={{ padding: '80px 0', textAlign: 'center', color: T.textMuted, fontSize: 13 }}>
-        {s('Loading…','جارٍ التحميل…')}
-      </div>
-    );
+  React.useEffect(() => {
+    load();
+    api.settings().then(setCompany).catch(() => setCompany({ timezone: browserTimeZone(), quiet_hours: true }));
+    api.teams().then((t) => setTeams(t || [])).catch(() => setTeams([]));
+  }, [api, load]);
+
+  const tz = company?.timezone || browserTimeZone();
+
+  function onSaved(b, { isEdit }) {
+    setEditing(null);
+    setComposerKey((k) => k + 1);
+    const line = deliveryLine(b, tz, lang).text;
+    setFlash({ kind: 'ok', text: b?.status === 'sent'
+      ? s(`Sent${b.recipients != null ? ` to ${b.recipients} ${b.recipients === 1 ? 'person' : 'people'}` : ''}.`, `اتبعتت${b.recipients != null ? ` لـ ${new Intl.NumberFormat('ar-EG').format(b.recipients)} شخص` : ''}.`)
+      : isEdit ? s(`Saved. ${line}.`, `اتحفظت. ${line}.`) : s(`Scheduled. ${line}.`, `اتجدولت. ${line}.`) });
+    load();
   }
 
-  const grouped = {
-    scheduled: (list || []).filter(b => b.status === 'scheduled'),
-    sent:      (list || []).filter(b => b.status === 'sent'),
-    cancelled: (list || []).filter(b => b.status === 'cancelled'),
-  };
-
-  const handleSchedule = async () => {
-    if (!titleEn || !bodyEn || !when) return;
-    if (segment === 'team' && !teamId) {
-      setFlash({ kind: 'err', message: s('Pick a team first.', 'اختر فريقاً أولاً.') });
-      return;
-    }
-    setBusy(true); setFlash(null);
+  async function cancel(b) {
+    setBusyId(b.id); setFlash(null);
     try {
-      await schedule({
-        title_en: titleEn,
-        title_ar: titleAr || null,
-        body_en:  bodyEn,
-        body_ar:  bodyAr || null,
-        scope:    segment === 'all' ? 'all' : 'team',
-        team_id:  segment === 'team' ? teamId : null,
-        scheduled_at: new Date(when).toISOString(),
-      });
-      setFlash({ kind: 'ok' });
-      setTitleEn(''); setTitleAr(''); setBodyEn(''); setBodyAr(''); setWhen(''); setTeamId('');
+      await api.cancel(b.id);
+      if (editing?.id === b.id) { setEditing(null); setComposerKey((k) => k + 1); }
+      setFlash({ kind: 'ok', text: s('Cancelled. Nobody will get it.', 'اتلغت. محدش هيستلمها.') });
+      await load();
     } catch (e) {
-      setFlash({ kind: 'err', message: friendlyErrorI18n(e, lang) });
+      setFlash({ kind: 'err', text: broadcastErrorCopy(errorCode(e), lang) || libraryError(e, lang) });
+      await load();
     } finally {
-      setBusy(false);
+      setBusyId(null);
     }
-  };
+  }
 
-  const handleCancel = async (id) => {
-    setCancelError(null);
-    try { await cancel(id); }
-    catch (e) { setCancelError(friendlyErrorI18n(e, lang)); }
-  };
+  function edit(b) {
+    setFlash(null);
+    setEditing(b);
+    setComposerKey((k) => k + 1);
+    requestAnimationFrame(() => topRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }));
+  }
 
-  return (
-    <>
-      <HRPageHeader theme={T}
-        eyebrow={s('Org communications','اتصالات المنظمة')}
-        title={s('Broadcasts','البث')}
-        sub={s('In-app nudges and announcements · respects quiet hours','تنبيهات داخل التطبيق · تحترم ساعات الهدوء')}/>
+  const grouped = groupBroadcasts(list || []);
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: DENSITY[density].gap }}>
-        <Panel theme={T} density={density}>
-          <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 14 }}>{s('Compose','إنشاء')}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>{s('Title (EN)','العنوان (EN)')}</div>
-              <input value={titleEn} onChange={(e)=>setTitleEn(e.target.value)} style={{
-                width: '100%', boxSizing: 'border-box', padding: '10px 12px',
-                background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 9,
-                color: T.text, fontSize: 14, fontFamily: 'inherit', outline: 'none',
-              }}/>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>{s('Title (AR)','العنوان (AR)')}</div>
-              <input value={titleAr} dir="rtl" onChange={(e)=>setTitleAr(e.target.value)} style={{
-                width: '100%', boxSizing: 'border-box', padding: '10px 12px',
-                background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 9,
-                color: T.text, fontSize: 14, fontFamily: 'inherit', outline: 'none',
-              }}/>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>{s('Message (EN)','الرسالة (EN)')}</div>
-              <textarea value={bodyEn} onChange={(e)=>setBodyEn(e.target.value)} rows={5} style={{
-                width: '100%', boxSizing: 'border-box', padding: '10px 12px',
-                background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 9,
-                color: T.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', lineHeight: 1.5,
-              }}/>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>{s('Message (AR)','الرسالة (AR)')}</div>
-              <textarea value={bodyAr} dir="rtl" onChange={(e)=>setBodyAr(e.target.value)} rows={5} style={{
-                width: '100%', boxSizing: 'border-box', padding: '10px 12px',
-                background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 9,
-                color: T.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', lineHeight: 1.5,
-              }}/>
-            </div>
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 8 }}>{s('Audience','الجمهور')}</div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 4, background: T.panelSunk, padding: 3, borderRadius: 9, border: `1px solid ${T.border}`, width: 'fit-content' }}>
-                {[['all',s('All staff','كل الموظفين')],['team',s('A team','فريق')]].map(([k,l])=>(
-                  <button key={k} onClick={()=>setSegment(k)} style={{
-                    padding: '7px 12px', borderRadius: 7, border: 'none',
-                    background: segment===k ? T.panel : 'transparent',
-                    color: segment===k ? T.text : T.textMuted,
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  }}>{l}</button>
-                ))}
-              </div>
-              {segment === 'team' && (
-                <select value={teamId} onChange={(e)=>setTeamId(e.target.value)} style={{
-                  height: 34, padding: '0 10px', borderRadius: 9,
-                  background: T.panelSunk, border: `1px solid ${T.border}`,
-                  color: T.text, fontSize: 12, fontWeight: 600, outline: 'none', cursor: 'pointer',
-                }}>
-                  <option value="">{s('Pick a team…','اختر فريقاً…')}</option>
-                  {teams.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, color: T.textMid, fontWeight: 600, marginBottom: 6 }}>{s('Scheduled at','وقت الإرسال')}</div>
-            <input type="datetime-local" value={when} onChange={(e)=>setWhen(e.target.value)} style={{
-              padding: '10px 12px',
-              background: T.panelSunk, border: `1px solid ${T.border}`, borderRadius: 9,
-              color: T.text, fontSize: 13, fontFamily: 'inherit', outline: 'none',
-            }}/>
-          </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <HRButton theme={T} variant="primary" icon="broadcasts" disabled={!titleEn || !bodyEn || !when || busy} onClick={handleSchedule}>
-              {busy ? s('Scheduling…','جارٍ الجدولة…') : s('Schedule','جدولة')}
-            </HRButton>
-            {flash && (
-              <span style={{ fontSize: 12, color: flash.kind === 'ok' ? T.positive : T.danger }}>
-                {flash.kind === 'ok' ? s('Broadcast scheduled.','تمت الجدولة.') : (flash.message || s('Failed to schedule.','تعذّرت الجدولة.'))}
-              </span>
+  const row = (b, i, arr) => {
+    const when = deliveryLine(b, tz, lang);
+    const reach = reachLine(b, lang);
+    const audience = b.scope === 'team' ? (b.team_name || s('A team', 'فريق')) : s('Everyone', 'كل الموظفين');
+    return (
+      <div key={b.id} style={{
+        padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+        borderBottom: i < arr.length - 1 ? `1px solid ${T.divider}` : 'none',
+        background: editing?.id === b.id ? T.accentSoft : 'transparent',
+      }}>
+        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{pickLang(lang, b.title_en, b.title_ar) || '—'}</span>
+            {b.has_audio && (
+              <Badge theme={T} tone="info"><HRIcon name="headphones" size={11}/>{s('Audio', 'صوت')}{b.media_duration_s ? ` · ${fmtDuration(b.media_duration_s)}` : ''}</Badge>
             )}
+            <Badge theme={T} tone="neutral">{audience}</Badge>
           </div>
-        </Panel>
-
-        <Panel theme={T} density={density}>
-          <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 14 }}>{s('Preview · in-app','معاينة · داخل التطبيق')}</div>
-          <div style={{ background: '#0E2A26', borderRadius: 18, padding: 20, color: '#F5F1E8', minHeight: 200, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <img src="/wellness-mark.png" alt="" style={{ height: 16, filter: 'brightness(0) invert(1)' }}/>
-              <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 600, letterSpacing: 0.3 }}>WELLNESS+ · {s('From your HR team','من فريق الموارد البشرية')}</span>
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, letterSpacing: -0.2 }}>{titleEn || s('Your title…','عنوان…')}</div>
-            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.55 }}>{bodyEn || s('Your message body…','نص الرسالة…')}</div>
-          </div>
-          <div style={{ marginTop: 14, fontSize: 11, color: T.textMuted }}>
-            {s('Scheduling respects quiet hours and queues for the next allowed window.','الجدولة تحترم ساعات الهدوء.')}
-          </div>
-        </Panel>
-      </div>
-
-      {cancelError && (
-        <div style={{ marginTop: DENSITY[density].gap, padding: '10px 14px', background: T.panelSunk, border: `1px solid ${T.danger}`, borderRadius: 9, color: T.danger, fontSize: 12 }}>
-          {cancelError}
+          <div style={{ fontSize: 12, color: when.quiet ? T.caution : T.textMuted, marginTop: 4 }}>{when.text}</div>
+          {reach && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{reach}</div>}
         </div>
-      )}
-      <Section theme={T} title={s('Scheduled','مجدولة')} items={grouped.scheduled} density={density} onCancel={handleCancel} cancelable s={s}/>
-      <Section theme={T} title={s('Sent','مُرسلة')}    items={grouped.sent}      density={density} s={s}/>
-      <Section theme={T} title={s('Cancelled','مُلغاة')} items={grouped.cancelled} density={density} s={s}/>
-    </>
-  );
-}
-
-function Section({ theme: T, title, items, density, onCancel, cancelable, s }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <>
-      <div style={{ marginTop: DENSITY[density].gap, fontSize: 11, color: T.textMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 12 }}>{title}</div>
-      <Panel theme={T} density={density} pad={false}>
-        {items.map((b, i) => (
-          <div key={b.id} style={{
-            padding: '14px 18px', display: 'grid', gridTemplateColumns: '2fr 1.4fr 1fr auto', gap: 12, alignItems: 'center',
-            borderBottom: i < items.length - 1 ? `1px solid ${T.divider}` : 'none',
-          }}>
-            <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{b.title_en || b.title || '—'}</div>
-            <div style={{ fontSize: 12, color: T.textMuted }}>
-              <Badge theme={T} tone="neutral">{b.scope || '—'}</Badge>
-            </div>
-            <div style={{ fontSize: 12, color: T.textMid, textAlign: 'end' }}>
-              {b.scheduled_at ? new Date(b.scheduled_at).toLocaleString() : '—'}
-            </div>
-            <div>
-              {cancelable && onCancel && b.status === 'scheduled' && (
-                <HRButton theme={T} variant="ghost" size="sm" onClick={() => onCancel(b.id)}>{s('Cancel','إلغاء')}</HRButton>
-              )}
-            </div>
+        {b.status === 'scheduled' && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <HRButton theme={T} variant="secondary" size="sm" disabled={busyId === b.id} onClick={() => edit(b)}>{s('Edit', 'تعديل')}</HRButton>
+            <ConfirmButton theme={T} lang={lang} label={s('Cancel', 'إلغاء')} busy={busyId === b.id}
+              question={s('Cancel it? Nobody will get it.', 'تلغيها؟ محدش هيستلمها.')} yes={s('Yes, cancel', 'أيوه، الغيها')}
+              onConfirm={() => cancel(b)}/>
           </div>
-        ))}
+        )}
+      </div>
+    );
+  };
+
+  const section = (title, items, empty) => (
+    <div style={{ marginTop: gap }}>
+      <SectionTitle theme={T}>{title}</SectionTitle>
+      <Panel theme={T} density={density} pad={false}>
+        {items.length ? items.map(row) : <div style={{ padding: '18px', fontSize: 12, color: T.textMuted }}>{empty}</div>}
       </Panel>
-    </>
+    </div>
+  );
+
+  return (
+    <div ref={topRef}>
+      <HRPageHeader theme={T}
+        eyebrow={s('Messages from HR', 'رسايل من الـ HR')}
+        title={s('Broadcasts', 'الرسايل')}
+        sub={s('Text or a voice message, now or at a set time. Night messages wait for the morning while quiet hours are on.',
+               'نص أو رسالة صوتية، دلوقتي أو في وقت تحدده. رسايل الليل بتستنى الصبح طول ما ساعات الهدوء شغالة.')}/>
+
+      <Flash theme={T} flash={flash}/>
+      {company ? (
+        <BroadcastComposer key={`${composerKey}-${tz}`} theme={T} lang={lang} density={density} api={api} teams={teams}
+          company={{ ...company, timezone: tz }} editing={editing} recorderEnv={recorderEnv}
+          onSaved={onSaved} onCancelEdit={() => { setEditing(null); setComposerKey((k) => k + 1); }}/>
+      ) : <Loading theme={T} lang={lang}/>}
+
+      {loadError && <Flash theme={T} flash={{ kind: 'err', text: libraryError(loadError, lang) }} style={{ marginTop: gap }}/>}
+      {list == null ? <Loading theme={T} lang={lang}/> : (
+        <>
+          {section(s('Scheduled', 'متجدولة'), grouped.scheduled, s('Nothing scheduled.', 'مفيش حاجة متجدولة.'))}
+          {section(s('Sent', 'اتبعتت'), grouped.sent, s('Nothing sent yet.', 'لسه مفيش حاجة اتبعتت.'))}
+          {grouped.cancelled.length > 0 && section(s('Cancelled', 'اتلغت'), grouped.cancelled, '')}
+        </>
+      )}
+    </div>
   );
 }
 

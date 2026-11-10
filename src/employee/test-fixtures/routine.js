@@ -59,7 +59,16 @@ export function makeWeek() {
     day_title: weekday === 2 ? { en: 'Upper body', ar: 'الجزء العلوي' } : weekday === 3 ? { en: 'Lower body', ar: 'الجزء السفلي' } : null,
     items,
   });
-  const wi = (id, at, en, checked = false) => ({ id, routine_id: 'r1', exercise_id: null, at_time: at, title_en: en, title_ar: en, sets_reps: '2 × 10', sets_reps_ar: null, checked });
+  // Sprint 3: week items carry their exercise (with media) like Today's.
+  const neck = ex('e2', {
+    name_en: 'Neck release', name_ar: 'إطالة الرقبة', body_areas: ['neck'],
+    how_en: 'Tilt your ear to your shoulder and hold.', how_ar: 'ميّل ودنك ناحية كتفك واثبت.',
+    media_type: 'video', media_bucket: 'company-media', media_path: 'c1/exercises/neck.mp4', media_mime: 'video/mp4',
+  });
+  const wi = (id, at, en, checked = false) => ({
+    id, routine_id: 'r1', exercise_id: id === 'b' ? 'e2' : null, at_time: at, title_en: en, title_ar: en,
+    sets_reps: '2 × 10', sets_reps_ar: null, note_en: null, note_ar: null, checked, exercise: id === 'b' ? neck : null,
+  });
   return {
     week_start: '2026-11-08', today: '2026-11-10',
     days: [

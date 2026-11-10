@@ -126,6 +126,8 @@ function HRChallengesPage({ theme, lang, density }) {
       upcoming:  ['neutral',  s('Upcoming', 'جاي')],
       done:      ['neutral',  s('Done', 'خلص')],
       cancelled: ['caution',  s('Cancelled', 'اتلغى')],
+      // Sprint 3: the default weekly habit gives way while a routine runs.
+      paused:    ['info',     s('Paused while a routine runs', 'متوقف طول ما الروتين شغال')],
     };
     const [tone, label] = map[st] || map.done;
     return <Badge theme={T} tone={tone}>{label}</Badge>;
@@ -278,7 +280,9 @@ function HRChallengesPage({ theme, lang, density }) {
               </div>
             </div>
             <div style={{ fontSize: 12, color: T.textMid, textAlign: lang === 'ar' ? 'left' : 'right', minWidth: 170 }}>
-              {c.status === 'upcoming' || c.status === 'cancelled' ? '—' : c.status === 'active' ? (
+              {c.status === 'paused' ? (
+                <span style={{ fontSize: 11, color: T.textMuted }}>{s('People do their routine instead this week.', 'الناس بيعملوا الروتين بدالها الأسبوع ده.')}</span>
+              ) : c.status === 'upcoming' || c.status === 'cancelled' ? '—' : c.status === 'active' ? (
                 <>
                   {s(`${c.participants} taking part so far`, `${c.participants} بيشاركوا لحد دلوقتي`)}
                   <div style={{ fontSize: 11, color: T.textMuted }}>{s(`Results after ${fmt(c.end_date, lang)}`, `النتيجة بعد ${fmt(c.end_date, lang)}`)}</div>

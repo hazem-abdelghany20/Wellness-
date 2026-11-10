@@ -187,9 +187,9 @@ const REPORT = {
 };
 
 describe('routine report shaping', () => {
-  it('labels teams, keeps "Small teams" as given, and draws 08–18 widened to busy hours', () => {
+  it('labels teams, labels the grouped row "Other teams", and draws 08–18 widened to busy hours', () => {
     const r = shapeRoutineReport(REPORT, 'en');
-    expect(r.teams.map((t) => t.label)).toEqual(['Finance', 'Small teams (3)']);
+    expect(r.teams.map((t) => t.label)).toEqual(['Finance', 'Other teams (3)']);
     expect(teamRowLabel({ no_team: true }, 'ar')).toBe('من غير فريق');
     expect(r.smallTeamsHidden).toBe(true);
     expect(r.today).toMatchObject({ done: 37, due: 120, pct: 31, active: 12, assigned: 40 });
@@ -214,7 +214,7 @@ describe('routine report shaping', () => {
     const people = { enabled: true, people: [{ user_id: 'u1', display_name: 'Amira', team_name: 'Finance', days_active: 5, items_done: 40, full_days: 2, streak: 3, last_active: '2026-11-09' }] };
     const en = reportSheets(REPORT, people, 'en');
     expect(en.map((s) => s.sheet)).toEqual(['Summary', 'By day', 'By team', 'By exercise', 'By hour', 'People who share']);
-    expect(en[2].rows[2][0]).toBe('Small teams (3)');
+    expect(en[2].rows[2][0]).toBe('Other teams (3)');
     expect(en[3].rows[1]).toEqual(['Neck release', 200, 400, '50%']);
     expect(en[5].rows[1]).toEqual(['Amira', 'Finance', 5, 40, 2, 3, '2026-11-09']);
     expect(reportSheets(REPORT, { enabled: false, people: [] }, 'ar').map((s) => s.sheet)).toEqual(['ملخص', 'باليوم', 'بالفريق', 'بالتمرين', 'بالساعة']);

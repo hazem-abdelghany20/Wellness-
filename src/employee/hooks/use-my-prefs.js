@@ -39,5 +39,8 @@ export function useMyPrefs(enabled = true) {
     }
   }, []);
 
-  return { prefs, loading, error, saving, saveError, set, refetch };
+  // Take prefs another call already saved (e.g. enableRoutineReminders).
+  const replace = useCallback((next) => { if (next && alive.current) setPrefs(next); }, []);
+
+  return { prefs, loading, error, saving, saveError, set, replace, refetch };
 }

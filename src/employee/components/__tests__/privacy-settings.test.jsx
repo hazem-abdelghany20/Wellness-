@@ -8,8 +8,14 @@ vi.mock('../../../lib/supabase-routines', async (orig) => ({
   getMyPrefs: vi.fn(),
   setMyPrefs: vi.fn(),
 }));
+vi.mock('../../../lib/push', () => ({
+  getPushState: vi.fn(),
+  enableRoutineReminders: vi.fn(),
+  disableRoutineReminders: vi.fn(),
+}));
 
 import { getMyPrefs, setMyPrefs } from '../../../lib/supabase-routines';
+import { getPushState, enableRoutineReminders } from '../../../lib/push';
 import { THEMES } from '../../design-system.jsx';
 import { PrivacySettings } from '../privacy-settings.jsx';
 
@@ -22,10 +28,15 @@ const prefs = (extra = {}) => ({
 });
 const deferred = () => { let resolve, reject; const promise = new Promise((r, j) => { resolve = r; reject = j; }); return { promise, resolve, reject }; };
 
-beforeEach(() => { vi.clearAllMocks(); });
+const pushState = (state) => ({ state, permission: 'default', endpoint: null, support: { supported: true, reason: null, ios: false, standalone: false } });
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  getPushState.mockResolvedValue(pushState('prompt'));
+});
 
 describe('Me → Privacy', () => {
-  it('two opt-ins, both off, each with one plain sentence; reminders are "coming soon"', async () => {
+  it('two opt-ins, both off, each with one plain sentence; a working reminders switch', async () => {
     getMyPrefs.mockResolvedValue(prefs());
     render(<PrivacySettings theme={T} lang="en"/>);
     const board = await screen.findByRole('switch', { name: 'Show me on the company board' });
@@ -34,11 +45,19 @@ describe('Me → Privacy', () => {
     expect(share).toHaveAttribute('aria-checked', 'false');
     expect(board).toHaveAccessibleDescription(/never anything about your health/);
     expect(share).toHaveAccessibleDescription(/HR sees your name with the days you were active/);
-    const reminders = screen.getByRole('switch', { name: /Reminders/ });
-    expect(reminders).toBeDisabled();
-    expect(screen.getByText('Coming soon')).toBeInTheDocument();
+    const reminders = await screen.findByRole('switch', { name: 'Reminders' });
+    expect(reminders).not.toBeDisabled();
+    expect(reminders).toHaveAttribute('aria-checked', 'false');
+    expect(screen.queryByText('Coming soon')).toBeNull();
+    // The switch goes through push.ts (asks permission on the tap), not a bare prefs write.
+    enableRoutineReminders.mockResolvedValue(prefs({ routine_reminders: true }));
+    getPushState.mockResolvedValue(pushState('subscribed'));
     fireEvent.click(reminders);
+    expect(enableRoutineReminders).toHaveBeenCalledWith({ lang: 'en' });
     expect(setMyPrefs).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Reminders' })).toHaveAttribute('aria-checked', 'true'));
+    // The opt-ins are untouched.
+    expect(screen.getByRole('switch', { name: 'Show me on the company board' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('flips at once and saves the opt-in', async () => {
@@ -78,7 +97,7 @@ describe('Me → Privacy', () => {
     render(<PrivacySettings theme={T} lang="ar"/>);
     expect(await screen.findByRole('switch', { name: 'اظهرني في لوحة الشركة' })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'شارك تقدّمي في الروتين مع الـ HR' })).toBeInTheDocument();
-    expect(screen.getByText('قريب')).toBeInTheDocument();
+    expect(await screen.findByRole('switch', { name: 'التذكيرات' })).toBeInTheDocument();
     expect(screen.getByText('الخصوصية')).toBeInTheDocument();
   });
 });

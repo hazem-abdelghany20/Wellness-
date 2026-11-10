@@ -34,7 +34,10 @@ function AppInner() {
                   : (role || '');
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
   const [range, setRange] = React.useState('30d');
-  const [nav, setNav] = React.useState('dashboard');
+  const [nav, setNavId] = React.useState('dashboard');
+  const [navTab, setNavTab] = React.useState(null);
+  // setNav(id, tab?) — tab opens a page on one of its tabs (People → Teams).
+  const setNav = React.useCallback((id, tab = null) => { setNavId(id); setNavTab(tab); }, []);
 
   const tweaksAvailable = import.meta.env.DEV ||
     new URLSearchParams(window.location.search).get('tweaks') === '1';
@@ -59,7 +62,9 @@ function AppInner() {
 
   const hasAccess = !!session && (['hr_admin', 'company_admin'].includes(role) || isSuperadminEmail(session?.user?.email));
   const tour = useWalkthrough({
-    key: 'hr', user: session?.user, steps: HR_TOUR, onNavigate: setNav, autoStart: hasAccess,
+    // A step's screen can name a tab too ('people:teams').
+    key: 'hr', user: session?.user, steps: HR_TOUR, autoStart: hasAccess,
+    onNavigate: (screen) => { const [id, tab] = String(screen || '').split(':'); setNav(id, tab || null); },
   });
   const tourColors = {
     panel: T.panel, text: T.text, muted: T.textMuted, border: T.borderStrong || T.border,
@@ -90,7 +95,7 @@ function AppInner() {
           {nav === 'dashboard' ? (
             <HRDashboard theme={T} S={S} cfg={cfg} density={density} gap={gap} range={range} companyName={companyName} firstName={firstName} setNav={setNav}/>
           ) : nav === 'people' ? (
-            <HRPeoplePage theme={T} S={S} lang={cfg.lang} density={density}/>
+            <HRPeoplePage theme={T} S={S} lang={cfg.lang} density={density} initialTab={navTab || 'people'}/>
           ) : nav === 'exercises' ? (
             <HRExercisesPage theme={T} lang={cfg.lang} density={density}/>
           ) : nav === 'routines' ? (
