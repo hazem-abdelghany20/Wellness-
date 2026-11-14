@@ -1,0 +1,109 @@
+name: iOS release (App Store Connect)
+
+# Builds the Capacitor iOS app on a GitHub macOS runner with Xcode 26 and
+# uploads it to App Store Connect (TestFlight), signed with Xcode's cloud
+# signing. Run it by hand: Actions → "iOS release" → Run workflow.
+#
+# Why a runner: Apple only accepts uploads built with Xcode 26+ (since
+# 2026-04-28), and cloud signing through an App Store Connect API key needs
+# an ADMIN-role key — an App Manager key fails with a cloud-signing
+# permission error.
+#
+# Repository secrets:
+#   ASC_KEY_ID, ASC_ISSUER_ID   App Store Connect API key (Admin role)
+#   ASC_KEY_P8_BASE64           the .p8 file, base64-encoded
+#   VITE_SUPABASE_URL           live project URL (the web build refuses to
+#   VITE_SUPABASE_ANON_KEY      start in production without them)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      TEAM_ID: 997X9FM597
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use the newest Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the web app and copy it into the iOS project
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ] || { echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY secrets missing"; exit 1; }
+          npm run build
+          npx cap sync ios
+
+      - name: Write the App Store Connect key
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          [ -n "$ASC_KEY_P8_BASE64" ] || { echo "::error::ASC_KEY_P8_BASE64 secret missing"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/asc"
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/asc/key.p8"
+
+      # Build number = run number + 100, so it is always higher than any
+      # build an earlier setup uploaded.
+      - name: Archive (cloud signing)
+        run: |
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc/key.p8" \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION=$(( GITHUB_RUN_NUMBER + 100 ))
+
+      - name: Export and upload to App Store Connect
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc/key.p8" \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+
+      - name: Remove the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/asc"
