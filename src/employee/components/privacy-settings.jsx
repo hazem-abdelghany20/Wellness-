@@ -4,6 +4,12 @@ import { ToggleRow } from './toggle.jsx';
 import { useMyPrefs } from '../hooks/use-my-prefs.js';
 import { RemindersSetting } from './reminders.jsx';
 
+// Public privacy policy (public/privacy.html on the live Amplify app).
+// Absolute, so the native (Capacitor) build opens it in Safari instead of
+// navigating its own web view away from the app. App Store 5.1.1(i) wants
+// the policy reachable from inside the app.
+const PRIVACY_POLICY_URL = 'https://main.d1c79md4n000h6.amplifyapp.com/privacy.html';
+
 // Me → Privacy: the two opt-ins (sprint 2 §5) and the reminders switch
 // (sprint 3, Web Push). Both opt-ins are off until the employee turns them
 // on, and can be turned off any time.
@@ -67,9 +73,13 @@ function PrivacySettings({ theme, lang }) {
       <SectionLabel theme={T}>{s('Privacy', 'الخصوصية')}</SectionLabel>
       <div style={{ padding: '0 16px' }}>
         <Card theme={T} pad={6} radius={20}>{body}</Card>
+        <a href={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'inline-block', padding: '10px 10px 0', fontSize: 13, fontWeight: 700, color: T.accent, textDecoration: 'none' }}>
+          {s('Privacy policy', 'سياسة الخصوصية')}
+        </a>
       </div>
     </div>
   );
 }
 
-export { PrivacySettings };
+export { PrivacySettings, PRIVACY_POLICY_URL };
