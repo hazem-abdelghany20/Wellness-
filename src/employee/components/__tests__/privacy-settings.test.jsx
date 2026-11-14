@@ -17,7 +17,7 @@ vi.mock('../../../lib/push', () => ({
 import { getMyPrefs, setMyPrefs } from '../../../lib/supabase-routines';
 import { getPushState, enableRoutineReminders } from '../../../lib/push';
 import { THEMES } from '../../design-system.jsx';
-import { PrivacySettings } from '../privacy-settings.jsx';
+import { PrivacySettings, PRIVACY_POLICY_URL } from '../privacy-settings.jsx';
 
 const T = THEMES.brand;
 const prefs = (extra = {}) => ({
@@ -99,5 +99,19 @@ describe('Me → Privacy', () => {
     expect(screen.getByRole('switch', { name: 'شارك تقدّمي في الروتين مع الـ HR' })).toBeInTheDocument();
     expect(await screen.findByRole('switch', { name: 'التذكيرات' })).toBeInTheDocument();
     expect(screen.getByText('الخصوصية')).toBeInTheDocument();
+  });
+
+  it('links to the public privacy policy, even when the choices fail to load (App Store 5.1.1(i))', async () => {
+    getMyPrefs.mockRejectedValue(new Error('Failed to fetch'));
+    render(<PrivacySettings theme={T} lang="en"/>);
+    const link = await screen.findByRole('link', { name: 'Privacy policy' });
+    expect(link).toHaveAttribute('href', PRIVACY_POLICY_URL);
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('privacy policy link in Arabic', async () => {
+    getMyPrefs.mockResolvedValue(prefs());
+    render(<PrivacySettings theme={T} lang="ar"/>);
+    expect(await screen.findByRole('link', { name: 'سياسة الخصوصية' })).toHaveAttribute('href', PRIVACY_POLICY_URL);
   });
 });
