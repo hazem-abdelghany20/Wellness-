@@ -100,7 +100,7 @@ export function friendlyError(err: unknown): FriendlyError {
     return { message: 'That challenge was archived. Pick another one.', raw };
   }
 
-  if (/Failed to fetch|NetworkError|ECONNREFUSED/i.test(raw)) {
+  if (/Failed to fetch|Load failed|NetworkError|ECONNREFUSED/i.test(raw)) {
     return { message: 'Network problem — check your connection and try again.', raw };
   }
 

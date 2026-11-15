@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { createFetchWithRetry } from './fetch-retry';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -25,6 +26,9 @@ export const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
+    // Some networks break HTTP/3; retry reads and sign-in that the network
+    // dropped (see fetch-retry.ts).
+    global: { fetch: createFetchWithRetry() },
   }
 );
 
