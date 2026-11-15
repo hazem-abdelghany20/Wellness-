@@ -193,7 +193,7 @@ function TierCard({ theme, lang, tier, config, catalog, onSave }) {
             {catalog.map(it => (
               <option key={it.id} value={it.id}>
                 {(lang === 'ar' && it.name_ar) ? it.name_ar : it.name_en}
-                {' · '}{Math.round((it.value_minor || 0) / 100)} {it.currency}
+                {moneyLabel(it) ? ` · ${moneyLabel(it)}` : ''}
               </option>
             ))}
           </select>
@@ -220,9 +220,9 @@ function TierCard({ theme, lang, tier, config, catalog, onSave }) {
                   <span style={{ flex: 1, fontSize: 13, color: T.text }}>
                     {(lang === 'ar' && it.name_ar) ? it.name_ar : it.name_en}
                   </span>
-                  <span style={{ fontSize: 11, color: T.textMuted }}>
-                    {Math.round((it.value_minor || 0) / 100)} {it.currency}
-                  </span>
+                  {moneyLabel(it) && (
+                    <span style={{ fontSize: 11, color: T.textMuted }}>{moneyLabel(it)}</span>
+                  )}
                 </label>
               );
             })}
@@ -273,8 +273,8 @@ function EmptyCatalog({ theme, lang }) {
         </div>
         <div style={{ fontSize: 12, color: T.textMuted }}>
           {lang === 'ar'
-            ? 'أضف خدمات WH أولاً من تبويب الكتالوج لتتمكّن من ربطها بالمراحل.'
-            : 'Add WH services in the Catalog tab first, then return here to map them.'}
+            ? 'أضف مكافآتك أولاً من تبويب الكتالوج (رسالة شكر، انصراف مبكر، غداء للفريق) لتتمكّن من ربطها بالمراحل.'
+            : 'Add your rewards in the Catalog tab first (a thank-you note, an early leave, a team lunch), then return here to map them.'}
         </div>
       </div>
     </Panel>
@@ -292,6 +292,12 @@ function ErrorStrip({ theme, lang }) {
       {lang === 'ar' ? 'تعذّر تحميل إعدادات المراحل.' : 'Could not load tier configurations.'}
     </div>
   );
+}
+
+// "500 EGP", or '' for a reward with no money value (no "0 EGP").
+function moneyLabel(item) {
+  const minor = Number(item?.value_minor) || 0;
+  return minor > 0 ? `${Math.round(minor / 100)} ${item.currency || ''}`.trim() : '';
 }
 
 function setEq(a, b) {

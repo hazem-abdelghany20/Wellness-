@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  listHabitTemplates, listHabitChallenges, scheduleHabitChallenge,
+  listHabitTemplates, listHabitChallenges, scheduleChallenge,
   cancelHabitChallenge, listCompanyTeams,
 } from '../../lib/supabase-hr';
 
@@ -24,12 +24,15 @@ export function useChallenges() {
 
   useEffect(() => { refetch(); }, [refetch]);
 
-  const schedule = useCallback(async (templateId, weekStart, teamId) => {
-    const created = await scheduleHabitChallenge(templateId, weekStart, teamId);
+  // input: { templateId } or { title_en, title_ar?, routineItemIds }, plus
+  // { startDate, endDate, successDays, teamId }. Several can run at once.
+  const schedule = useCallback(async (input) => {
+    const created = await scheduleChallenge(input);
     await refetch();
     return created;
   }, [refetch]);
 
+  // Cancels an upcoming challenge, or ends one that is running.
   const cancel = useCallback(async (challengeId) => {
     await cancelHabitChallenge(challengeId);
     await refetch();

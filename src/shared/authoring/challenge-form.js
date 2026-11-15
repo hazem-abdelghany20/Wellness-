@@ -1,6 +1,6 @@
 // HR's own habit challenge (hr_save_challenge_template): form, validation,
 // input, and the challenge's days. Pure functions.
-import { clean, orNull, msg, addDays } from './text.js';
+import { clean, orNull, msg, addDays, weekdayOf, upcomingSunday } from './text.js';
 import { emptyMedia, mediaToForm, validateMedia, mediaFields } from './media-form.js';
 
 export const CHALLENGE_LIMITS = { title: 80, action: 220, why: 500, tip: 220 };
@@ -151,4 +151,148 @@ export function payloadMediaKind(p) {
   if (p.media_type === 'youtube') return p.media_youtube_id ? 'youtube' : null;
   if ((p.media_type === 'video' || p.media_type === 'image') && (p.media_path || p.media_url)) return p.media_type;
   return null;
+}
+
+// ── Sprint 4: a challenge with its own dates (hr_schedule_challenge) ──
+// Any start and end, at most 5 weeks apart; only Sun–Thu days count;
+// several challenges can run at once.
+export const MAX_SPAN_DAYS = 34;       // end − start, as the server checks it
+export const MAX_ROUTINE_ITEMS = 20;   // rows a routine challenge can link
+
+const isIso = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ''));
+
+// Whole days from a to b (negative when b is earlier).
+export function daysBetween(a, b) {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+}
+
+// The working days (Sun–Thu) from start to end, both included. Same as the
+// server's habit_workdays(). [] for missing dates or an end before the start.
+export function workdaysBetween(start, end) {
+  if (!isIso(start) || !isIso(end) || end < start) return [];
+  const out = [];
+  const span = Math.min(daysBetween(start, end), 366);
+  for (let i = 0; i <= span; i++) {
+    const d = addDays(start, i);
+    if (weekdayOf(d) < 5) out.push(d);
+  }
+  return out;
+}
+
+export const countWorkdays = (start, end) => workdaysBetween(start, end).length;
+
+// The Thursday that closes the week `start` is in (the next one for a
+// Friday / Saturday start), `weeks` weeks long. Sunday + 1 week → that Thursday.
+export function defaultEndDate(start, weeks = 1) {
+  if (!isIso(start)) return '';
+  const w = Math.max(1, Math.min(MAX_WEEKS, Number(weeks) || 1));
+  return addDays(start, ((4 - weekdayOf(start) + 7) % 7) + 7 * (w - 1));
+}
+
+// Default dates: the coming Sunday (today when it is one) → the Thursday
+// that ends the template's last week.
+export function defaultChallengeDates(today, weeks = 1) {
+  const startDate = upcomingSunday(today);
+  return { startDate, endDate: defaultEndDate(startDate, weeks) };
+}
+
+// Days needed by default: the template's own, else 80% of the working days
+// (the server's default). Never more than the days that can count.
+export function defaultNeed(template, workdays) {
+  const n = Math.max(0, Number(workdays) || 0);
+  if (!n) return 1;
+  const base = template ? templateSuccessDays(template) : Math.ceil((n * 8) / 10);
+  return Math.max(1, Math.min(base, n));
+}
+
+// A routine challenge counts a day when every linked row due that day is
+// ticked, so only days with a linked row due can count: the routine's
+// workdays, and for an "only Tuesday" row only Tuesdays.
+export function countableDays(days, rows, routineWorkdays = [0, 1, 2, 3, 4]) {
+  const work = (routineWorkdays || []).map(Number);
+  const list = rows || [];
+  return (days || []).filter((d) => {
+    const wd = weekdayOf(d);
+    return work.includes(wd) && list.some((r) => r.weekday == null || Number(r.weekday) === wd);
+  });
+}
+
+// Problems with the dates and the days needed, before the server is asked.
+// maxDays: the days that can count when fewer than the working days.
+export function validateSchedule({ startDate, endDate, successDays, maxDays } = {}, today) {
+  const e = {};
+  if (!isIso(startDate)) e.startDate = msg('Pick a start date.', 'اختار تاريخ البداية.');
+  if (!isIso(endDate)) e.endDate = msg('Pick an end date.', 'اختار تاريخ النهاية.');
+  if (e.startDate || e.endDate) return e;
+  if (endDate < startDate) {
+    e.endDate = msg('The end date must be on or after the start date.', 'تاريخ النهاية لازم يكون بعد البداية أو نفس اليوم.');
+    return e;
+  }
+  if (daysBetween(startDate, endDate) > MAX_SPAN_DAYS) {
+    e.endDate = msg('Keep it to 5 weeks or less.', 'خليه ٥ أسابيع أو أقل.');
+    return e;
+  }
+  if (isIso(today) && endDate < today) {
+    e.endDate = msg('Those dates are already over. Pick later dates.', 'التواريخ دي عدّت. اختار تواريخ بعد كده.');
+    return e;
+  }
+  const workdays = countWorkdays(startDate, endDate);
+  if (!workdays) {
+    e.endDate = msg('Those dates have no working day (Sunday to Thursday).', 'التواريخ دي مفيهاش يوم شغل (من الأحد للخميس).');
+    return e;
+  }
+  const total = maxDays == null ? workdays : Math.min(workdays, Number(maxDays) || 0);
+  const need = Number(successDays);
+  if (total < 1) {
+    e.successDays = msg('The exercises you picked are not due on any of these days.', 'التمارين اللي اخترتها مش مطلوبة في أي يوم من دول.');
+  } else if (!Number.isInteger(need) || need < 1 || need > total) {
+    e.successDays = total === 1
+      ? msg('Only 1 day can count in these dates.', 'يوم واحد بس اللي ممكن يتحسب في التواريخ دي.')
+      : msg(`Pick 1 to ${total} days.`, `اختار من ١ لـ ${total} يوم.`);
+  }
+  return e;
+}
+
+// "Challenge from routine exercises": a typed name + 1–20 rows of one routine.
+export function validateRoutineChallenge(form, today) {
+  const f = form || {};
+  const e = {};
+  if (!clean(f.title_en)) e.title_en = msg('Add the name in English.', 'اكتب الاسم بالإنجليزي.');
+  maxLen(e, 'title_en', f.title_en, CHALLENGE_LIMITS.title);
+  maxLen(e, 'title_ar', f.title_ar, CHALLENGE_LIMITS.title);
+  const ids = f.itemIds || [];
+  if (!f.routineId) e.routineId = msg('Pick a routine.', 'اختار روتين.');
+  else if (!ids.length) e.items = msg('Tick at least one exercise.', 'علّم على تمرين واحد على الأقل.');
+  else if (ids.length > MAX_ROUTINE_ITEMS) e.items = msg(`Pick up to ${MAX_ROUTINE_ITEMS} exercises.`, `اختار لحد ${MAX_ROUTINE_ITEMS} تمرين.`);
+  return { ...e, ...validateSchedule(f, today) };
+}
+
+// Form → scheduleChallenge() input for a routine challenge.
+export function buildRoutineChallengeInput(form) {
+  const input = {
+    title_en: clean(form.title_en),
+    routineItemIds: [...(form.itemIds || [])],
+    startDate: form.startDate,
+    endDate: form.endDate,
+    successDays: Number(form.successDays),
+    teamId: form.teamId || null,
+  };
+  const ar = orNull(form.title_ar);
+  if (ar) input.title_ar = ar;
+  return input;
+}
+
+// The rows of a routine a challenge can link: saved, not hidden, with the
+// text the picker shows.
+export function pickableRoutineRows(detail, lang) {
+  return (detail?.items || [])
+    .filter((it) => it.id && !it.hidden_at)
+    .map((it) => ({
+      id: it.id,
+      time: it.at_time ? String(it.at_time).slice(0, 5) : '',
+      weekday: it.weekday == null ? null : Number(it.weekday),
+      title: (lang === 'ar'
+        ? (clean(it.title_ar) || it.exercise?.name_ar || clean(it.title_en) || it.exercise?.name_en)
+        : (clean(it.title_en) || it.exercise?.name_en || clean(it.title_ar) || it.exercise?.name_ar)) || '',
+    }));
 }

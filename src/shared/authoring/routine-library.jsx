@@ -12,7 +12,8 @@ import { pickLang, fmtNum } from './text.js';
 // Admin: the public library.
 //
 // api: { mode, list(), detail(id), save(input), setStatus(id, status),
-//        exercises(), saveExercise(input), setPref?(id, pref), copy?(id), media }
+//        exercises(), saveExercise(input), setPref?(id, pref), copy?(id),
+//        setItemHidden?(itemId, hidden) → detail (HR: hide / show one row), media }
 // onAssign(routine): HR only, shows "Assign" on own routines.
 // onSaved(detail, { isNew }): after a save (HR offers to assign a new one).
 // openRequest: { id, key } opens that routine in the builder (after an import).
@@ -169,6 +170,7 @@ export function RoutineLibrary({
             <RoutineBuilder key={editing.key} theme={T} lang={lang} density={density} detail={editing.detail}
               exercises={exercises} isPublic={isAdmin} media={api.media} todayWeekday={todayWeekday}
               onSave={handleSave} onCancel={() => setEditing(null)}
+              onSetItemHidden={api.setItemHidden ? (itemId, hidden) => api.setItemHidden(itemId, hidden) : undefined}
               onCreateExercise={async (input) => { const ex = await api.saveExercise(input); loadExercises(); return ex; }}/>
           )
         )}

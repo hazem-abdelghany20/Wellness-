@@ -180,6 +180,37 @@ export async function scheduleHabitChallenge(templateId: string, weekStart: stri
   return data;
 }
 
+// Sprint 4: start a challenge with its own dates; several can run at once.
+// Either templateId, or title_en (+ action_en) typed on the spot. With
+// routineItemIds the day counts by itself when those routine items are
+// ticked. Dates: any, at most 5 weeks apart; only Sun–Thu days count.
+export interface ScheduleChallengeInput {
+  templateId?: string | null;
+  title_en?: string; title_ar?: string;
+  action_en?: string; action_ar?: string;
+  routineItemIds?: string[];
+  startDate: string;            // 'YYYY-MM-DD'
+  endDate?: string;             // default: startDate + 4 days
+  successDays?: number;         // default: the template's, or 80% of the workdays
+  teamId?: string | null;
+}
+
+export async function scheduleChallenge(input: ScheduleChallengeInput) {
+  const { data, error } = await supabase.rpc('hr_schedule_challenge', {
+    p_input: {
+      template_id: input.templateId || null,
+      title_en: input.title_en, title_ar: input.title_ar,
+      action_en: input.action_en, action_ar: input.action_ar,
+      routine_item_ids: input.routineItemIds?.length ? input.routineItemIds : undefined,
+      start_date: input.startDate, end_date: input.endDate,
+      success_days: input.successDays, team_id: input.teamId || null,
+    },
+  });
+  if (error) throw error;
+  return data as Record<string, any> & { id: string; workdays: number; success_days: number };
+}
+
+// Cancels an upcoming challenge, or (sprint 4) ends one that is running.
 export async function cancelHabitChallenge(challengeId: string) {
   const { error } = await supabase.rpc('hr_cancel_habit_challenge', { p_challenge_id: challengeId });
   if (error) throw error;

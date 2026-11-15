@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   emptyRoutineForm, routineToForm, validateRoutineForm, buildRoutineInput, emptyRow, newRowAfter,
   moveRow, sortRowsByTime, toggleWorkday, workdaysLabel, previewDay, dayFocus, routineErrorCount,
+  applyHiddenFromDetail, hiddenRowCount,
 } from '../routine-form.js';
 import {
   routineHeaderField, sheetToRoutineRows, timeCell, bodyAreasCell, importReasonLabel,
@@ -107,6 +108,42 @@ describe('routine form', () => {
     expect(previewDay(f, 1, byId, 'ar').map((p) => p.key)).toEqual(['early', 'late', 'any']);
     expect(previewDay(f, 5, byId, 'en')).toEqual([]);
     expect(dayFocus(f, 0, 'ar')).toBe('الجزء العلوي');
+  });
+});
+
+describe('hidden routine rows (sprint 4)', () => {
+  const detail = (hidden) => ({
+    routine: { id: 'r1', title_en: 'Desk', workdays: [0, 1, 2, 3, 4], day_titles: {}, status: 'published' },
+    items: [
+      { id: 'i1', exercise_id: neck.id, at_time: '09:00', weekday: null, exercise: neck, hidden_at: hidden ? '2026-11-15T08:00:00Z' : null },
+      { id: 'i2', exercise_id: push.id, at_time: '10:00', weekday: null, exercise: push },
+    ],
+  });
+
+  it('reads hidden_at into the form and leaves hidden rows out of the phone preview', () => {
+    const f = routineToForm(detail(true));
+    expect(f.rows.map((r) => r.hidden_at)).toEqual(['2026-11-15T08:00:00Z', null]);
+    expect(hiddenRowCount(f.rows)).toBe(1);
+    expect(previewDay(f, 0, byId, 'en').map((p) => p.title)).toEqual(['Wall push-ups']);
+    expect(emptyRow().hidden_at).toBe(null);
+  });
+
+  it('never sends hidden_at on save, so the server keeps it; the row keeps its id', () => {
+    const input = buildRoutineInput(routineToForm(detail(true)));
+    expect(input.items.map((it) => it.id)).toEqual(['i1', 'i2']);
+    expect(input.items.every((it) => !('hidden_at' in it))).toBe(true);
+  });
+
+  it('takes hidden_at from the server answer without touching unsaved edits or new rows', () => {
+    const f = routineToForm(detail(false));
+    const edited = [{ ...f.rows[0], at_time: '09:45', sets_reps: '3 × 12' }, f.rows[1], emptyRow({ key: 'new', mode: 'text', title_en: 'Water' })];
+    const next = applyHiddenFromDetail(edited, detail(true));
+    expect(next[0]).toMatchObject({ id: 'i1', hidden_at: '2026-11-15T08:00:00Z', at_time: '09:45', sets_reps: '3 × 12' });
+    expect(next[1]).toBe(edited[1]);       // unchanged rows are the same objects
+    expect(next[2]).toBe(edited[2]);       // a row not saved yet is left alone
+    const shown = applyHiddenFromDetail(next, detail(false));
+    expect(shown[0]).toMatchObject({ hidden_at: null, at_time: '09:45' });
+    expect(applyHiddenFromDetail(next, null)).toEqual(next);
   });
 });
 
@@ -218,5 +255,8 @@ describe('routine report shaping', () => {
     expect(en[3].rows[1]).toEqual(['Neck release', 200, 400, '50%']);
     expect(en[5].rows[1]).toEqual(['Amira', 'Finance', 5, 40, 2, 3, '2026-11-09']);
     expect(reportSheets(REPORT, { enabled: false, people: [] }, 'ar').map((s) => s.sheet)).toEqual(['ملخص', 'باليوم', 'بالفريق', 'بالتمرين', 'بالساعة']);
+    // Sprint 4, "Everyone takes part": the sheet is just "People".
+    expect(reportSheets(REPORT, { ...people, everyone: true }, 'en')[5].sheet).toBe('People');
+    expect(reportSheets(REPORT, { ...people, everyone: true }, 'ar')[5].sheet).toBe('الناس');
   });
 });

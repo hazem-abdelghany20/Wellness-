@@ -29,6 +29,14 @@ describe('boardView', () => {
     expect(boardView(makeBoard('named', { me: { opted_in: true, items_done: 1, streak: 1 } })).inviteOptIn).toBe(false);
   });
 
+  it('company shows everyone: the server counts me as opted in, so there is no invitation', () => {
+    // recognition_board() returns me.opted_in = true for everyone under everyone_visible.
+    const v = boardView(makeBoard('named', { me: { opted_in: true, items_done: 0, streak: 0 } }));
+    expect(v.me.optedIn).toBe(true);
+    expect(v.inviteOptIn).toBe(false);
+    expect(v.named.top.map((p) => p.display_name)).toEqual(['Amira Hassan', 'Lina Adel']);
+  });
+
   it('flags an empty board', () => {
     expect(boardView(makeBoard('teams', { teams: [] })).empty).toBe(true);
     expect(boardView(makeBoard('teams')).empty).toBe(false);

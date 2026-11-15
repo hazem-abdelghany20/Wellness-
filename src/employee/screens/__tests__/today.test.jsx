@@ -27,7 +27,7 @@ import { THEMES } from '../../design-system.jsx';
 import { ScreenToday } from '../today.jsx';
 import { useRoutineToday } from '../../hooks/use-routine-today.js';
 import { applyTick } from '../../lib/routine-today.js';
-import { makeToday, makeWeek, makeBoard } from '../../test-fixtures/routine.js';
+import { makeToday, makeWeek, makeBoard, item } from '../../test-fixtures/routine.js';
 
 const go = vi.fn();
 function Harness({ dir = 'ltr', ...rest }) {
@@ -36,6 +36,30 @@ function Harness({ dir = 'ltr', ...rest }) {
 }
 const pushState = (state, reason = null) => ({ state, permission: 'default', endpoint: null, support: { supported: state !== 'unsupported', reason, ios: false, standalone: false } });
 const deferred = () => { let resolve, reject; const promise = new Promise((r, j) => { resolve = r; reject = j; }); return { promise, resolve, reject }; };
+
+// Sprint 4: the daily stretches (every workday, a picture of the table) next
+// to the weekly strength split (today's rows, a PDF, a focus for the day).
+function twoRoutines() {
+  const base = makeToday().routines[0];
+  return makeToday({
+    routines: [
+      { ...base, id: 'rw', title_en: 'Office strength', title_ar: 'تقوية في المكتب',
+        note_en: 'Three sets, rest a minute between them.', note_ar: null,
+        day_title: { en: 'Lower body', ar: 'الجزء السفلي' },
+        source_file_bucket: 'company-media', source_file_path: 'c1/routines/strength.pdf', source_file_mime: 'application/pdf' },
+      { ...base, id: 'rs', title_en: '8-hour workday stretches', title_ar: 'إطالات يوم الشغل', day_title: null,
+        source_file_bucket: 'company-media', source_file_path: 'c1/routines/stretches.png', source_file_mime: 'image/png' },
+    ],
+    items: [
+      item('s1', '09:00', 'Neck release', 'إطالة الرقبة', null, { routine_id: 'rs', checked: true, is_past: true }),
+      item('w1', '09:30', 'Squats', 'سكوات', '3 × 12', { routine_id: 'rw', weekday: 2, is_past: true }),
+      item('s2', '11:00', 'Wrist stretch', 'إطالة الرسغ', null, { routine_id: 'rs' }),
+      item('w2', '12:00', 'Lunges', 'لانجز', '3 × 10', { routine_id: 'rw', weekday: 2 }),
+      item('s3', null, 'Stand up and walk', 'قوم واتمشى', null, { routine_id: 'rs' }),
+    ],
+    next_item_id: 's2',
+  });
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -60,7 +84,7 @@ describe('Today tab', () => {
     expect(within(next).getByText('Wrist stretch')).toBeInTheDocument();
     expect(within(next).getByText('11:30')).toBeInTheDocument();
 
-    const list = screen.getByRole('list', { name: 'Today’s list' });
+    const list = screen.getByRole('list', { name: 'Daily desk routine' });
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(4);
     expect(rows[2]).toHaveAttribute('data-next', 'true');
@@ -71,6 +95,111 @@ describe('Today tab', () => {
     expect(screen.queryByText(/missed/i)).toBeNull();
     // Untimed items read "Any time".
     expect(within(rows[3]).getByText('Any time')).toBeInTheDocument();
+  });
+
+  it('one routine is one section: its name, the focus under it and its own count', async () => {
+    getMyToday.mockResolvedValue(makeToday({ routines: [{ ...makeToday().routines[0], note_en: 'From Coach Karim.' }] }));
+    render(<Harness/>);
+    const sections = await screen.findAllByTestId('today-section');
+    expect(sections).toHaveLength(1);
+    expect(within(sections[0]).getByRole('heading', { name: 'Daily desk routine' })).toBeInTheDocument();
+    expect(within(sections[0]).getByText('Focus:', { exact: false })).toHaveTextContent('Focus: Upper body');
+    expect(within(sections[0]).getByText('From Coach Karim.')).toBeInTheDocument();
+    expect(within(sections[0]).getByLabelText('1 of 4 done')).toHaveTextContent('1/4');
+    // The old page-wide chip is gone.
+    expect(screen.queryByText(/Today’s focus/)).toBeNull();
+  });
+
+  it('two routines: a section each, the daily one first, each with its focus and count', async () => {
+    const s = twoRoutines();
+    getMyToday.mockResolvedValue(s);
+    checkRoutineItem.mockImplementation(async (id, v) => applyTick(s, id, v));
+    render(<Harness/>);
+    const sections = await screen.findAllByTestId('today-section');
+    expect(sections.map((el) => el.getAttribute('data-routine-id'))).toEqual(['rs', 'rw']);
+
+    const [stretches, strength] = sections;
+    expect(within(stretches).getByRole('heading', { name: '8-hour workday stretches' })).toBeInTheDocument();
+    expect(within(stretches).getByLabelText('1 of 3 done')).toBeInTheDocument();
+    expect(within(stretches).queryByText(/Focus/)).toBeNull();
+    expect(within(within(stretches).getByRole('list', { name: '8-hour workday stretches' })).getAllByRole('listitem')).toHaveLength(3);
+
+    expect(within(strength).getByRole('heading', { name: 'Office strength' })).toBeInTheDocument();
+    expect(within(strength).getByText('Lower body')).toBeInTheDocument();
+    expect(within(strength).getByText('Three sets, rest a minute between them.')).toBeInTheDocument();
+    expect(within(strength).getByLabelText('0 of 2 done')).toBeInTheDocument();
+    expect(within(within(strength).getByRole('list', { name: 'Office strength' })).getAllByRole('listitem')).toHaveLength(2);
+
+    // The total stays on top; a tick moves that section's count only.
+    expect(screen.getByRole('progressbar', { name: '1 of 5 done' })).toBeInTheDocument();
+    fireEvent.click(within(strength).getByRole('checkbox', { name: 'Squats' }));
+    expect(within(strength).getByLabelText('1 of 2 done')).toBeInTheDocument();
+    expect(within(stretches).getByLabelText('1 of 3 done')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: '2 of 5 done' })).toBeInTheDocument();
+  });
+
+  it('the coach’s table sits on top of its section and opens full size inside the app', async () => {
+    getMyToday.mockResolvedValue(twoRoutines());
+    getMediaUrl.mockImplementation(async ({ path }) => `https://signed.test/${path}`);
+    render(<Harness/>);
+    const [stretches, strength] = await screen.findAllByTestId('today-section');
+
+    const preview = await within(stretches).findByRole('button', { name: 'Open the full table: 8-hour workday stretches' });
+    expect(preview).toHaveTextContent('The full table · tap to open');
+    expect(preview.querySelector('img')).toHaveAttribute('src', 'https://signed.test/c1/routines/stretches.png');
+    // Above the rows, and never a new tab for a picture.
+    const list = within(stretches).getByRole('list');
+    expect(preview.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(stretches).queryByRole('link')).toBeNull();
+
+    fireEvent.click(preview);
+    const sheet = await screen.findByRole('dialog', { name: '8-hour workday stretches' });
+    expect(within(sheet).getByRole('img', { name: '8-hour workday stretches: the full table' }))
+      .toHaveAttribute('src', 'https://signed.test/c1/routines/stretches.png');
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    // The other routine's table is a PDF: a link in its own section.
+    const link = await within(strength).findByRole('link', { name: /Original table/ });
+    expect(link).toHaveAttribute('href', 'https://signed.test/c1/routines/strength.pdf');
+    expect(getMediaUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it('no table block when the picture can’t be signed or loaded', async () => {
+    getMyToday.mockResolvedValue(twoRoutines());
+    getMediaUrl.mockImplementation(async ({ path }) => (/\.png$/.test(path) ? `https://signed.test/${path}` : null));
+    render(<Harness/>);
+    const [stretches, strength] = await screen.findAllByTestId('today-section');
+    const preview = await within(stretches).findByRole('button', { name: /Open the full table/ });
+    fireEvent.error(preview.querySelector('img'));
+    expect(within(stretches).queryByRole('button', { name: /Open the full table/ })).toBeNull();
+    expect(within(strength).queryByRole('link')).toBeNull();
+    expect(within(stretches).getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('this week keeps a link to each routine’s table', async () => {
+    getMyToday.mockResolvedValue(twoRoutines());
+    getMyRoutineWeek.mockResolvedValue(makeWeek());
+    getMediaUrl.mockImplementation(async ({ path }) => `https://signed.test/${path}`);
+    render(<Harness/>);
+    fireEvent.click(await screen.findByRole('button', { name: 'This week' }));
+    const sheet = await screen.findByRole('dialog', { name: 'This week' });
+    expect(await within(sheet).findByRole('link', { name: /Original table: 8-hour workday stretches/ }))
+      .toHaveAttribute('href', 'https://signed.test/c1/routines/stretches.png');
+    expect(within(sheet).getByRole('link', { name: /Original table: Office strength/ }))
+      .toHaveAttribute('href', 'https://signed.test/c1/routines/strength.pdf');
+  });
+
+  it('Arabic sections', async () => {
+    getMyToday.mockResolvedValue(twoRoutines());
+    getMediaUrl.mockImplementation(async ({ path }) => `https://signed.test/${path}`);
+    render(<Harness dir="rtl"/>);
+    const [stretches, strength] = await screen.findAllByTestId('today-section');
+    expect(within(stretches).getByRole('heading', { name: 'إطالات يوم الشغل' })).toBeInTheDocument();
+    expect(within(stretches).getByLabelText('١ من ٣ خلصوا')).toHaveTextContent('١/٣');
+    expect(await within(stretches).findByRole('button', { name: 'افتح الجدول كله: إطالات يوم الشغل' }))
+      .toHaveTextContent('الجدول كله · اضغط علشان تفتحه');
+    expect(within(strength).getByText('التركيز:', { exact: false })).toHaveTextContent('التركيز: الجزء السفلي');
   });
 
   it('one tap ticks an item at once, and the server answer sticks', async () => {
@@ -144,7 +273,7 @@ describe('Today tab', () => {
     checkRoutineItem.mockImplementation(async (id, v) => applyTick(s, id, v));
     setItemMuted.mockResolvedValue({});
     const { container } = render(<Harness/>);
-    const list = await screen.findByRole('list', { name: 'Today’s list' });
+    const list = await screen.findByRole('list', { name: 'Daily desk routine' });
     fireEvent.click(within(list).getByRole('button', { name: /Neck release/ }));
 
     const sheet = await screen.findByRole('dialog', { name: 'Neck release' });
@@ -272,7 +401,7 @@ describe('Today tab', () => {
     getMyToday.mockResolvedValue(makeToday());
     const onOpenHandled = vi.fn();
     render(<Harness openItemId="gone" onOpenHandled={onOpenHandled}/>);
-    await screen.findByRole('list', { name: 'Today’s list' });
+    await screen.findByRole('list', { name: 'Daily desk routine' });
     await waitFor(() => expect(onOpenHandled).toHaveBeenCalled());
     expect(screen.queryByRole('dialog')).toBeNull();
   });
@@ -294,7 +423,7 @@ describe('Today tab', () => {
     getMyToday.mockResolvedValue(makeToday({ reminders: { enabled: true, muted_item_ids: [] } }));
     getPushState.mockResolvedValue(pushState('subscribed'));
     render(<Harness/>);
-    await screen.findByRole('list', { name: 'Today’s list' });
+    await screen.findByRole('list', { name: 'Daily desk routine' });
     await act(async () => {});
     expect(screen.queryByTestId('reminder-prompt')).toBeNull();
   });

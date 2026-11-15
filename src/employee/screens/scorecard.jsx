@@ -1,6 +1,7 @@
 import React from 'react';
 import { typeStyles, Icon, Button, Card, SectionLabel } from '../design-system.jsx';
 import { useScorecard } from '../hooks/use-scorecard.js';
+import { useMyPrefs } from '../hooks/use-my-prefs.js';
 import { fmtNum } from '../components/shared.jsx';
 import { RecognitionBoard } from '../components/recognition-board.jsx';
 import { routineWeekPoints, ROUTINE_FULL_WEEK } from '../lib/routine-today.js';
@@ -9,6 +10,8 @@ import { routineWeekPoints, ROUTINE_FULL_WEEK } from '../lib/routine-today.js';
 // Points come from the challenge, the routine and the library. Only you see
 // your points. Group numbers are averages and only show for groups of 5+.
 // The company board (when HR turns it on) shows effort only, never points.
+// Sprint 4: where the board shows names (named mode, or the company shows
+// everyone), the copy no longer says "no names" next to a list of names.
 
 // A full challenge week: 5 days × 10 + 20 bonus. The ring fills against it,
 // plus 5 full routine days (20 + 10 each) when a routine is assigned.
@@ -182,6 +185,9 @@ function ScreenScorecard({ theme, dir, go, hasRoutine = false }) {
   const lang = dir === 'rtl' ? 'ar' : 'en';
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const { data, loading, error, refetch } = useScorecard();
+  const { prefs } = useMyPrefs();
+  const everyoneVisible = !!prefs?.company?.everyone_visible;
+  const namesOnBoard = everyoneVisible || prefs?.company?.recognition === 'named';
 
   const shell = (children) => (
     <div className="wp-score" style={{ height: '100%', background: T.bg, overflow: 'auto', paddingTop: 'var(--wp-top)', paddingBottom: 'var(--wp-tabpad)', boxSizing: 'border-box' }}>
@@ -190,7 +196,9 @@ function ScreenScorecard({ theme, dir, go, hasRoutine = false }) {
           {s('Your score', 'نقاطك')}
         </div>
         <div style={{ color: T.textMuted, fontSize: 13, marginTop: 2 }}>
-          {s('Only you see your points.', 'نقاطك محدش يشوفها غيرك.')}
+          {everyoneVisible
+            ? s('Only you see your points. The board shows names with what they did.', 'نقاطك محدش يشوفها غيرك. اللوحة بتعرض الأسامي واللي كل واحد عمله.')
+            : s('Only you see your points.', 'نقاطك محدش يشوفها غيرك.')}
         </div>
       </div>
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
@@ -315,7 +323,7 @@ function ScreenScorecard({ theme, dir, go, hasRoutine = false }) {
       </div>
 
       {/* Company board: only when HR turned it on */}
-      <RecognitionBoard theme={T} lang={lang} style={enter(2)}/>
+      <RecognitionBoard theme={T} lang={lang} style={enter(2)} everyoneVisible={everyoneVisible}/>
 
       {/* Last 6 weeks */}
       <div style={enter(2)}>
@@ -341,7 +349,9 @@ function ScreenScorecard({ theme, dir, go, hasRoutine = false }) {
               ]}/>
               <div style={{ fontSize: 12, color: T.textMuted, marginTop: 16, lineHeight: 1.5 }}>
                 {isTeam
-                  ? s('Averages per person this week. No names, no ranking.', 'متوسط لكل شخص الأسبوع ده. من غير أسامي ومن غير ترتيب.')
+                  ? (namesOnBoard
+                    ? s('Averages per person this week.', 'متوسط لكل شخص الأسبوع ده.')
+                    : s('Averages per person this week. No names, no ranking.', 'متوسط لكل شخص الأسبوع ده. من غير أسامي ومن غير ترتيب.'))
                   : s('Your team is under 5 people, so you see the company average to keep everyone anonymous.',
                       'فريقك أقل من ٥ أشخاص، فبتشوف متوسط الشركة علشان محدش يتعرف.')}
               </div>

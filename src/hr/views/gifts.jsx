@@ -5,15 +5,16 @@ import { HRPageHeader } from './_header.jsx';
 import { useGiftsOverview } from '../hooks/use-gifts.js';
 import { markRewardFulfilled } from '../../lib/supabase-hr';
 
-// HR Gifts overview — v2 Sprint 1.
-// 4 stat cards · 3 quick actions · activity feed.
-// Catalog management ships in HRGiftCatalogPage; tier-config in Sprint 2.
+// HR Gifts overview: stat cards · quick actions · activity feed.
+// The two budget cards only show once a budget pool exists: rewards can be
+// symbolic (a thank-you note, an early leave) with no money behind them.
 
 function HRGiftsOverview({ theme, S, lang, density, onSection }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { rewards, stats, loading, error, refetch } = useGiftsOverview();
   const gap = DENSITY[density].gap;
+  const hasBudget = stats.totalBudget > 0;
 
   if (loading) {
     return (
@@ -28,8 +29,8 @@ function HRGiftsOverview({ theme, S, lang, density, onSection }) {
       <HRPageHeader theme={T}
         eyebrow={s('Recognition · Rewards', 'التقدير · المكافآت')}
         title={s('Gifts', 'الهدايا')}
-        sub={s('Allocate budget, configure tier rewards, and track redemptions.',
-              'وزّع الميزانية، أعدّ مكافآت المراحل، وتابع الاستردادات.')}
+        sub={s('Add your own rewards, set them per tier, and track who received them.',
+              'أضف مكافآتك الخاصة، حدّدها لكل مرحلة، وتابع من استلمها.')}
         right={
           <HRButton theme={T} variant="primary" icon="plus" onClick={() => onSection?.('catalog')}>
             {s('Manage catalog', 'إدارة الكتالوج')}
@@ -39,21 +40,25 @@ function HRGiftsOverview({ theme, S, lang, density, onSection }) {
 
       {error && <ErrorStrip theme={T} lang={lang}/>}
 
-      {/* 4 stat cards */}
+      {/* Stat cards: the budget pair only when a budget exists (no "0 EGP") */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap, marginBottom: gap,
+        display: 'grid', gridTemplateColumns: `repeat(${hasBudget ? 4 : 2}, 1fr)`, gap, marginBottom: gap,
       }}>
-        <StatCard theme={T} S={S}
-          label={s('Total budget', 'إجمالي الميزانية')}
-          value={formatMinor(stats.totalBudget, stats.currency, lang)}
-          sub={s(`${stats.activePools} active pool${stats.activePools === 1 ? '' : 's'}`,
-                 `${stats.activePools} حوض نشط`)}
-          icon="coin"/>
-        <StatCard theme={T} S={S}
-          label={s('Remaining', 'المتبقي')}
-          value={formatMinor(stats.remaining, stats.currency, lang)}
-          sub={budgetUsageLabel(stats, lang)}
-          icon="coin" tone="positive"/>
+        {hasBudget && (
+          <StatCard theme={T} S={S}
+            label={s('Total budget', 'إجمالي الميزانية')}
+            value={formatMinor(stats.totalBudget, stats.currency, lang)}
+            sub={s(`${stats.activePools} active pool${stats.activePools === 1 ? '' : 's'}`,
+                   `${stats.activePools} حوض نشط`)}
+            icon="coin"/>
+        )}
+        {hasBudget && (
+          <StatCard theme={T} S={S}
+            label={s('Remaining', 'المتبقي')}
+            value={formatMinor(stats.remaining, stats.currency, lang)}
+            sub={budgetUsageLabel(stats, lang)}
+            icon="coin" tone="positive"/>
+        )}
         <StatCard theme={T} S={S}
           label={s('Rewards awarded', 'مكافآت ممنوحة')}
           value={String(stats.awarded)}
@@ -67,21 +72,15 @@ function HRGiftsOverview({ theme, S, lang, density, onSection }) {
           icon="bell" tone={stats.pendingFulfillment > 0 ? 'warn' : 'neutral'}/>
       </div>
 
-      {/* 3 quick actions */}
+      {/* Quick actions */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap, marginBottom: gap,
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap, marginBottom: gap,
       }}>
-        <QuickAction theme={T}
-          icon="coin"
-          title={s('New gift pool', 'حوض هدايا جديد')}
-          sub={s('Allocate budget to a competition or open pool.',
-                 'خصّص ميزانية لتحدٍّ أو حوض مفتوح.')}
-          onClick={() => onSection?.('pools')}/>
         <QuickAction theme={T}
           icon="gifts"
           title={s('Edit gift catalog', 'تحرير الكتالوج')}
-          sub={s('Manage WH Services, Amazon vouchers, and custom items.',
-                 'أدِر خدمات WH وقسائم أمازون والعناصر المخصّصة.')}
+          sub={s('Add your own rewards: a thank-you note, an early leave, a team lunch.',
+                 'أضف مكافآتك الخاصة: رسالة شكر، انصراف مبكر، غداء للفريق.')}
           onClick={() => onSection?.('catalog')}/>
         <QuickAction theme={T}
           icon="challenges"

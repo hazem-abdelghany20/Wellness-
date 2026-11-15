@@ -3,8 +3,8 @@ import { HRGiftsOverview } from './gifts.jsx';
 import { HRGiftCatalogPage } from './gifts-catalog.jsx';
 import { HRGiftTiersPage } from './gifts-tiers.jsx';
 
-// Sub-section router for Gifts. Sprint 1 shipped overview + catalog;
-// Sprint 2 adds tier rewards. Per-pool management still pending.
+// Sub-section router for Gifts: overview, catalog (HR's own rewards, no
+// money value needed) and tier rewards. Budget pools are not built.
 
 function HRGiftsRoot({ theme, S, lang, density }) {
   const T = theme;
@@ -58,8 +58,8 @@ function HRGiftsRoot({ theme, S, lang, density }) {
       {section === 'pools' && (
         <ComingSoon theme={T} lang={lang}
           title={s('Gift pools', 'أحواض الهدايا')}
-          desc={s('Allocate budget pools to competitions and track spend. Ships in Sprint 2.',
-                 'خصّص أحواض ميزانية للتحديات وتابع الإنفاق. ستصدر في Sprint 2.')}/>
+          desc={s('Budget pools are not available yet, and rewards don’t need a budget. Add your own rewards in Catalog: a thank-you note, an early leave, a team lunch.',
+                 'أحواض الميزانية غير متاحة بعد، والمكافآت لا تحتاج ميزانية. أضف مكافآتك الخاصة من الكتالوج: رسالة شكر، انصراف مبكر، غداء للفريق.')}/>
       )}
     </>
   );

@@ -244,7 +244,7 @@ export function SourceFileField({ theme, lang, value, onChange, media, pending, 
         </HRButton>
       )}
       <div style={{ fontSize: 11, color: T.textMuted, marginTop: 8, lineHeight: 1.5 }}>
-        {s('Employees can open it from "See the full schedule". Up to 50 MB.', 'الموظفين يقدروا يفتحوه من «شوف الجدول كله». لحد ٥٠ ميجا.')}
+        {s('A picture shows at the top of this routine in Today; a PDF opens from a link. Up to 50 MB.', 'الصورة بتظهر فوق الروتين ده في «النهارده»، والـ PDF بيتفتح من لينك. لحد ٥٠ ميجا.')}
       </div>
       <ErrorText theme={T} lang={lang} error={up.error}/>
     </div>

@@ -254,9 +254,11 @@ function ClaimSheet({ theme, t, lang, reward, onCancel, onClaim }) {
                     <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3 }}>{name}</div>
                     {desc && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>{desc}</div>}
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: T.textMuted }}>
-                    {Math.round((opt.value_minor || 0) / 100)} {opt.currency}
-                  </div>
+                  {(opt.value_minor || 0) > 0 && (
+                    <div style={{ fontSize: 12, fontWeight: 600, color: T.textMuted }}>
+                      {Math.round(opt.value_minor / 100)} {opt.currency}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -276,9 +278,11 @@ function ClaimSheet({ theme, t, lang, reward, onCancel, onClaim }) {
                 {lang === 'ar' ? choice.fixed_item.description_ar : choice.fixed_item.description_en}
               </div>
             )}
-            <div style={{ fontSize: 12, color: T.textMuted, marginTop: 8, fontWeight: 600 }}>
-              {Math.round((choice.fixed_item.value_minor || 0) / 100)} {choice.fixed_item.currency}
-            </div>
+            {(choice.fixed_item.value_minor || 0) > 0 && (
+              <div style={{ fontSize: 12, color: T.textMuted, marginTop: 8, fontWeight: 600 }}>
+                {Math.round(choice.fixed_item.value_minor / 100)} {choice.fixed_item.currency}
+              </div>
+            )}
           </div>
         )}
 

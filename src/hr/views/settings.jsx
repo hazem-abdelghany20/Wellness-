@@ -63,6 +63,8 @@ function HRSettingsPage({ theme, S, lang, density }) {
   const aggregateOnly  = settings.aggregate_only ?? true;
   const minCohort      = settings.min_cohort ?? 5;
   const escalationMins = settings.escalation_mins ?? 15;
+  // Sprint 4 "Everyone takes part": no opt-in, so the privacy lines below change.
+  const everyoneVisible = settings.everyone_visible === true || settings.everyone_visible === 'true';
 
   const handleSave = async () => {
     setBusy(true); setFlash(null);
@@ -182,7 +184,9 @@ function HRSettingsPage({ theme, S, lang, density }) {
 
           <Panel theme={T} density={density}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Aggregate-only enforcement','الإلزام بالتجميع فقط')}</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('No individual records visible to HR, except the people who choose to share their routine progress. Min cohort enforced for all reports.','لا يمكن للموارد البشرية رؤية السجلات الفردية، إلا للي يختاروا يشاركوا تقدمهم في الروتين. يتم فرض حد أدنى للعينة لكل التقارير.')}</div>
+            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{everyoneVisible
+              ? s('HR sees each person’s routine progress (ticks, full days, streaks) because “Everyone takes part” is on. Nothing else is shown per person. Min cohort enforced for all reports.','الـ HR بيشوف تقدم كل موظف في الروتين (العلامات، الأيام الكاملة، الأيام ورا بعض) علشان «الكل مشارك» مفتوح. مفيش حاجة تانية بتظهر عن أي موظف. يتم فرض حد أدنى للعينة لكل التقارير.')
+              : s('No individual records visible to HR, except the people who choose to share their routine progress. Min cohort enforced for all reports.','لا يمكن للموارد البشرية رؤية السجلات الفردية، إلا للي يختاروا يشاركوا تقدمهم في الروتين. يتم فرض حد أدنى للعينة لكل التقارير.')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Toggle theme={T} value={!!aggregateOnly} onChange={(v)=>setSetting('aggregate_only', v)}/>
               <span style={{ fontSize: 13, color: T.textMid }}>{aggregateOnly ? s('Enforced','مفعَّل') : s('Disabled','معطَّل')}</span>
@@ -220,7 +224,10 @@ function HRSettingsPage({ theme, S, lang, density }) {
 
           <Panel theme={T} density={density}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 700, marginBottom: 4 }}>{s('Data retention','الاحتفاظ بالبيانات')}</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('The app collects no health or mood data. HR sees participation only, as counts: challenges joined and completed, routine items ticked, and article reads. Names appear only for people who choose to share their progress.','التطبيق مش بيجمع أي بيانات عن الصحة أو المزاج. الـ HR بيشوف المشاركة بس، كأرقام: التحديات اللي اتشارك فيها واتكمّلت، وعناصر الروتين اللي اتعلّم عليها، وقراية المقالات. الأسامي بتظهر بس للي يختاروا يشاركوا تقدمهم.')}</div>
+            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>{s('The app collects no health or mood data. HR sees participation only, as counts: challenges joined and completed, routine items ticked, and article reads. '
+              + (everyoneVisible ? 'Names appear for everyone, with routine progress only (company setting).' : 'Names appear only for people who choose to share their progress.'),
+              'التطبيق مش بيجمع أي بيانات عن الصحة أو المزاج. الـ HR بيشوف المشاركة بس، كأرقام: التحديات اللي اتشارك فيها واتكمّلت، وعناصر الروتين اللي اتعلّم عليها، وقراية المقالات. '
+              + (everyoneVisible ? 'الأسامي بتظهر للكل، بتقدم الروتين بس (إعداد الشركة).' : 'الأسامي بتظهر بس للي يختاروا يشاركوا تقدمهم.'))}</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <HRButton theme={T} variant="secondary">{s('View policy','عرض السياسة')}</HRButton>
               <HRButton theme={T} variant="ghost">{s('Request export','طلب تصدير')}</HRButton>
