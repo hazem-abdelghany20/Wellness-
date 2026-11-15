@@ -1,0 +1,57 @@
+name: iOS simulator build
+
+# Builds the Capacitor iOS app for the iOS Simulator (unsigned) and uploads
+# App.app as an artifact, for App Store screenshots and quick checks on a
+# laptop whose Xcode is older than the one Capacitor 8 needs.
+# Run it by hand: Actions → "iOS simulator build" → Run workflow.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use the newest Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the web app and copy it into the iOS project
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ] || { echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY secrets missing"; exit 1; }
+          npm run build
+          npx cap sync ios
+
+      - name: Build for the simulator
+        run: |
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO
+          cd "$RUNNER_TEMP/dd/Build/Products/Release-iphonesimulator"
+          ditto -c -k --keepParent App.app "$RUNNER_TEMP/App-simulator.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: App-simulator
+          path: ${{ runner.temp }}/App-simulator.zip
+          retention-days: 7
