@@ -75,6 +75,26 @@ export function friendlyError(err: unknown): FriendlyError {
     return { message: 'Reminders aren’t available in this version yet.', raw };
   }
 
+  // Sprint 4: challenges with their own dates, hidden routine rows.
+  if (/habit_week_taken/i.test(raw)) {
+    return { message: 'That challenge already runs on those days. Pick other dates.', raw };
+  }
+  if (/bad_dates/i.test(raw)) {
+    return { message: 'The end date must be after the start, at most 5 weeks later.', raw };
+  }
+  if (/no_workdays/i.test(raw)) {
+    return { message: 'Those dates have no working day (Sunday to Thursday).', raw };
+  }
+  if (/week_in_the_past/i.test(raw)) {
+    return { message: 'Those dates are already over. Pick later dates.', raw };
+  }
+  if (/challenge_is_automatic/i.test(raw)) {
+    return { message: 'This challenge counts by itself when you tick its exercises in Today.', raw };
+  }
+  if (/only_upcoming_can_be_cancelled/i.test(raw)) {
+    return { message: 'That challenge is already over.', raw };
+  }
+
   // RLS denial (raised either by PostgREST policy enforcement or RAISE EXCEPTION ERRCODE=42501).
   if (/row-level security policy/i.test(raw) || /42501/.test(raw) || /not_authorized/i.test(raw)) {
     return { message: "You don't have permission to do that.", raw };
@@ -142,6 +162,12 @@ export function friendlyErrorI18n(err: unknown, lang: 'en' | 'ar'): string {
     'Add Wellness+ to your Home Screen first, then turn reminders on there.': 'ضيف Wellness+ للشاشة الرئيسية الأول، وبعدين شغّل التذكيرات من هناك.',
     'This browser can’t show reminders. Try Chrome, or the app on your Home Screen.': 'المتصفح ده مبيعرضش تذكيرات. جرّب Chrome أو التطبيق من الشاشة الرئيسية.',
     'Reminders aren’t available in this version yet.': 'التذكيرات مش متاحة في النسخة دي لسه.',
+    'That challenge already runs on those days. Pick other dates.': 'التحدي ده شغال بالفعل في الأيام دي. اختار تواريخ تانية.',
+    'The end date must be after the start, at most 5 weeks later.': 'تاريخ النهاية لازم يكون بعد البداية، وبحد أقصى ٥ أسابيع.',
+    'Those dates have no working day (Sunday to Thursday).': 'التواريخ دي مفيهاش يوم شغل (من الأحد للخميس).',
+    'Those dates are already over. Pick later dates.': 'التواريخ دي عدّت. اختار تواريخ بعد كده.',
+    'This challenge counts by itself when you tick its exercises in Today.': 'التحدي ده بيتحسب لوحده لما تعلّم على تمارينه في «النهارده».',
+    'That challenge is already over.': 'التحدي ده خلص بالفعل.',
     'Something went wrong.': 'حدث خطأ ما.',
   };
   return map[message] || message;

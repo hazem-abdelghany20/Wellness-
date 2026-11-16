@@ -1,5 +1,5 @@
 import React from 'react';
-import { typeStyles, Icon, Button, Card, SectionLabel, Ring } from '../design-system.jsx';
+import { typeStyles, Icon, Button, Card, Ring } from '../design-system.jsx';
 import { IconBtn, fmtNum } from '../components/shared.jsx';
 import { HabitMedia } from '../components/habit-media.jsx';
 import { Sheet } from '../components/sheet.jsx';
@@ -9,13 +9,15 @@ import { ReminderPrompt } from '../components/reminders.jsx';
 import { useRoutineWeek } from '../hooks/use-routine-week.js';
 import { resolveMedia, getMediaUrl, itemText } from '../../lib/supabase-routines';
 import {
-  withClock, companyClock, fmtTime, fmtDateLong, todayFocus, bodyAreasText, hasMedia,
-  sourceFileOf, pick, dayTitleText, weekdayShort,
+  withClock, companyClock, fmtTime, fmtDateLong, bodyAreasText, hasMedia,
+  routineSourceFile, todaySections, pick, dayTitleText, weekdayShort,
 } from '../lib/routine-today.js';
 
 // Today tab (sprint 2 item 5): the routine HR set, as a timed checklist.
 // One glance: the next item is highlighted. One tap: the circle ticks it.
 // Past items say "Not yet", never red or "missed". Only today's items.
+// Sprint 4: one section per routine (the daily stretches, the weekly split…),
+// each with its name, the day's focus, its own count and the coach's table.
 
 const CLOCK_MS = 30 * 1000;
 
@@ -41,19 +43,20 @@ function useCompanyNow(state, onNewDay) {
   return now;
 }
 
+// A signed link to one stored file. loading: still asking for it.
 function useSignedUrl(ref) {
-  const [url, setUrl] = React.useState(null);
   const key = ref ? `${ref.bucket}/${ref.path}` : '';
+  const [res, setRes] = React.useState({ key: '', url: null });
   React.useEffect(() => {
     let alive = true;
-    setUrl(null);
     if (!ref) return undefined;
     getMediaUrl({ bucket: ref.bucket, path: ref.path })
-      .then((u) => { if (alive) setUrl(u); })
-      .catch(() => { if (alive) setUrl(null); });
+      .then((u) => { if (alive) setRes({ key, url: u || null }); })
+      .catch(() => { if (alive) setRes({ key, url: null }); });
     return () => { alive = false; };
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  return url;
+  const settled = res.key === key;
+  return { url: key && settled ? res.url : null, loading: !!key && !settled };
 }
 
 function TimeLabel({ theme: T, time, lang, style }) {
@@ -299,7 +302,7 @@ const pill = (T) => ({
 
 // todayItems / onToggle / onMute: today's live list, so an item opened from
 // today's column keeps its Done and Mute. Other days open read-only.
-function WeekSheet({ theme: T, lang, onClose, sourceUrl, sourceKind, todayItems, onToggle, onMute }) {
+function WeekSheet({ theme: T, lang, onClose, routines, todayItems, onToggle, onMute }) {
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const n = (x) => fmtNum(x, lang);
   const { week, loading, error, refetch } = useRoutineWeek(true);
@@ -307,6 +310,8 @@ function WeekSheet({ theme: T, lang, onClose, sourceUrl, sourceKind, todayItems,
   const [viewing, setViewing] = React.useState(null); // { id, date }
   const days = week?.days || [];
   const day = days.find((d) => d.date === picked) || days.find((d) => d.is_today) || days[0];
+  // The table HR attached to each routine (picture or PDF).
+  const tables = (routines || []).map((r) => ({ r, source: routineSourceFile(r) })).filter((x) => x.source);
 
   if (viewing) {
     const vDay = days.find((d) => d.date === viewing.date);
@@ -414,11 +419,13 @@ function WeekSheet({ theme: T, lang, onClose, sourceUrl, sourceKind, todayItems,
                `الأسبوع ده: ${n(week.totals.done)} من ${n(week.totals.due)} · ${n(week.totals.all_done_days)} يوم كامل`)}
           </div>
         )}
-        {sourceUrl && (
-          <a href={sourceUrl} target="_blank" rel="noopener" style={{ ...linkBtn(T), marginTop: 16 }}>
-            <Icon name={sourceKind === 'pdf' ? 'file' : 'image'} size={16}/>
-            {s('Original table', 'الجدول الأصلي')} <span aria-hidden="true">↗</span>
-          </a>
+        {tables.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginTop: 16 }}>
+            {tables.map(({ r, source }) => (
+              <SourceLink key={r.id} theme={T} lang={lang} source={source}
+                title={tables.length > 1 ? pick(r, 'title', lang) : ''}/>
+            ))}
+          </div>
         )}
       </>
     );
@@ -428,10 +435,136 @@ function WeekSheet({ theme: T, lang, onClose, sourceUrl, sourceKind, todayItems,
 }
 
 const linkBtn = (T) => ({
-  display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 16px', borderRadius: 14,
+  display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '6px 16px', borderRadius: 14,
   border: `1px solid ${T.borderStrong}`, color: T.text, fontSize: 15, fontWeight: 600, textDecoration: 'none',
-  boxSizing: 'border-box',
+  boxSizing: 'border-box', maxWidth: '100%',
 });
+
+// "Original table ↗": the file HR attached, as a link (PDFs, and the week view).
+// title: the routine's name, when there is more than one table to tell apart.
+function SourceLink({ theme: T, lang, source, title = '' }) {
+  const s = (en, ar) => (lang === 'ar' ? ar : en);
+  const { url } = useSignedUrl(source);
+  if (!url) return null;
+  return (
+    <a href={url} target="_blank" rel="noopener" style={linkBtn(T)}>
+      <Icon name={source.kind === 'pdf' ? 'file' : 'image'} size={16} style={{ flexShrink: 0 }}/>
+      <span style={{ minWidth: 0 }}>
+        {s('Original table', 'الجدول الأصلي')}{title && <>{': '}<bdi>{title}</bdi></>} <span aria-hidden="true">↗</span>
+      </span>
+    </a>
+  );
+}
+
+const TABLE_PREVIEW_H = 150;
+
+// The coach's table as a picture, at the top of its section: a preview that
+// opens the picture full size inside the app (the iOS build is a web view,
+// so no new tab).
+function TablePicture({ theme: T, lang, source, title, onOpen }) {
+  const s = (en, ar) => (lang === 'ar' ? ar : en);
+  const { url, loading } = useSignedUrl(source);
+  const [broken, setBroken] = React.useState(false);
+  if (loading) {
+    // Same height as the preview, so the list below doesn't jump when it arrives.
+    return <div aria-hidden="true" style={{ height: TABLE_PREVIEW_H + 34, borderRadius: 16, background: T.surfaceAlt, border: `1px solid ${T.border}` }}/>;
+  }
+  if (!url || broken) return null;
+  return (
+    <button type="button" onClick={() => onOpen({ url, title })}
+      aria-label={s(`Open the full table: ${title}`, `افتح الجدول كله: ${title}`)}
+      style={{
+        display: 'block', width: '100%', padding: 0, cursor: 'pointer', overflow: 'hidden', textAlign: 'start',
+        background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, color: T.textMuted, fontFamily: 'inherit',
+      }}>
+      <img src={url} alt="" onError={() => setBroken(true)} style={{
+        display: 'block', width: '100%', height: TABLE_PREVIEW_H, objectFit: 'cover', objectPosition: 'top',
+      }}/>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 12px', fontSize: 13, boxSizing: 'border-box' }}>
+        <Icon name="image" size={14}/>
+        {s('The full table · tap to open', 'الجدول كله · اضغط علشان تفتحه')}
+      </span>
+    </button>
+  );
+}
+
+// The table picture, full size, in a sheet: it scrolls both ways so every
+// cell can be read. Very large photos are held to a readable width.
+function TableSheet({ theme: T, lang, table, onClose }) {
+  const s = (en, ar) => (lang === 'ar' ? ar : en);
+  // Opens fitted to the screen (the whole table at a glance); a tap on the
+  // picture switches to full size, where it scrolls both ways.
+  const [zoomed, setZoomed] = React.useState(false);
+  return (
+    <Sheet theme={T} lang={lang} title={<bdi>{table.title}</bdi>} onClose={onClose} labelId="wp-table-title">
+      <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 10 }}>
+        {zoomed
+          ? s('Swipe to move around. Tap the picture to fit it again.', 'اسحب علشان تتحرك. اضغط على الصورة علشان ترجع بحجم الشاشة.')
+          : s('Tap the picture to zoom in.', 'اضغط على الصورة علشان تكبّرها.')}
+      </div>
+      <div style={{ overflow: zoomed ? 'auto' : 'hidden' }}>
+        <img src={table.url} alt={s(`${table.title}: the full table`, `${table.title}: الجدول كله`)}
+          data-zoomed={zoomed ? 'true' : 'false'} onClick={() => setZoomed((z) => !z)} style={{
+            display: 'block', height: 'auto', borderRadius: 8, cursor: zoomed ? 'zoom-out' : 'zoom-in',
+            ...(zoomed ? { width: 'auto', maxWidth: 1200 } : { width: '100%' }),
+          }}/>
+      </div>
+    </Sheet>
+  );
+}
+
+// One routine's part of today: its name and count, the day's focus, HR's
+// note, the coach's table, then its items.
+function RoutineSection({ theme: T, lang, section, only, nextId, onOpen, onToggle, onOpenTable }) {
+  const s = (en, ar) => (lang === 'ar' ? ar : en);
+  const n = (x) => fmtNum(x, lang);
+  const r = section.routine;
+  // Items of a routine we were not told about: no name to show.
+  const title = r ? pick(r, 'title', lang) : '';
+  const heading = title || (only ? s('Today’s list', 'قايمة النهارده') : s('Also today', 'كمان النهارده'));
+  const focus = r ? dayTitleText(r.day_title, lang) : '';
+  const note = r ? pick(r, 'note', lang) : '';
+  const headingId = `wp-today-sec-${r?.id || 'other'}`;
+  const allDone = section.total > 0 && section.done >= section.total;
+  return (
+    <div data-testid="today-section" data-routine-id={r?.id || ''}>
+      <div style={{ padding: '0 6px', margin: '4px 0 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <h2 id={headingId} style={{
+            margin: 0, minWidth: 0, lineHeight: 1.25, fontWeight: 700,
+            fontSize: title ? 17 : 14, color: title ? T.text : (T.textMid || T.textMuted),
+          }}><bdi>{heading}</bdi></h2>
+          <div role="img" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: allDone ? T.accent : T.textMuted }}
+            aria-label={s(`${section.done} of ${section.total} done`, `${n(section.done)} من ${n(section.total)} خلصوا`)}>
+            <bdi dir="ltr">{n(section.done)}/{n(section.total)}</bdi>
+          </div>
+        </div>
+        {focus && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 14, color: T.text }}>
+            <Icon name="target" size={14} style={{ color: T.accent, flexShrink: 0 }}/>
+            <span>{s('Focus: ', 'التركيز: ')}<strong>{focus}</strong></span>
+          </div>
+        )}
+        {note && <div style={{ fontSize: 13, color: T.textMuted, marginTop: 4, lineHeight: 1.5 }}>{note}</div>}
+      </div>
+
+      {section.source && (
+        <div style={{ marginBottom: 10 }}>
+          {section.source.kind === 'pdf'
+            ? <SourceLink theme={T} lang={lang} source={section.source}/>
+            : <TablePicture theme={T} lang={lang} source={section.source} title={heading} onOpen={onOpenTable}/>}
+        </div>
+      )}
+
+      <div role="list" aria-labelledby={headingId} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {section.items.map((it) => (
+          <ItemRow key={it.id} theme={T} lang={lang} item={it} isNext={nextId === it.id}
+            onOpen={onOpen} onToggle={onToggle}/>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // openItemId: opened from a reminder (?open=today&item=…): that item's
 // sheet opens once today's list is here; onOpenHandled clears it.
@@ -446,10 +579,11 @@ function ScreenToday({ theme, dir, go, state: app, routine, openItemId = null, o
   const today = React.useMemo(() => withClock(raw, now), [raw, now]);
   const [openId, setOpenId] = React.useState(null);
   const [weekOpen, setWeekOpen] = React.useState(false);
+  const [table, setTable] = React.useState(null); // { url, title }: a table picture opened full size
 
   React.useEffect(() => {
     if (!openItemId || !today) return;
-    if ((today.items || []).some((i) => i.id === openItemId)) { setWeekOpen(false); setOpenId(openItemId); }
+    if ((today.items || []).some((i) => i.id === openItemId)) { setWeekOpen(false); setTable(null); setOpenId(openItemId); }
     onOpenHandled?.();
   }, [openItemId, today]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -464,14 +598,10 @@ function ScreenToday({ theme, dir, go, state: app, routine, openItemId = null, o
     prevAllDone.current = allDone;
   }, [allDone, loaded]);
 
-  const source = sourceFileOf(today?.routines);
-  const sourceUrl = useSignedUrl(source);
-
   const onToggle = (id, checked) => { toggle?.(id, checked); };
   const openItem = today?.items?.find((i) => i.id === openId) || null;
   const next = !allDone && today?.next_item_id ? today.items.find((i) => i.id === today.next_item_id) : null;
-  const focus = todayFocus(today, lang);
-  const routineNote = (today?.routines || []).map((r) => pick(r, 'note', lang)).find(Boolean);
+  const sections = React.useMemo(() => todaySections(today), [today]);
 
   const header = (
     <div style={{ padding: '16px 22px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -500,12 +630,6 @@ function ScreenToday({ theme, dir, go, state: app, routine, openItemId = null, o
       <Button theme={T} variant="secondary" size="md" icon="calendar" onClick={() => setWeekOpen(true)}>
         {s('This week', 'الأسبوع ده')}
       </Button>
-      {sourceUrl && (
-        <a href={sourceUrl} target="_blank" rel="noopener" style={linkBtn(T)}>
-          <Icon name={source?.kind === 'pdf' ? 'file' : 'image'} size={16}/>
-          {s('Original table', 'الجدول الأصلي')} <span aria-hidden="true">↗</span>
-        </a>
-      )}
     </div>
   );
 
@@ -521,9 +645,10 @@ function ScreenToday({ theme, dir, go, state: app, routine, openItemId = null, o
           onToggle={onToggle} onMute={(id, m) => mute?.(id, m)}/>
       )}
       {weekOpen && (
-        <WeekSheet theme={T} lang={lang} onClose={() => setWeekOpen(false)} sourceUrl={sourceUrl} sourceKind={source?.kind}
+        <WeekSheet theme={T} lang={lang} onClose={() => setWeekOpen(false)} routines={today?.routines}
           todayItems={today?.items} onToggle={onToggle} onMute={(id, m) => mute?.(id, m)}/>
       )}
+      {table && <TableSheet theme={T} lang={lang} table={table} onClose={() => setTable(null)}/>}
     </div>
   );
 
@@ -575,18 +700,6 @@ function ScreenToday({ theme, dir, go, state: app, routine, openItemId = null, o
 
   return shell(
     <>
-      {(focus || routineNote) && (
-        <div style={{ marginTop: -4 }}>
-          {focus && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: T.accentSoft, color: T.text, fontSize: 14 }}>
-              <Icon name="target" size={15} style={{ color: T.accent }}/>
-              <span>{s('Today’s focus: ', 'تركيز النهارده: ')}<strong>{focus}</strong></span>
-            </div>
-          )}
-          {routineNote && <div style={{ fontSize: 13, color: T.textMuted, marginTop: 8, padding: '0 4px', lineHeight: 1.5 }}>{routineNote}</div>}
-        </div>
-      )}
-
       <ProgressCard theme={T} lang={lang} progress={today.progress} streak={today.streak}/>
 
       {next && <NextCard theme={T} lang={lang} item={next} onOpen={setOpenId} onToggle={onToggle}/>}
@@ -601,18 +714,10 @@ function ScreenToday({ theme, dir, go, state: app, routine, openItemId = null, o
 
       <TopTodayStrip theme={T} lang={lang} onSeeBoard={() => go('score')}/>
 
-      <div>
-        <SectionLabel theme={T} style={{ padding: '0 6px', margin: '4px 0 10px' }}
-          right={<bdi dir="ltr">{fmtNum(today.progress.done, lang)}/{fmtNum(today.progress.total, lang)}</bdi>}>
-          {s('Today’s list', 'قايمة النهارده')}
-        </SectionLabel>
-        <div role="list" aria-label={s('Today’s list', 'قايمة النهارده')} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {today.items.map((it) => (
-            <ItemRow key={it.id} theme={T} lang={lang} item={it} isNext={next?.id === it.id}
-              onOpen={setOpenId} onToggle={onToggle}/>
-          ))}
-        </div>
-      </div>
+      {sections.map((sec) => (
+        <RoutineSection key={sec.routine?.id || 'other'} theme={T} lang={lang} section={sec}
+          only={sections.length === 1} nextId={next?.id} onOpen={setOpenId} onToggle={onToggle} onOpenTable={setTable}/>
+      ))}
 
       {weekButtons}
     </>

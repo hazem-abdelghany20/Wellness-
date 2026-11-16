@@ -35,6 +35,7 @@ export function emptyRow(overrides = {}) {
     weekday: null,               // null = every workday
     note_en: '', note_ar: '',
     exercise: null,              // the exercise row from routine_detail (fallback label)
+    hidden_at: null,             // set = HR hid this row; never sent on save (the server keeps it)
     ...overrides,
   };
 }
@@ -85,6 +86,7 @@ export function routineToForm(detail) {
       weekday: it.weekday == null ? null : Number(it.weekday),
       note_en: it.note_en || '', note_ar: it.note_ar || '',
       exercise: it.exercise || null,
+      hidden_at: it.hidden_at || null,
     })),
   };
 }
@@ -103,6 +105,17 @@ export function moveRow(rows, index, delta) {
   next.splice(to, 0, row);
   return next;
 }
+
+// After hr_set_routine_item_hidden: take each saved row's hidden_at from the
+// routine detail it returns. Everything else in the rows (unsaved edits,
+// new rows, order) stays as it is.
+export function applyHiddenFromDetail(rows, detail) {
+  const hidden = new Map((detail?.items || []).map((it) => [it.id, it.hidden_at || null]));
+  return (rows || []).map((r) => (r.id && hidden.has(r.id) && (r.hidden_at || null) !== hidden.get(r.id)
+    ? { ...r, hidden_at: hidden.get(r.id) } : r));
+}
+
+export const hiddenRowCount = (rows) => (rows || []).filter((r) => r.hidden_at).length;
 
 // Rows by time (untimed last); rows with the same time keep their order.
 export function sortRowsByTime(rows) {
@@ -229,11 +242,12 @@ export function rowText(row, exercisesById, lang) {
 }
 
 // What the employee's Today list shows on one weekday: every-workday rows
-// plus that day's rows, by time (untimed last). [] when it isn't a workday.
+// plus that day's rows, by time (untimed last), without the rows HR hid.
+// [] when it isn't a workday.
 export function previewDay(form, weekday, exercisesById, lang) {
   const wd = Number(weekday);
   if (!(form?.workdays || []).includes(wd)) return [];
-  const rows = (form.rows || []).filter((r) => r.weekday == null || Number(r.weekday) === wd);
+  const rows = (form.rows || []).filter((r) => !r.hidden_at && (r.weekday == null || Number(r.weekday) === wd));
   return sortRowsByTime(rows)
     .map((r) => ({ key: r.key, time: normalizeTime(r.at_time), ...rowText(r, exercisesById, lang) }))
     .filter((x) => x.title);

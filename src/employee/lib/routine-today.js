@@ -158,18 +158,62 @@ export function hasMedia(exercise) {
   return !!(exercise.media_path || exercise.media_url);
 }
 
-// The original table HR attached (picture or PDF), from the first routine that has one.
-export function sourceFileOf(routines) {
-  const r = (routines || []).find((x) => x && x.source_file_path);
-  if (!r) return null;
-  const mime = r.source_file_mime || '';
-  const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(r.source_file_path);
+// One routine's original table (the coach's picture or PDF), or null.
+export function routineSourceFile(routine) {
+  if (!routine || !routine.source_file_path) return null;
+  const mime = routine.source_file_mime || '';
+  const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(routine.source_file_path);
   return {
-    bucket: r.source_file_bucket || 'company-media',
-    path: r.source_file_path,
+    bucket: routine.source_file_bucket || 'company-media',
+    path: routine.source_file_path,
     mime,
     kind: isPdf ? 'pdf' : 'image',
   };
+}
+
+// The original table HR attached (picture or PDF), from the first routine that has one.
+export function sourceFileOf(routines) {
+  for (const r of routines || []) {
+    const file = routineSourceFile(r);
+    if (file) return file;
+  }
+  return null;
+}
+
+// Today's list split by routine (sprint 4): one section per routine that has
+// something due today — { routine, items, done, total, source }.
+// Order: routines whose items are all "every workday" (no weekday: the daily
+// stretches) first, then the day-specific ones (the weekly split), then by
+// title. Items keep today's order inside a section. Items whose routine is
+// not in routines[] go in a last section with routine: null.
+export function todaySections(state) {
+  const items = Array.isArray(state?.items) ? state.items : [];
+  if (!items.length) return [];
+  const routines = new Map();
+  for (const r of state.routines || []) if (r && r.id && !routines.has(r.id)) routines.set(r.id, r);
+
+  const groups = new Map();
+  const loose = [];
+  for (const it of items) {
+    if (!routines.has(it.routine_id)) { loose.push(it); continue; }
+    if (!groups.has(it.routine_id)) groups.set(it.routine_id, []);
+    groups.get(it.routine_id).push(it);
+  }
+
+  const section = (routine, list) => ({
+    routine,
+    items: list,
+    done: list.filter((i) => i.checked).length,
+    total: list.length,
+    source: routineSourceFile(routine),
+  });
+  const everyDay = (sec) => sec.items.every((i) => i.weekday === null || i.weekday === undefined);
+  const title = (sec) => String(sec.routine.title_en || sec.routine.title_ar || '').trim().toLowerCase();
+
+  const out = [...groups].map(([id, list]) => section(routines.get(id), list));
+  out.sort((a, b) => (everyDay(a) ? 0 : 1) - (everyDay(b) ? 0 : 1) || title(a).localeCompare(title(b)));
+  if (loose.length) out.push(section(null, loose));
+  return out;
 }
 
 // Routine points this week from the score card. week_parts.routine_items

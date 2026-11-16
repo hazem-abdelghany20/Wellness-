@@ -7,9 +7,11 @@ import { checkFile, validateMedia, mediaFields, mediaToForm, uploadError } from 
 import {
   defaultSuccessDays, challengeDays, challengeEnd, emptyChallengeForm, setWeeks, validateChallengeForm,
   buildChallengeInput, challengeToForm, templateWeeks, templateSuccessDays, payloadMediaKind,
+  workdaysBetween, countWorkdays, daysBetween, defaultEndDate, defaultChallengeDates, defaultNeed, countableDays,
+  validateSchedule, validateRoutineChallenge, buildRoutineChallengeInput, pickableRoutineRows, MAX_SPAN_DAYS,
 } from '../challenge-form.js';
 import { emptyContentForm, validateContentForm, buildContentInput, readingMinutes } from '../content-form.js';
-import { libraryError } from '../errors.js';
+import { libraryError, challengeError } from '../errors.js';
 import { upcomingSunday, normalizeTime, addMinutes, fmtDate, addDays } from '../text.js';
 
 const upload = { bucket: 'company-media', path: 'c1/exercises/1.mp4', mime: 'video/mp4', kind: 'video', name: 'neck.mp4' };
@@ -131,6 +133,87 @@ describe('HR challenge form', () => {
   });
 });
 
+describe('challenge dates (sprint 4)', () => {
+  it('counts only Sunday to Thursday between two dates', () => {
+    expect(workdaysBetween('2026-11-15', '2026-11-19')).toEqual(['2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19']);
+    expect(countWorkdays('2026-11-17', '2026-11-24')).toBe(6);   // Tue → next Tue: Tue Wed Thu + Sun Mon Tue
+    expect(countWorkdays('2026-11-20', '2026-11-21')).toBe(0);   // Friday + Saturday
+    expect(countWorkdays('2026-11-19', '2026-11-19')).toBe(1);   // one Thursday
+    expect(countWorkdays('2026-11-15', '2026-12-19')).toBe(25);  // 5 full weeks
+    expect(countWorkdays('2026-11-19', '2026-11-15')).toBe(0);   // end before start
+    expect(countWorkdays('', '2026-11-15')).toBe(0);
+    expect(daysBetween('2026-11-15', '2026-12-19')).toBe(MAX_SPAN_DAYS);
+  });
+
+  it('defaults to the coming Sunday → that Thursday, or the template’s last Thursday', () => {
+    expect(defaultChallengeDates('2026-11-16')).toEqual({ startDate: '2026-11-22', endDate: '2026-11-26' }); // a Monday
+    expect(defaultChallengeDates('2026-11-15')).toEqual({ startDate: '2026-11-15', endDate: '2026-11-19' }); // a Sunday: today
+    expect(defaultChallengeDates('2026-11-16', 3)).toEqual({ startDate: '2026-11-22', endDate: '2026-12-10' });
+    expect(defaultEndDate('2026-11-15', 2)).toBe(challengeEnd('2026-11-15', 2));
+    expect(defaultEndDate('2026-11-17')).toBe('2026-11-19');   // Tuesday → that Thursday
+    expect(defaultEndDate('2026-11-19')).toBe('2026-11-19');   // Thursday → the same day
+    expect(defaultEndDate('2026-11-20')).toBe('2026-11-26');   // Friday → next Thursday
+    expect(defaultEndDate('')).toBe('');
+  });
+
+  it('defaults days needed from the template, capped to the working days', () => {
+    const water = { target: 4, payload: { success_days: 4 } };
+    expect(defaultNeed(water, 5)).toBe(4);
+    expect(defaultNeed(water, 3)).toBe(3);     // 3 days of walking: never more than the days
+    expect(defaultNeed({ payload: { weeks: 2, success_days: 8 } }, 10)).toBe(8);
+    expect(defaultNeed(null, 5)).toBe(4);      // no template: 80%, like the server
+    expect(defaultNeed(null, 3)).toBe(3);
+    expect(defaultNeed(null, 0)).toBe(1);
+  });
+
+  it('checks the dates and the days needed before asking the server', () => {
+    const ok = { startDate: '2026-11-22', endDate: '2026-11-26', successDays: 4 };
+    expect(validateSchedule(ok, '2026-11-16')).toEqual({});
+    expect(validateSchedule({ ...ok, startDate: '' }, '2026-11-16').startDate.en).toBe('Pick a start date.');
+    expect(validateSchedule({ ...ok, endDate: '2026-11-21' }, '2026-11-16').endDate.en).toMatch(/on or after the start/);
+    expect(validateSchedule({ ...ok, endDate: '2026-12-27' }, '2026-11-16').endDate.en).toBe('Keep it to 5 weeks or less.');
+    expect(validateSchedule({ ...ok, endDate: '2026-12-26' }, '2026-11-16').endDate).toBeUndefined(); // exactly 5 weeks
+    expect(validateSchedule(ok, '2026-11-27').endDate.en).toMatch(/already over/);
+    expect(validateSchedule({ ...ok, startDate: '2026-11-15' }, '2026-11-24')).toEqual({}); // started earlier, still running
+    expect(validateSchedule({ startDate: '2026-11-20', endDate: '2026-11-21', successDays: 1 }, '2026-11-16').endDate.en).toMatch(/no working day/);
+    expect(validateSchedule({ ...ok, successDays: 6 }, '2026-11-16').successDays.en).toBe('Pick 1 to 5 days.');
+    expect(validateSchedule({ ...ok, successDays: '' }, '2026-11-16').successDays.ar).toBe('اختار من ١ لـ 5 يوم.');
+    expect(validateSchedule({ ...ok, successDays: 2, maxDays: 1 }, '2026-11-16').successDays.en).toBe('Only 1 day can count in these dates.');
+    expect(validateSchedule({ ...ok, successDays: 1, maxDays: 0 }, '2026-11-16').successDays.en).toMatch(/not due on any of these days/);
+  });
+
+  it('builds a challenge from routine rows: 1–20 rows, a name, the days that can count', () => {
+    const detail = { routine: { workdays: [0, 1, 2, 3] }, items: [
+      { id: 'i1', at_time: '09:00:00', weekday: null, title_en: null, exercise: { name_en: 'Neck release', name_ar: 'فك الرقبة' } },
+      { id: 'i2', at_time: null, weekday: 2, title_en: 'Walk 10 minutes', title_ar: null, exercise: null },
+      { id: 'i3', at_time: '11:00', weekday: null, hidden_at: '2026-11-15T08:00:00Z', exercise: { name_en: 'Squats' } },
+    ] };
+    expect(pickableRoutineRows(detail, 'en')).toEqual([
+      { id: 'i1', time: '09:00', weekday: null, title: 'Neck release' },
+      { id: 'i2', time: '', weekday: 2, title: 'Walk 10 minutes' },
+    ]); // the hidden row is not offered
+    expect(pickableRoutineRows(detail, 'ar')[0].title).toBe('فك الرقبة');
+
+    const week = workdaysBetween('2026-11-22', '2026-11-26');
+    expect(countableDays(week, [{ weekday: null }], [0, 1, 2, 3])).toHaveLength(4);  // Thursday isn't a routine day
+    expect(countableDays(week, [{ weekday: 2 }], [0, 1, 2, 3])).toEqual(['2026-11-24']); // only Tuesday
+    expect(countableDays(week, [{ weekday: 2 }, { weekday: 0 }])).toHaveLength(2);
+    expect(countableDays(week, [])).toEqual([]);
+
+    const form = { title_en: ' Stretch week ', title_ar: '', routineId: 'r1', itemIds: ['i1', 'i2'],
+      startDate: '2026-11-22', endDate: '2026-11-26', successDays: 4, teamId: '' };
+    expect(validateRoutineChallenge(form, '2026-11-16')).toEqual({});
+    expect(Object.keys(validateRoutineChallenge({ ...form, title_en: '', itemIds: [] }, '2026-11-16')).sort()).toEqual(['items', 'title_en']);
+    expect(validateRoutineChallenge({ ...form, routineId: '' }, '2026-11-16').routineId.en).toBe('Pick a routine.');
+    expect(validateRoutineChallenge({ ...form, itemIds: Array.from({ length: 21 }, (_, i) => `i${i}`) }, '2026-11-16').items.en).toBe('Pick up to 20 exercises.');
+    expect(validateRoutineChallenge({ ...form, title_en: 'x'.repeat(81) }, '2026-11-16').title_en.en).toMatch(/under 80/);
+    expect(buildRoutineChallengeInput(form)).toEqual({
+      title_en: 'Stretch week', routineItemIds: ['i1', 'i2'], startDate: '2026-11-22', endDate: '2026-11-26', successDays: 4, teamId: null,
+    });
+    expect(buildRoutineChallengeInput({ ...form, title_ar: 'أسبوع الإطالات', teamId: 't1' })).toMatchObject({ title_ar: 'أسبوع الإطالات', teamId: 't1' });
+  });
+});
+
 describe('content form', () => {
   it('needs a title and text; facts stay short', () => {
     const f = emptyContentForm('fact');
@@ -156,6 +239,29 @@ describe('library errors', () => {
     expect(libraryError({ message: 'already_assigned' }, 'en')).toMatch(/already have this routine/);
     expect(libraryError({ message: 'public_item_read_only' }, 'en')).toMatch(/Wellness House library/);
     expect(libraryError({ message: 'item_title_required' }, 'en')).toMatch(/exercise or a step/);
+  });
+
+  it('maps the sprint 4 challenge codes, in both languages', () => {
+    expect(libraryError({ message: 'week_in_the_past' }, 'en')).toBe('Those dates are already over. Pick later dates.');
+    expect(libraryError({ message: 'only_upcoming_can_be_cancelled' }, 'en')).toBe('That challenge is already over.');
+    expect(libraryError({ message: 'only_upcoming_can_be_cancelled' }, 'ar')).toBe('التحدي ده خلص بالفعل.');
+    expect(libraryError({ message: 'habit_week_taken' }, 'en')).toBe('That challenge already runs on those days. Pick other dates.');
+    expect(libraryError({ message: 'no_workdays' }, 'en')).toMatch(/no working day/);
+    expect(libraryError({ message: 'start_required' }, 'ar')).toBe('اختار تاريخ البداية.');
+    expect(libraryError({ message: 'challenge_is_automatic' }, 'en')).toMatch(/counts by itself/);
+    expect(libraryError({ message: 'invalid_setting', details: 'everyone_visible' }, 'en')).toBe('That value isn’t allowed for “Everyone takes part”.');
+    // The routine screens keep their own meaning of these codes…
+    expect(libraryError({ message: 'bad_dates' }, 'en')).toMatch(/on or after the start date/);
+    expect(libraryError({ message: 'too_many_items' }, 'en')).toMatch(/up to 100 rows/);
+    // …scheduling a challenge has its own.
+    expect(challengeError({ message: 'bad_dates' }, 'en')).toBe('The end date must be after the start, at most 5 weeks later.');
+    expect(challengeError({ message: 'too_many_items' }, 'ar')).toBe('اختار لحد ٢٠ تمرين.');
+    expect(challengeError({ message: 'item_not_found' }, 'en')).toMatch(/removed or hidden/);
+    expect(challengeError({ message: 'title_required' }, 'en')).toBe('Add the name in English.');
+    expect(challengeError({ message: 'title_too_long' }, 'en')).toMatch(/under 80/);
+    expect(challengeError({ message: 'action_required' }, 'en')).toMatch(/tick the exercises/);
+    expect(challengeError({ message: 'habit_week_taken', details: 'x | y' }, 'ar')).toBe('التحدي ده شغال بالفعل في الأيام دي. اختار تواريخ تانية.');
+    expect(challengeError({ message: 'team_not_found' }, 'en')).toBe('That team no longer exists.');
   });
 });
 

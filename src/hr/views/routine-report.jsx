@@ -3,7 +3,7 @@ import { DENSITY } from '../../shared/tokens.jsx';
 import { HRButton, Panel, PanelHeader, Badge, AvatarMark } from '../../shared/components.jsx';
 import { HRPageHeader } from './_header.jsx';
 import { Tabs, Loading, EmptyState, Flash } from '../../shared/authoring/ui.jsx';
-import { shapeRoutineReport, REPORT_RANGES, rangeLabel, PEOPLE_WHY, TEAMS_FOLDED, TEAMS_SUPPRESSED } from '../../shared/authoring/report-shape.js';
+import { shapeRoutineReport, REPORT_RANGES, rangeLabel, PEOPLE_WHY, PEOPLE_EVERYONE, TEAMS_FOLDED, TEAMS_SUPPRESSED } from '../../shared/authoring/report-shape.js';
 import { downloadRoutineReport } from '../../shared/authoring/sheet-files.js';
 import { libraryError } from '../../shared/authoring/errors.js';
 import { fmtNum, fmtPct, fmtDate, msgText } from '../../shared/authoring/text.js';
@@ -65,7 +65,9 @@ function HRRoutineReportPage({ theme, lang, density, setNav, companyName }) {
     <HRPageHeader theme={T}
       eyebrow={s('Routine report', 'تقرير الروتين')}
       title={s('How the routine is going', 'الروتين ماشي إزاي')}
-      sub={s('Counts only. Nobody is named unless they chose to share.', 'أرقام بس. محدش بيتذكر اسمه غير لو هو اختار يشارك.')}
+      sub={people?.everyone
+        ? s('Counts, then everyone by name with what they did (company setting).', 'أرقام، وبعدها الكل بالاسم باللي عملوه (إعداد الشركة).')
+        : s('Counts only. Nobody is named unless they chose to share.', 'أرقام بس. محدش بيتذكر اسمه غير لو هو اختار يشارك.')}
       right={<>
         <Tabs theme={T} value={range} onChange={setRange} label={s('Period', 'الفترة')}
           tabs={REPORT_RANGES.map((r) => ({ id: r, label: lang === 'ar' ? `${n(parseInt(r, 10))} يوم` : r }))}/>
@@ -253,13 +255,25 @@ function PeoplePanel({ theme, lang, density, people, setNav }) {
     );
   }
   const list = people.people || [];
+  // Sprint 4: "Everyone takes part" lists every onboarded person; no opt-in counts.
+  const everyone = !!people.everyone;
   return (
     <Panel theme={T} density={density} pad={false}>
-      <PanelHeader theme={T} density={density} title={s('People who share their progress', 'اللي بيشاركوا تقدمهم')}
-        subtitle={s(`${people.opted_in} share · ${people.not_shared} don’t (counted, not named)`, `${n(people.opted_in)} بيشاركوا · ${n(people.not_shared)} لأ (بيتعدّوا من غير أسامي)`)}/>
-      <div style={{ padding: `10px ${DENSITY[density].cardPad}px`, fontSize: 12, color: T.textMuted, borderBottom: `1px solid ${T.divider}` }}>{msgText(PEOPLE_WHY, lang)}</div>
+      {everyone ? (
+        <PanelHeader theme={T} density={density} title={s('People', 'الناس')} subtitle={msgText(PEOPLE_EVERYONE, lang)}/>
+      ) : (
+        <PanelHeader theme={T} density={density} title={s('People who share their progress', 'اللي بيشاركوا تقدمهم')}
+          subtitle={s(`${people.opted_in} share · ${people.not_shared} don’t (counted, not named)`, `${n(people.opted_in)} بيشاركوا · ${n(people.not_shared)} لأ (بيتعدّوا من غير أسامي)`)}/>
+      )}
+      <div style={{ padding: `10px ${DENSITY[density].cardPad}px`, fontSize: 12, color: T.textMuted, borderBottom: `1px solid ${T.divider}` }}>
+        {everyone
+          ? s('Names with what they did: ticks, full days, streaks. Nothing about health is shown.', 'الأسامي باللي عملوه: العلامات، الأيام الكاملة، والأيام ورا بعض. مفيش حاجة عن الصحة بتظهر.')
+          : msgText(PEOPLE_WHY, lang)}
+      </div>
       {list.length === 0 ? (
-        <div style={{ padding: DENSITY[density].cardPad, fontSize: 13, color: T.textMuted }}>{s('Nobody has chosen to share yet.', 'لسه محدش اختار يشارك.')}</div>
+        <div style={{ padding: DENSITY[density].cardPad, fontSize: 13, color: T.textMuted }}>
+          {everyone ? s('Nobody has joined the app yet.', 'لسه محدش دخل التطبيق.') : s('Nobody has chosen to share yet.', 'لسه محدش اختار يشارك.')}
+        </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>

@@ -9,6 +9,9 @@ import { setMyPrefs } from '../../lib/supabase-routines';
 // streaks, never points or anything about health. Teams have no names of
 // people; names appear only in 'named' mode, only for people who opted in,
 // and never as a bottom list.
+// Sprint 4: when the company shows everyone (everyoneVisible, from
+// prefs.company.everyone_visible — the board itself doesn't say), there is no
+// opt-in: no invitation, and no line about "people who chose".
 
 const INVITE_KEY = 'wp.board-invite-dismissed';
 const TEAMS_SHOWN = 5;
@@ -45,7 +48,7 @@ function readDismissed() {
   try { return globalThis.sessionStorage?.getItem(INVITE_KEY) === '1'; } catch { return false; }
 }
 
-function RecognitionBoard({ theme, lang, style }) {
+function RecognitionBoard({ theme, lang, style, everyoneVisible = false }) {
   const T = theme;
   const s = (en, ar) => (lang === 'ar' ? ar : en);
   const [period, setPeriod] = React.useState('today');
@@ -178,15 +181,17 @@ function RecognitionBoard({ theme, lang, style }) {
             {view.me.streak > 0 && <> · {s(`${view.me.streak}-day streak`, `${n(view.me.streak)} يوم ورا بعض`)}</>}
             {view.mode === 'named' && (
               <div style={{ color: T.textMuted }}>
-                {view.me.optedIn
-                  ? s('Your name can show on the board. Change it in Me.', 'اسمك ممكن يظهر على اللوحة. تقدر تغيّرها من «أنا».')
-                  : s('Your name is not on the board.', 'اسمك مش ظاهر على اللوحة.')}
+                {everyoneVisible
+                  ? s('Your name shows on the board, like everyone’s.', 'اسمك بيظهر على اللوحة زي كل الناس.')
+                  : view.me.optedIn
+                    ? s('Your name can show on the board. Change it in Me.', 'اسمك ممكن يظهر على اللوحة. تقدر تغيّرها من «أنا».')
+                    : s('Your name is not on the board.', 'اسمك مش ظاهر على اللوحة.')}
               </div>
             )}
           </div>
         </div>
 
-        {view.inviteOptIn && !dismissed && (
+        {view.inviteOptIn && !everyoneVisible && !dismissed && (
           <div style={{ marginTop: 14, padding: 14, borderRadius: 16, background: T.accentSoft, border: `1px solid ${T.border}` }}
             role="region" aria-label={s('Show your name on the company board?', 'تظهر اسمك في لوحة الشركة؟')}>
             <div style={{ fontSize: 15, color: T.text, fontWeight: 700, marginBottom: 6 }}>
@@ -212,8 +217,11 @@ function RecognitionBoard({ theme, lang, style }) {
 
         <div style={{ fontSize: 12, color: T.textMuted, marginTop: 14, lineHeight: 1.5 }}>
           {view.mode === 'named'
-            ? s('Effort only: items ticked and streaks. Names only of people who chose to show theirs. Never points or anything about health.',
-                'المجهود بس: اللي اتعلّم عليه وكام يوم ورا بعض. الأسامي بس للي اختاروا يظهروها. عمر النقط أو أي حاجة عن الصحة ما بتظهر.')
+            ? (everyoneVisible
+              ? s('Effort only: items ticked and streaks. Your company shows everyone’s name. Never points or anything about health.',
+                  'المجهود بس: اللي اتعلّم عليه وكام يوم ورا بعض. شركتك بتعرض أسامي الكل. عمر النقط أو أي حاجة عن الصحة ما بتظهر.')
+              : s('Effort only: items ticked and streaks. Names only of people who chose to show theirs. Never points or anything about health.',
+                  'المجهود بس: اللي اتعلّم عليه وكام يوم ورا بعض. الأسامي بس للي اختاروا يظهروها. عمر النقط أو أي حاجة عن الصحة ما بتظهر.'))
             : s('Teams only, no names. Small teams are left out so nobody can be singled out.',
                 'فرق بس، من غير أسامي. الفرق الصغيرة مش بتظهر علشان محدش يتعرف.')}
         </div>

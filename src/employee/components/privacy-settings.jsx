@@ -3,6 +3,7 @@ import { Card, SectionLabel } from '../design-system.jsx';
 import { ToggleRow } from './toggle.jsx';
 import { useMyPrefs } from '../hooks/use-my-prefs.js';
 import { RemindersSetting } from './reminders.jsx';
+import { visibilityCopy } from './visibility-notice.jsx';
 
 // Public privacy policy (public/privacy.html on the live Amplify app).
 // Absolute, so the native (Capacitor) build opens it in Safari instead of
@@ -13,6 +14,8 @@ const PRIVACY_POLICY_URL = 'https://main.d1c79md4n000h6.amplifyapp.com/privacy.h
 // Me → Privacy: the two opt-ins (sprint 2 §5) and the reminders switch
 // (sprint 3, Web Push). Both opt-ins are off until the employee turns them
 // on, and can be turned off any time.
+// Sprint 4: when the company shows everyone (everyone_visible), the opt-ins
+// no longer decide anything, so one plain notice takes their place.
 function PrivacySettings({ theme, lang }) {
   const T = theme;
   const s = (en, ar) => (lang === 'ar' ? ar : en);
@@ -39,7 +42,17 @@ function PrivacySettings({ theme, lang }) {
     const hrViewOff = company.hr_people_view === false;
     const failed = (key) => saveError?.key === key;
     const note = (text) => <div style={{ fontSize: 12, color: T.textMuted, padding: '0 10px 10px', marginTop: -4, lineHeight: 1.5 }}>{text}</div>;
-    body = (
+    const everyone = visibilityCopy(lang);
+    body = company.everyone_visible ? (
+      <>
+        <div data-testid="everyone-visible" style={{ padding: '12px 10px' }}>
+          <div style={{ fontSize: 15, color: T.text, fontWeight: 600 }}>{everyone.title}</div>
+          <div style={{ fontSize: 13, color: T.textMuted, marginTop: 4, lineHeight: 1.5 }}>{everyone.text}</div>
+        </div>
+        <div style={{ height: 1, background: T.border, margin: '0 10px' }}/>
+        <RemindersSetting theme={T} lang={lang} remindersOn={!!prefs.routine_reminders} onPrefs={replace}/>
+      </>
+    ) : (
       <>
         <ToggleRow theme={T} id="pref-board"
           label={s('Show me on the company board', 'اظهرني في لوحة الشركة')}

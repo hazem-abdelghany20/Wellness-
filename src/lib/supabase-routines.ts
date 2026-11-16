@@ -138,6 +138,7 @@ export interface RoutineItem {
   note_en: string | null;
   note_ar: string | null;
   sort_order: number;
+  hidden_at?: string | null;  // sprint 4: set = HR hid this row (employees don't get it)
   exercise: Exercise | null;
 }
 
@@ -271,14 +272,15 @@ export interface CompanySettings {
   workweek: number[];
   recognition: RecognitionMode;
   weekly_habit_enabled: boolean;
-  hr_people_view: boolean;
+  hr_people_view: boolean;       // also true while everyone_visible is on
+  everyone_visible?: boolean;    // sprint 4: no opt-ins — everyone is on the board and in HR's people list
   quiet_hours: boolean;          // on (default): broadcasts only 08:00–20:00 company time
   quiet_window: { from: string; to: string };  // {from: '20:00', to: '08:00'}
   min_cohort: number;
 }
 
 export type CompanySettingsPatch = Partial<Pick<CompanySettings,
-  'recognition' | 'weekly_habit_enabled' | 'hr_people_view' | 'quiet_hours' | 'timezone' | 'min_cohort'>>;
+  'recognition' | 'weekly_habit_enabled' | 'hr_people_view' | 'everyone_visible' | 'quiet_hours' | 'timezone' | 'min_cohort'>>;
 
 export interface MyPrefs {
   routine_reminders: boolean;
@@ -287,13 +289,16 @@ export interface MyPrefs {
   recognition_opt_in_at: string | null;
   share_with_hr: boolean;
   share_with_hr_at: string | null;
+  visibility_notice_seen_at?: string | null;  // sprint 4: when they saw "your company shows everyone"
   consent_version: string | null;
   company: Pick<CompanySettings, 'timezone' | 'workweek' | 'recognition' | 'weekly_habit_enabled' | 'hr_people_view'
-    | 'quiet_hours' | 'quiet_window'>;
+    | 'everyone_visible' | 'quiet_hours' | 'quiet_window'>;
 }
 
 export type MyPrefsPatch = Partial<Pick<MyPrefs,
-  'routine_reminders' | 'muted_item_ids' | 'recognition_opt_in' | 'share_with_hr'>>;
+  'routine_reminders' | 'muted_item_ids' | 'recognition_opt_in' | 'share_with_hr'>> & {
+  visibility_notice_seen?: true;   // sprint 4: the employee tapped OK on the notice
+};
 
 // My company's effective settings (timezone, today, recognition mode, …).
 export async function getMyCompanySettings(): Promise<CompanySettings> {
@@ -499,6 +504,16 @@ export async function saveExercise(input: ExerciseInput): Promise<Exercise> {
 }
 
 // Create / update a routine and (with `items`) replace its rows. Returns the routine detail.
+// Sprint 4. HR: hide / show one row of a routine without deleting it.
+// Hidden rows leave Today, the week view, reminders and the due counts
+// from today on; earlier days keep them. Returns the routine again
+// (items carry hidden_at).
+export async function setRoutineItemHidden(itemId: string, hidden = true): Promise<RoutineDetail> {
+  const { data, error } = await supabase.rpc('hr_set_routine_item_hidden', { p_item_id: itemId, p_hidden: hidden });
+  if (error) throw error;
+  return data as RoutineDetail;
+}
+
 export async function saveRoutine(input: RoutineInput): Promise<RoutineDetail> {
   const { data, error } = await supabase.rpc('save_routine', { p_input: input });
   if (error) throw error;
@@ -744,6 +759,7 @@ export interface RoutinePeople {
   people: RoutinePerson[];   // only people who chose "share my progress with HR"
   opted_in: number;
   not_shared: number;        // everyone else, as a count
+  everyone?: boolean;        // sprint 4: the company shows everyone (no opt-in)
 }
 
 // HR: routine report — today, by day, by team (5-floor), by exercise, by hour.

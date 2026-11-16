@@ -92,6 +92,35 @@ describe('Me → Privacy', () => {
     expect(screen.getByText(/HR sees nothing by name for now/)).toBeInTheDocument();
   });
 
+  it('company shows everyone: one plain notice instead of the two switches', async () => {
+    getMyPrefs.mockResolvedValue(prefs({
+      recognition_opt_in: false, share_with_hr: false,
+      company: { ...prefs().company, everyone_visible: true },
+    }));
+    render(<PrivacySettings theme={T} lang="en"/>);
+    const row = await screen.findByTestId('everyone-visible');
+    expect(row).toHaveTextContent('Your company shows everyone');
+    expect(row).toHaveTextContent('Your name appears on the company board with what you did (ticks, full days, streaks), and HR sees your routine progress. Never anything about your health.');
+    expect(screen.queryByRole('switch', { name: 'Show me on the company board' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Share my routine progress with HR' })).toBeNull();
+    expect(screen.queryByText(/hasn’t turned/)).toBeNull();
+    // Reminders and the policy link stay.
+    expect(await screen.findByRole('switch', { name: 'Reminders' })).toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', PRIVACY_POLICY_URL);
+    expect(setMyPrefs).not.toHaveBeenCalled();
+  });
+
+  it('company shows everyone, in Arabic', async () => {
+    getMyPrefs.mockResolvedValue(prefs({ company: { ...prefs().company, everyone_visible: true } }));
+    render(<PrivacySettings theme={T} lang="ar"/>);
+    const row = await screen.findByTestId('everyone-visible');
+    expect(row).toHaveTextContent('شركتك بتعرض الكل');
+    expect(row).toHaveTextContent('عمره ما هيظهر حاجة عن صحتك');
+    expect(screen.queryByRole('switch', { name: 'اظهرني في لوحة الشركة' })).toBeNull();
+    expect(await screen.findByRole('switch', { name: 'التذكيرات' })).toBeInTheDocument();
+  });
+
   it('Arabic labels', async () => {
     getMyPrefs.mockResolvedValue(prefs());
     render(<PrivacySettings theme={T} lang="ar"/>);

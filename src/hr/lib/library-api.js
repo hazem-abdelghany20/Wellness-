@@ -3,7 +3,7 @@
 import {
   listExercises, listRoutines, saveExercise, saveRoutine, setLibraryStatus, setLibraryPref,
   copyExercise, copyRoutine, getRoutineDetail, uploadCompanyMedia, removeCompanyMedia,
-  resolveMedia, getMediaUrl,
+  resolveMedia, getMediaUrl, setRoutineItemHidden,
 } from '../../lib/supabase-routines';
 
 // Private company media: uploads go to company-media/{company_id}/…, the
@@ -34,6 +34,8 @@ export const hrRoutineApi = {
   setStatus: (id, status) => setLibraryStatus('routine', id, status),
   setPref: (id, pref) => setLibraryPref('routine', id, pref),
   copy: (id) => copyRoutine(id),
+  // Sprint 4: hide / show one saved row; returns the routine detail.
+  setItemHidden: (itemId, hidden) => setRoutineItemHidden(itemId, hidden),
   exercises: () => listExercises('all'),
   saveExercise: (input) => saveExercise(input),
   media: hrMedia,

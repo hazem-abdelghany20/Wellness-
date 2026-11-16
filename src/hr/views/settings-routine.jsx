@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, Toggle } from '../../shared/components.jsx';
+import { HRButton, Panel, Toggle } from '../../shared/components.jsx';
 import { Choice, inputStyle } from '../../shared/authoring/ui.jsx';
 import { libraryError } from '../../shared/authoring/errors.js';
 import { getMyCompanySettings, setCompanySettings } from '../../lib/supabase-routines';
@@ -36,7 +36,12 @@ const RECOGNITION = [
     hint_en: 'Also names people who chose to appear, by what they did. Never anything about health.', hint_ar: 'وكمان أسامي اللي اختاروا يظهروا، باللي عملوه بس. عمره ما بيظهر حاجة عن الصحة.' },
 ];
 
-// Routine, recognition, names, quiet hours and time zone. Every change saves on its own.
+// Under "Everyone takes part" nobody opts in, so the named board lists everyone.
+const NAMED_EVERYONE = { en: 'Teams + names', ar: 'الفرق + الأسامي',
+  hint_en: 'Also names everyone, by what they did. Never anything about health.', hint_ar: 'وكمان أسامي الكل، باللي عملوه بس. عمره ما بيظهر حاجة عن الصحة.' };
+
+// Routine, recognition, everyone takes part, names, quiet hours and time zone.
+// Every change saves on its own.
 // onSaved(patch) lets the page keep its own copy of companies.settings in step.
 export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
   const T = theme;
@@ -45,6 +50,7 @@ export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
   const [loadError, setLoadError] = React.useState(null);
   const [status, setStatus] = React.useState({}); // key → { kind, text }
   const [busy, setBusy] = React.useState(null);
+  const [askEveryone, setAskEveryone] = React.useState(false); // "Turn on" / "Cancel" before everyone is listed
 
   React.useEffect(() => {
     getMyCompanySettings().then(setCfg).catch((e) => setLoadError(e));
@@ -80,6 +86,7 @@ export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
   const quietOn = cfg.quiet_hours !== false;
   const quietFrom = cfg.quiet_window?.from || '20:00';
   const quietTo = cfg.quiet_window?.to || '08:00';
+  const everyone = !!cfg.everyone_visible;
 
   return (
     <>
@@ -88,15 +95,47 @@ export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
         {sub(s('Who can see effort on the Today tab. People who join in can be congratulated without anyone being singled out.',
                'مين يقدر يشوف المجهود في «النهارده». تقدر تشجّع اللي بيشاركوا من غير ما حد يتحط تحت المجهر.'))}
         <div role="radiogroup" aria-label={s('Recognition', 'التقدير')} style={{ display: 'grid', gap: 8 }}>
-          {RECOGNITION.map((r) => (
-            <Choice key={r.id} theme={T} selected={cfg.recognition === r.id} disabled={busy === 'recognition'}
-              onClick={() => cfg.recognition !== r.id && save('recognition', r.id)} style={{ padding: '10px 12px' }}>
-              {lang === 'ar' ? r.ar : r.en}
-              <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 400, marginTop: 3 }}>{lang === 'ar' ? r.hint_ar : r.hint_en}</div>
-            </Choice>
-          ))}
+          {RECOGNITION.map((r0) => {
+            const r = everyone && r0.id === 'named' ? { ...r0, ...NAMED_EVERYONE } : r0;
+            return (
+              <Choice key={r.id} theme={T} selected={cfg.recognition === r.id} disabled={busy === 'recognition'}
+                onClick={() => cfg.recognition !== r.id && save('recognition', r.id)} style={{ padding: '10px 12px' }}>
+                {lang === 'ar' ? r.ar : r.en}
+                <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 400, marginTop: 3 }}>{lang === 'ar' ? r.hint_ar : r.hint_en}</div>
+              </Choice>
+            );
+          })}
         </div>
         <div style={{ marginTop: 10, minHeight: 16 }}>{note('recognition')}</div>
+      </Panel>
+
+      <Panel theme={T} density={density}>
+        {title(s('Everyone takes part (no opt-in)', 'الكل مشارك (من غير اختيار)'))}
+        {sub(s('Every employee appears on the company board and in your people list with what they did: ticks, full days, streaks. They see a notice in the app. Nothing about health is ever shown.',
+               'كل موظف بيظهر على لوحة الشركة وفي قايمة الناس عندك باللي عمله: العلامات، الأيام الكاملة، والأيام ورا بعض. بيشوفوا تنبيه في التطبيق. عمره ما بيظهر حاجة عن الصحة.'))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Toggle theme={T} value={everyone} disabled={busy === 'everyone_visible'} label={s('Everyone takes part (no opt-in)', 'الكل مشارك (من غير اختيار)')}
+            onChange={(v) => { if (v) setAskEveryone(true); else { setAskEveryone(false); save('everyone_visible', false); } }}/>
+          <span style={{ fontSize: 13, color: T.textMid }}>{everyone ? s('On', 'مفتوح') : s('Off', 'مقفول')}</span>
+          {note('everyone_visible')}
+        </div>
+        {askEveryone && !everyone && (
+          <div role="group" aria-label={s('Confirm', 'تأكيد')} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+            <span style={{ fontSize: 12, color: T.textMid }}>
+              {s('Turn it on? Every employee will be listed by name, with no choice to opt out.', 'تفتحه؟ كل موظف هيظهر باسمه، من غير اختيار إنه مايظهرش.')}
+            </span>
+            <HRButton theme={T} variant="primary" size="sm" disabled={busy === 'everyone_visible'}
+              onClick={async () => { await save('everyone_visible', true); setAskEveryone(false); }}>{s('Turn on', 'افتحه')}</HRButton>
+            <HRButton theme={T} variant="ghost" size="sm" onClick={() => setAskEveryone(false)}>{s('Cancel', 'إلغاء')}</HRButton>
+          </div>
+        )}
+        {everyone && cfg.recognition !== 'named' && (
+          <div role="note" style={{ marginTop: 10, fontSize: 12, color: T.textMuted }}>
+            {cfg.recognition === 'off'
+              ? s('The board is off, so employees don’t see names yet. Pick “Teams + names” under Recognition to show them.', 'اللوحة مقفولة، فالموظفين لسه مش شايفين أسامي. اختار «الفرق + الأسامي» من التقدير علشان تظهر.')
+              : s('The board shows teams only. Pick “Teams + names” under Recognition to show names to employees.', 'اللوحة بتعرض الفرق بس. اختار «الفرق + الأسامي» من التقدير علشان الأسامي تظهر للموظفين.')}
+          </div>
+        )}
       </Panel>
 
       <Panel theme={T} density={density}>
@@ -115,8 +154,10 @@ export function RoutineSettingsPanels({ theme, lang, density, onSaved }) {
         {sub(s('Each employee decides in their app whether to share their routine progress with HR. When this is on, the Routine report lists only those people. Everyone else is only counted.',
                'كل موظف بيقرر من التطبيق يشارك تقدمه في الروتين مع الـ HR ولا لأ. لما ده يتفتح، تقرير الروتين بيعرض الناس دول بس. الباقي بيتعدّوا من غير أسامي.'))}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Toggle theme={T} value={!!cfg.hr_people_view} onChange={(v) => save('hr_people_view', v)}/>
-          <span style={{ fontSize: 13, color: T.textMid }}>{cfg.hr_people_view ? s('On', 'مفتوح') : s('Off', 'مقفول')}</span>
+          <Toggle theme={T} value={everyone || !!cfg.hr_people_view} disabled={everyone} label={s('HR people view', 'عرض الناس للـ HR')}
+            onChange={(v) => save('hr_people_view', v)}/>
+          <span style={{ fontSize: 13, color: T.textMid }}>{everyone || cfg.hr_people_view ? s('On', 'مفتوح') : s('Off', 'مقفول')}</span>
+          {everyone && <span role="note" style={{ fontSize: 12, color: T.textMuted }}>{s('On because everyone takes part', 'مفتوح علشان الكل مشارك')}</span>}
           {note('hr_people_view')}
         </div>
       </Panel>

@@ -1,4 +1,4 @@
-// EN / AR copy for the error codes the sprint 2 SQL raises (see the header
+// EN / AR copy for the error codes the sprint 2–4 SQL raises (see the header
 // of src/lib/supabase-routines.ts). Codes errors.ts doesn't know yet are
 // mapped here first; everything else falls through to friendlyErrorI18n().
 import { friendlyErrorI18n } from '../../lib/errors';
@@ -8,6 +8,7 @@ const SETTING_LABELS = {
   recognition: msg('Recognition', 'التقدير'),
   weekly_habit_enabled: msg('Weekly habit', 'عادة الأسبوع'),
   hr_people_view: msg('Show names', 'إظهار الأسماء'),
+  everyone_visible: msg('Everyone takes part', 'الكل مشارك'),
   quiet_hours: msg('Quiet hours', 'ساعات الهدوء'),
   timezone: msg('Time zone', 'المنطقة الزمنية'),
   min_cohort: msg('Minimum group size', 'أقل عدد للمجموعة'),
@@ -52,8 +53,14 @@ const CODES = {
   bad_category: msg('Pick a category from the list.', 'اختار تصنيف من القائمة.'),
   bad_kind: msg('Pick article or fact.', 'اختار مقال أو معلومة.'),
   week_must_start_on_sunday: msg('A challenge week starts on a Sunday.', 'أسبوع التحدي بيبدأ يوم الأحد.'),
-  week_in_the_past: msg('That week is already over. Pick a later one.', 'الأسبوع ده خلص. اختار أسبوع بعده.'),
-  only_upcoming_can_be_cancelled: msg('Only a challenge that hasn’t started can be cancelled.', 'تقدر تلغي التحدي اللي لسه مابدأش بس.'),
+  week_in_the_past: msg('Those dates are already over. Pick later dates.', 'التواريخ دي عدّت. اختار تواريخ بعد كده.'),
+  only_upcoming_can_be_cancelled: msg('That challenge is already over.', 'التحدي ده خلص بالفعل.'),
+  // Sprint 4: challenges with their own dates, challenges from routine rows.
+  habit_week_taken: msg('That challenge already runs on those days. Pick other dates.', 'التحدي ده شغال بالفعل في الأيام دي. اختار تواريخ تانية.'),
+  no_workdays: msg('Those dates have no working day (Sunday to Thursday).', 'التواريخ دي مفيهاش يوم شغل (من الأحد للخميس).'),
+  start_required: msg('Pick a start date.', 'اختار تاريخ البداية.'),
+  action_too_long: msg('That daily action is too long.', 'الفعل اليومي ده طويل.'),
+  challenge_is_automatic: msg('This challenge counts by itself when its exercises are ticked in Today.', 'التحدي ده بيتحسب لوحده لما يتعلّم على تمارينه في «النهارده».'),
   bad_period: msg('Pick a period from the list.', 'اختار فترة من القائمة.'),
   bad_scope: msg('Pick a library from the list.', 'اختار مكتبة من القائمة.'),
 };
@@ -89,4 +96,25 @@ export function libraryError(e, lang) {
   return friendlyErrorI18n(e, lang);
 }
 
+// Codes that mean something else when a challenge is being scheduled
+// (hr_schedule_challenge) than in the routine screens above.
+const CHALLENGE_CODES = {
+  bad_dates: msg('The end date must be after the start, at most 5 weeks later.', 'تاريخ النهاية لازم يكون بعد البداية، وبحد أقصى ٥ أسابيع.'),
+  too_many_items: msg('Pick up to 20 exercises.', 'اختار لحد ٢٠ تمرين.'),
+  item_not_found: msg('One of those exercises was removed or hidden. Pick again.', 'فيه تمرين من دول اتشال أو اتخفى. اختار تاني.'),
+  title_required: msg('Add the name in English.', 'اكتب الاسم بالإنجليزي.'),
+  title_too_long: msg('Keep the name under 80 characters.', 'خلي الاسم أقل من ٨٠ حرف.'),
+  action_required: msg('Pick a challenge, or tick the exercises it counts.', 'اختار تحدي، أو علّم على التمارين اللي بيتحسب بيها.'),
+};
+
+// Message for an error from scheduling / ending a challenge.
+export function challengeError(e, lang) {
+  const raw = rawOf(e);
+  for (const [code, m] of Object.entries(CHALLENGE_CODES)) {
+    if (new RegExp(`\\b${code}\\b`).test(raw)) return lang === 'ar' ? m.ar : m.en;
+  }
+  return libraryError(e, lang);
+}
+
 export const KNOWN_ERROR_CODES = Object.keys(CODES);
+export const CHALLENGE_ERROR_CODES = Object.keys(CHALLENGE_CODES);

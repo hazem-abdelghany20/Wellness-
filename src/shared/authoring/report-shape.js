@@ -138,7 +138,7 @@ export function reportSheets(report, people, lang) {
   ];
   if (people?.enabled && (people.people || []).length) {
     sheets.push({
-      sheet: t('People who share', 'اللي بيشاركوا تقدمهم'),
+      sheet: people.everyone ? t('People', 'الناس') : t('People who share', 'اللي بيشاركوا تقدمهم'),
       rows: [
         [t('Name', 'الاسم'), t('Team', 'الفريق'), t('Days active', 'أيام نشاط'), t('Items done', 'عناصر اتعملت'),
           t('Full days', 'أيام كاملة'), t('Streak', 'أيام ورا بعض'), t('Last active', 'آخر نشاط')],
@@ -160,6 +160,9 @@ export const TEAMS_SUPPRESSED = msg(
   'Teams are grouped to protect privacy: too few people to show any team on its own.',
   'الفرق متجمّعة علشان نحافظ على الخصوصية: العدد قليل ومينفعش فريق يظهر لوحده.',
 );
+
+// Sprint 4: the company turned on "Everyone takes part" (no opt-in).
+export const PEOPLE_EVERYONE = msg('Everyone is listed (company setting)', 'الكل ظاهر (إعداد الشركة)');
 
 export const PEOPLE_WHY = msg(
   'Only people who chose, in their app, to share their progress with HR are named here. Everyone else is only counted, never named.',

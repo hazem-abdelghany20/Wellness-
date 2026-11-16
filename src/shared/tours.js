@@ -97,8 +97,8 @@ export const HR_TOUR = [
     screen: 'challenges',
     title_en: 'Your own challenges',
     title_ar: 'تحدياتك',
-    body_en: 'Pick a Wellness House habit, or create your own, for example "Drink water" for two weeks. Choose its first week, for everyone or one team.',
-    body_ar: 'اختار عادة من Wellness House، أو اعمل تحدي بتاعك، مثلاً «اشرب مية» لمدة أسبوعين. اختار أول أسبوع ليه، للكل أو لفريق.',
+    body_en: 'Pick a Wellness House habit, or create your own, for example "Drink water" for two weeks. Choose its start and end dates, for everyone or one team. Several can run at once, and one can count by itself from routine exercises.',
+    body_ar: 'اختار عادة من Wellness House، أو اعمل تحدي بتاعك، مثلاً «اشرب مية» لمدة أسبوعين. اختار تاريخ البداية والنهاية، للكل أو لفريق. ممكن أكتر من تحدي في نفس الوقت، وممكن تحدي يتحسب لوحده من تمارين الروتين.',
   },
   {
     screen: 'broadcasts',

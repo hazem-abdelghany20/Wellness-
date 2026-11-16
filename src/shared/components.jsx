@@ -306,17 +306,21 @@ function AvatarMark({ name = '?', size = 32, theme, kind = 'auto' }) {
   );
 }
 
-function Toggle({ theme, value, onChange, size = 'md' }) {
+// disabled / label are optional: a locked switch (shown, not clickable) and
+// its accessible name.
+function Toggle({ theme, value, onChange, size = 'md', disabled = false, label }) {
   const T = theme;
   const w = size === 'sm' ? 34 : 42;
   const h = size === 'sm' ? 20 : 24;
   const k = h - 6;
   return (
-    <button onClick={() => onChange(!value)} style={{
+    <button type="button" disabled={disabled} aria-label={label} aria-pressed={label ? !!value : undefined}
+      onClick={() => onChange(!value)} style={{
       width: w, height: h, borderRadius: 999,
       background: value ? T.accent : T.panelSunk,
       border: `1px solid ${value ? 'transparent' : T.border}`,
-      padding: 0, cursor: 'pointer', position: 'relative', transition: 'background .2s',
+      padding: 0, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
+      position: 'relative', transition: 'background .2s',
     }}>
       <div style={{
         position: 'absolute', top: 2, left: value ? w - k - 3 : 2,

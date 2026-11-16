@@ -5,21 +5,33 @@ import { HRPageHeader } from './_header.jsx';
 import { useGiftCatalog } from '../hooks/use-gift-catalog.js';
 import { friendlyErrorI18n } from '../../lib/errors';
 
-// HR Gift Catalog — v2 Sprint 1.
-// WH Services tab is fully editable. Amazon + Custom are visual stubs
-// until v1.5 (Tremendous + Amazon Voucher API integration).
+// HR Gift Catalog.
+// "Your rewards" (category custom): small symbolic rewards HR writes itself
+// (a thank-you from the CEO, leave an hour early). No money value needed.
+// "WH Services": Wellness House programs. Both are editable. The Amazon tab
+// only shows for a catalog that already holds Amazon items.
 
 const TABS = [
+  { id: 'custom',     en: 'Your rewards', ar: 'مكافآتك' },
   { id: 'wh_service', en: 'WH Services',  ar: 'خدمات WH' },
   { id: 'amazon',     en: 'Amazon',       ar: 'أمازون' },
-  { id: 'custom',     en: 'Custom',       ar: 'مخصّص' },
 ];
+
+const OWN_REWARDS_LINE = {
+  en: 'Add your own rewards: a thank-you note, an early leave, a team lunch.',
+  ar: 'أضف مكافآتك الخاصة: رسالة شكر، انصراف مبكر، غداء للفريق.',
+};
+
+// A reward with no money value has no amount to show.
+function hasValue(item) {
+  return Number(item?.value_minor) > 0;
+}
 
 function HRGiftCatalogPage({ theme, lang, density }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const { byCategory, loading, error, upsert, deactivate } = useGiftCatalog();
-  const [tab, setTab] = useState('wh_service');
+  const [tab, setTab] = useState('custom');
   const [editing, setEditing] = useState(null); // {} for new, item for edit, null for none
   const [deactivateError, setDeactivateError] = useState(null);
   const gap = DENSITY[density].gap;
@@ -39,19 +51,20 @@ function HRGiftCatalogPage({ theme, lang, density }) {
   }
 
   const items = byCategory[tab] || [];
-  const isStub = tab !== 'wh_service';
+  const isOwn = tab === 'custom';
+  const tabs = TABS.filter((t) => t.id !== 'amazon' || (byCategory.amazon || []).length > 0);
 
   return (
     <>
       <HRPageHeader theme={T}
         eyebrow={s('Recognition · Rewards', 'التقدير · المكافآت')}
         title={s('Gift catalog', 'كتالوج الهدايا')}
-        sub={s('Define the rewards that competitions can grant.',
-              'حدّد المكافآت التي يمكن للتحديات منحها.')}
+        sub={s(`Define the rewards that competitions can grant. ${OWN_REWARDS_LINE.en}`,
+              `حدّد المكافآت التي يمكن للتحديات منحها. ${OWN_REWARDS_LINE.ar}`)}
         right={
-          tab === 'wh_service' && (
-            <HRButton theme={T} variant="primary" icon="plus" onClick={() => setEditing({})}>
-              {s('Add WH service', 'إضافة خدمة')}
+          tab !== 'amazon' && (
+            <HRButton theme={T} variant="primary" icon="plus" onClick={() => setEditing({ category: tab })}>
+              {isOwn ? s('Add reward', 'إضافة مكافأة') : s('Add WH service', 'إضافة خدمة')}
             </HRButton>
           )
         }
@@ -65,7 +78,7 @@ function HRGiftCatalogPage({ theme, lang, density }) {
         background: T.panelSunk, borderRadius: 12, width: 'fit-content',
         border: `1px solid ${T.border}`,
       }}>
-        {TABS.map(tabDef => {
+        {tabs.map(tabDef => {
           const active = tab === tabDef.id;
           const count = (byCategory[tabDef.id] || []).length;
           return (
@@ -92,21 +105,23 @@ function HRGiftCatalogPage({ theme, lang, density }) {
         })}
       </div>
 
-      {isStub ? (
-        <StubTab theme={T} tab={tab} lang={lang}/>
-      ) : items.length === 0 ? (
+      {items.length === 0 ? (
         <Panel theme={T} density={density}>
           <div style={{ padding: '40px 0', textAlign: 'center' }}>
             <div style={{ fontSize: 14, color: T.text, fontWeight: 500, marginBottom: 6 }}>
-              {s('No WH services in your catalog yet', 'لا توجد خدمات WH في الكتالوج')}
+              {isOwn ? s('No rewards of your own yet', 'لا توجد مكافآت خاصة بك بعد')
+                : s('No WH services in your catalog yet', 'لا توجد خدمات WH في الكتالوج')}
             </div>
             <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 16 }}>
-              {s('Add Sakoon, Sleep Reset, Stress Less, or any custom service you offer.',
-                 'أضف ساكون، إعادة ضبط النوم، تقليل الضغط، أو أي خدمة تقدّمها.')}
+              {isOwn ? s(`${OWN_REWARDS_LINE.en} No money value needed.`, `${OWN_REWARDS_LINE.ar} لا تحتاج قيمة مالية.`)
+                : s('Add Sakoon, Sleep Reset, Stress Less, or any custom service you offer.',
+                    'أضف ساكون، إعادة ضبط النوم، تقليل الضغط، أو أي خدمة تقدّمها.')}
             </div>
-            <HRButton theme={T} variant="primary" icon="plus" onClick={() => setEditing({})}>
-              {s('Add your first item', 'أضف أول عنصر')}
-            </HRButton>
+            {tab !== 'amazon' && (
+              <HRButton theme={T} variant="primary" icon="plus" onClick={() => setEditing({ category: tab })}>
+                {isOwn ? s('Add your first reward', 'أضف أول مكافأة') : s('Add your first item', 'أضف أول عنصر')}
+              </HRButton>
+            )}
           </div>
         </Panel>
       ) : (
@@ -128,7 +143,7 @@ function HRGiftCatalogPage({ theme, lang, density }) {
           onCancel={() => setEditing(null)}
           onSave={async (payload) => {
             // Re-throws so the modal stays open + can render the error.
-            await upsert({ ...payload, category: 'wh_service', active: true });
+            await upsert({ ...payload, category: editing.category || tab, active: true });
             setEditing(null);
           }}/>
       )}
@@ -146,39 +161,12 @@ function HRGiftCatalogPage({ theme, lang, density }) {
   );
 }
 
-function StubTab({ theme, tab, lang }) {
-  const T = theme;
-  const s = (en, ar) => lang === 'ar' ? ar : en;
-  const message = tab === 'amazon'
-    ? s('Amazon vouchers connect via Tremendous (or direct API) in v1.5. For now, manage WH services here and use Custom for ad-hoc rewards.',
-        'تتكامل قسائم أمازون عبر Tremendous في الإصدار 1.5. حالياً، أدِر خدمات WH هنا واستخدم المخصّص للمكافآت غير المنتظمة.')
-    : s('Custom catalog items (cash, experiences, partner discounts) ship in Sprint 2 alongside the manual claim flow.',
-        'العناصر المخصّصة (نقد، تجارب، خصومات الشركاء) ستصدر في Sprint 2 مع تدفق المطالبة اليدوية.');
-  return (
-    <Panel theme={T} density="comfortable">
-      <div style={{ padding: '40px 32px', textAlign: 'center', maxWidth: 520, margin: '0 auto' }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 16, margin: '0 auto 18px',
-          background: T.warmSoft, color: T.warm,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <HRIcon name={tab === 'amazon' ? 'globe' : 'plus'} size={28}/>
-        </div>
-        <div style={{ fontSize: 15, color: T.text, fontWeight: 500, marginBottom: 8 }}>
-          {tab === 'amazon' ? s('Amazon vouchers', 'قسائم أمازون') : s('Custom rewards', 'مكافآت مخصّصة')}
-        </div>
-        <div style={{ fontSize: 13, color: T.textMuted, lineHeight: 1.5 }}>{message}</div>
-      </div>
-    </Panel>
-  );
-}
-
 function CatalogCard({ theme, lang, item, onEdit, onDeactivate }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const name = lang === 'ar' && item.name_ar ? item.name_ar : item.name_en;
   const desc = lang === 'ar' && item.description_ar ? item.description_ar : item.description_en;
-  const value = formatMinor(item.value_minor, item.currency, lang);
+  const value = hasValue(item) ? formatMinor(item.value_minor, item.currency, lang) : null;
   return (
     <div style={{
       background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 12,
@@ -198,7 +186,7 @@ function CatalogCard({ theme, lang, item, onEdit, onDeactivate }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Badge theme={T} tone="neutral">{value}</Badge>
+        {value ? <Badge theme={T} tone="neutral">{value}</Badge> : <span/>}
         <div style={{ display: 'flex', gap: 8 }}>
           <HRButton theme={T} variant="ghost" onClick={onEdit}>{s('Edit', 'تحرير')}</HRButton>
           <HRButton theme={T} variant="ghost" onClick={onDeactivate}>{s('Deactivate', 'تعطيل')}</HRButton>
@@ -212,18 +200,21 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
   const T = theme;
   const s = (en, ar) => lang === 'ar' ? ar : en;
   const isNew = !initial.id;
+  const isOwn = (initial.category || 'wh_service') === 'custom';
   const [nameEn, setNameEn] = useState(initial.name_en || '');
   const [nameAr, setNameAr] = useState(initial.name_ar || '');
   const [descEn, setDescEn] = useState(initial.description_en || '');
   const [descAr, setDescAr] = useState(initial.description_ar || '');
+  // Empty = a reward with no money value (stored as 0, shown without an amount).
   const [valueMajor, setValueMajor] = useState(
-    initial.value_minor != null ? String(Math.round(initial.value_minor / 100)) : ''
+    hasValue(initial) ? String(Math.round(initial.value_minor / 100)) : ''
   );
   const [currency, setCurrency] = useState(initial.currency || 'EGP');
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  const valid = nameEn.trim().length > 0 && /^\d+(\.\d+)?$/.test(valueMajor);
+  const valueText = valueMajor.trim();
+  const valid = nameEn.trim().length > 0 && (valueText === '' || /^\d+(\.\d+)?$/.test(valueText));
 
   const handleSave = async () => {
     if (!valid || busy) return;
@@ -235,8 +226,8 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
         name_ar: nameAr.trim() || null,
         description_en: descEn.trim() || null,
         description_ar: descAr.trim() || null,
-        value_minor: Math.round(parseFloat(valueMajor) * 100),
-        currency: currency.toUpperCase(),
+        value_minor: valueText === '' ? 0 : Math.round(parseFloat(valueText) * 100),
+        currency: (currency.trim() || 'EGP').toUpperCase(),
       });
     } catch (e) {
       setSaveError(friendlyErrorI18n(e, lang));
@@ -256,7 +247,8 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: 16, color: T.text, fontWeight: 600 }}>
-            {isNew ? s('New WH service', 'خدمة WH جديدة') : s('Edit WH service', 'تحرير الخدمة')}
+            {isOwn ? (isNew ? s('New reward', 'مكافأة جديدة') : s('Edit reward', 'تحرير المكافأة'))
+              : (isNew ? s('New WH service', 'خدمة WH جديدة') : s('Edit WH service', 'تحرير الخدمة'))}
           </div>
           <button onClick={onCancel} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
@@ -265,10 +257,10 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
         </div>
 
         <Field theme={T} label={s('Name (English)', 'الاسم بالإنجليزية')} required>
-          <Input theme={T} value={nameEn} onChange={setNameEn} placeholder={s('Sakoon · 4-week program', '')} />
+          <Input theme={T} value={nameEn} onChange={setNameEn} placeholder={isOwn ? 'A thank-you from the CEO' : s('Sakoon · 4-week program', '')} />
         </Field>
         <Field theme={T} label={s('Name (Arabic)', 'الاسم بالعربية')}>
-          <Input theme={T} value={nameAr} onChange={setNameAr} placeholder="ساكون · برنامج ٤ أسابيع" />
+          <Input theme={T} value={nameAr} onChange={setNameAr} placeholder={isOwn ? 'شكر من المدير التنفيذي' : 'ساكون · برنامج ٤ أسابيع'} />
         </Field>
         <Field theme={T} label={s('Description (English)', 'الوصف بالإنجليزية')}>
           <Textarea theme={T} value={descEn} onChange={setDescEn}/>
@@ -277,12 +269,16 @@ function CatalogItemEditor({ theme, lang, initial, onCancel, onSave }) {
           <Textarea theme={T} value={descAr} onChange={setDescAr}/>
         </Field>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
-          <Field theme={T} label={s('Value', 'القيمة')} required>
-            <Input theme={T} value={valueMajor} onChange={setValueMajor} placeholder="500" inputMode="decimal"/>
+          <Field theme={T} label={s('Money value (optional)', 'القيمة المالية (اختياري)')}>
+            <Input theme={T} value={valueMajor} onChange={setValueMajor} placeholder={s('None', 'لا يوجد')} inputMode="decimal"/>
           </Field>
           <Field theme={T} label={s('Currency', 'العملة')}>
             <Input theme={T} value={currency} onChange={setCurrency} placeholder="EGP"/>
           </Field>
+        </div>
+        <div style={{ fontSize: 11, color: T.textMuted, marginTop: -6 }}>
+          {s('Leave the value empty for a reward that isn’t money, like a thank-you note or an early leave. No amount is shown.',
+             'اترك القيمة فارغة للمكافأة غير المالية، مثل رسالة شكر أو انصراف مبكر. لن يظهر أي مبلغ.')}
         </div>
 
         {saveError && (

@@ -22,6 +22,7 @@ import { ScreenMine } from './screens/mine.jsx';
 import { ScreenCompetitionPath } from './screens/competition-path.jsx';
 import { InstallBanner } from './components/install-banner.jsx';
 import { OfflineBanner } from './components/offline-banner.jsx';
+import { useVisibilityNotice, VisibilityNotice } from './components/visibility-notice.jsx';
 import { TweaksPanel } from './tweaks-panel.jsx';
 import { AppConfigProvider, useAppConfig } from './state/app-config-context.jsx';
 import { AuthProvider, useAuth } from './state/auth-context.jsx';
@@ -91,6 +92,8 @@ function AppInner() {
   // Today's routine: decides whether there is a Today tab, and feeds it.
   const routine = useRoutineToday(!!session && onboarded);
   const hasRoutine = routine.ready && routine.assigned;
+  // Sprint 4: "your company shows everyone", once, after sign-in / onboarding.
+  const visibility = useVisibilityNotice(!!session && onboarded);
   const [landingTimedOut, setLandingTimedOut] = React.useState(false);
   // True while the person sits on a screen the app picked (not one they tapped),
   // so a routine that loads late can still move them to Today.
@@ -216,7 +219,9 @@ function AppInner() {
     user: session?.user,
     steps: tourSteps,
     onNavigate: go,
-    autoStart: onboarded && TOUR_SCREENS.includes(screen) && (routine.ready || landingTimedOut),
+    // The visibility notice goes first; the tour starts once it is out of the way.
+    autoStart: onboarded && TOUR_SCREENS.includes(screen) && (routine.ready || landingTimedOut)
+      && !visibility.pending && !visibility.open,
   });
 
   // Sprint 3 — reminders and HR broadcasts as Web Push.
@@ -277,10 +282,10 @@ function AppInner() {
       content = hasRoutine
         ? <ScreenToday theme={theme} dir={dir} go={go} state={state} routine={routine}
             openItemId={target?.item || null} onOpenHandled={clearTarget}/>
-        : <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>;
+        : <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state} hasRoutine={false}/>;
       showTabs = true; break;
     case 'challenges':
-    default:         content = <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state}/>; showTabs = true;
+    default:         content = <ScreenHabitChallenge theme={theme} dir={dir} go={go} state={state} hasRoutine={hasRoutine}/>; showTabs = true;
   }
 
   return (
@@ -296,6 +301,7 @@ function AppInner() {
             <div key={screen + cfg.theme + cfg.lang}
                  style={{ position: 'absolute', inset: 0, animation: 'screenIn .35s ease both' }}>
               {content}
+              {onboarded && MAIN_SCREENS.includes(screen) && <VisibilityNotice theme={theme} lang={lang} notice={visibility}/>}
             </div>
             {showTabs && <TabBar theme={theme} t={t} dir={dir} active={hasRoutine || screen !== 'today' ? screen : 'challenges'} onTab={go} hasToday={hasRoutine}/>}
             <WalkthroughCard tour={tour} lang={lang} placement="sheet"

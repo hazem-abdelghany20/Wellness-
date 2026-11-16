@@ -4,7 +4,8 @@ vi.mock('../../../lib/supabase', () => ({ supabase: {}, resolveMyCompanyId: vi.f
 
 import {
   routineDayPoints, nextItemId, applyTick, applyPending, withClock, companyClock, fmtTime,
-  fmtDateLong, todayFocus, sourceFileOf, routineWeekPoints, bodyAreasText, hasMedia, pick, ROUTINE_FULL_WEEK,
+  fmtDateLong, todayFocus, sourceFileOf, routineSourceFile, todaySections, routineWeekPoints, bodyAreasText, hasMedia, pick,
+  ROUTINE_FULL_WEEK,
 } from '../routine-today.js';
 import { makeToday, item } from '../../test-fixtures/routine.js';
 
@@ -127,6 +128,89 @@ describe('text helpers', () => {
     expect(sourceFileOf([{ source_file_path: 'c1/routines/plan.pdf', source_file_bucket: 'company-media', source_file_mime: 'application/pdf' }]))
       .toEqual({ bucket: 'company-media', path: 'c1/routines/plan.pdf', mime: 'application/pdf', kind: 'pdf' });
     expect(sourceFileOf([{ source_file_path: 'c1/routines/plan.jpg', source_file_mime: 'image/jpeg' }]).kind).toBe('image');
+  });
+});
+
+describe('routineSourceFile', () => {
+  it('reads one routine’s own table, picture or PDF', () => {
+    expect(routineSourceFile(null)).toBeNull();
+    expect(routineSourceFile({ id: 'r1', source_file_path: null })).toBeNull();
+    expect(routineSourceFile({ source_file_path: 'c1/routines/split.png', source_file_bucket: 'company-media', source_file_mime: 'image/png' }))
+      .toEqual({ bucket: 'company-media', path: 'c1/routines/split.png', mime: 'image/png', kind: 'image' });
+    expect(routineSourceFile({ source_file_path: 'c1/routines/PLAN.PDF' }).kind).toBe('pdf');
+  });
+  it('sourceFileOf still gives the first routine that has one', () => {
+    expect(sourceFileOf([{ id: 'a', source_file_path: null }, { id: 'b', source_file_path: 'c1/b.jpg' }]).path).toBe('c1/b.jpg');
+    expect(sourceFileOf([])).toBeNull();
+    expect(sourceFileOf(null)).toBeNull();
+  });
+});
+
+describe('todaySections', () => {
+  const routine = (id, title_en, extra = {}) => ({
+    id, title_en, title_ar: null, note_en: null, note_ar: null, day_title: null,
+    source_file_bucket: null, source_file_path: null, source_file_mime: null, ...extra,
+  });
+  const stretches = routine('rs', '8-hour workday stretches', { source_file_bucket: 'company-media', source_file_path: 'c1/routines/stretches.png', source_file_mime: 'image/png' });
+  const strength = routine('rw', 'Office strength', { day_title: { en: 'Lower body', ar: 'الجزء السفلي' }, source_file_path: 'c1/routines/strength.pdf', source_file_mime: 'application/pdf' });
+  const two = () => makeToday({
+    routines: [strength, stretches],
+    items: [
+      item('s1', '09:00', 'Neck release', null, null, { routine_id: 'rs', checked: true }),
+      item('w1', '09:30', 'Squats', null, '3 × 12', { routine_id: 'rw', weekday: 2 }),
+      item('s2', '11:00', 'Wrist stretch', null, null, { routine_id: 'rs' }),
+      item('w2', '12:00', 'Lunges', null, '3 × 10', { routine_id: 'rw', weekday: 2, checked: true }),
+      item('s3', null, 'Stand up', null, null, { routine_id: 'rs' }),
+    ],
+  });
+
+  it('gives one section per routine, the every-workday one first, with its own count and table', () => {
+    const out = todaySections(two());
+    expect(out.map((sec) => sec.routine.id)).toEqual(['rs', 'rw']);
+    expect(out[0].items.map((i) => i.id)).toEqual(['s1', 's2', 's3']); // today's order kept
+    expect(out[0]).toMatchObject({ done: 1, total: 3, source: { path: 'c1/routines/stretches.png', kind: 'image' } });
+    expect(out[1].items.map((i) => i.id)).toEqual(['w1', 'w2']);
+    expect(out[1]).toMatchObject({ done: 1, total: 2, source: { path: 'c1/routines/strength.pdf', kind: 'pdf' } });
+    expect(out[1].routine.day_title).toEqual({ en: 'Lower body', ar: 'الجزء السفلي' });
+  });
+
+  it('orders by title inside each group', () => {
+    const state = makeToday({
+      routines: [routine('rz', 'Zen breaks'), routine('rb', 'Back care'), routine('rw2', 'Arms day'), routine('rw1', 'Legs day')],
+      items: [
+        item('z', '09:00', 'Z', null, null, { routine_id: 'rz' }),
+        item('l', '09:10', 'L', null, null, { routine_id: 'rw1', weekday: 2 }),
+        item('a', '09:20', 'A', null, null, { routine_id: 'rw2', weekday: 2 }),
+        item('b', '09:30', 'B', null, null, { routine_id: 'rb' }),
+        // A routine with one every-workday row and one day row is day-specific.
+        item('l2', '09:40', 'L2', null, null, { routine_id: 'rw1' }),
+      ],
+    });
+    expect(todaySections(state).map((sec) => sec.routine.title_en)).toEqual(['Back care', 'Zen breaks', 'Arms day', 'Legs day']);
+  });
+
+  it('leaves out routines with nothing today, and one routine is one section', () => {
+    const one = todaySections(makeToday({ routines: [makeToday().routines[0], routine('rx', 'Nothing today')] }));
+    expect(one).toHaveLength(1);
+    expect(one[0]).toMatchObject({ done: 1, total: 4, source: null });
+    expect(one[0].routine.id).toBe('r1');
+  });
+
+  it('puts items of an unknown routine in a last untitled section', () => {
+    const state = two();
+    state.items.push(item('x1', '13:00', 'Mystery', null, null, { routine_id: 'gone', checked: true }));
+    state.items.unshift(item('x0', '08:00', 'No routine', null, null, { routine_id: null }));
+    const out = todaySections(state);
+    expect(out).toHaveLength(3);
+    expect(out[2]).toMatchObject({ routine: null, done: 1, total: 2, source: null });
+    expect(out[2].items.map((i) => i.id)).toEqual(['x0', 'x1']);
+  });
+
+  it('is empty without items, and counts follow a tick', () => {
+    expect(todaySections(null)).toEqual([]);
+    expect(todaySections(makeToday({ items: [] }))).toEqual([]);
+    const ticked = applyTick(two(), 's2', true);
+    expect(todaySections(ticked)[0]).toMatchObject({ done: 2, total: 3 });
   });
 });
 

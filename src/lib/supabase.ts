@@ -415,12 +415,31 @@ export interface HabitChallengeState {
   weeks?: number;          // 1–4 (HR's own challenges can run several weeks)
   elapsed?: number;        // workdays so far
   team_pct?: number | null;
+  // Sprint 4: a challenge built from routine items counts by itself when
+  // those items are ticked in Today. No "Did it" button (can_log is false).
+  auto_from_routine?: boolean;
+  routine_items?: Array<{ id: string; title_en: string; title_ar: string | null; due_today: boolean; checked: boolean }>;
 }
 
 export async function getMyHabitChallenge(): Promise<HabitChallengeState> {
   const { data, error } = await supabase.rpc('my_habit_challenge');
   if (error) throw error;
   return (data ?? { status: 'none' }) as HabitChallengeState;
+}
+
+// Sprint 4: every challenge running or coming up for me (HR can run several
+// at once), running ones first. Falls back to the single one on a database
+// that hasn't got the sprint 4 SQL yet.
+export async function getMyHabitChallenges(): Promise<HabitChallengeState[]> {
+  const { data, error } = await supabase.rpc('my_habit_challenges');
+  if (error) {
+    if (error.code === 'PGRST202' || /my_habit_challenges/.test(error.message || '')) {
+      const one = await getMyHabitChallenge();
+      return one && one.status !== 'none' ? [one] : [];
+    }
+    throw error;
+  }
+  return ((data as any)?.challenges ?? []) as HabitChallengeState[];
 }
 
 export async function logHabit(challengeId: string, done = true): Promise<HabitChallengeState> {

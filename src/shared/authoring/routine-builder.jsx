@@ -2,12 +2,13 @@ import React from 'react';
 import { WEEKDAYS } from '../../lib/supabase-routines';
 import { parseYouTubeUrl } from '../habit-meta.js';
 import { DENSITY } from '../tokens.jsx';
-import { HRIcon, HRButton, Panel, PanelHeader } from '../components.jsx';
+import { HRIcon, HRButton, Panel, PanelHeader, Badge } from '../components.jsx';
 import { Field, ErrorText, Choice, LangPair, inputStyle } from './ui.jsx';
 import { SourceFileField, usePendingUploads } from './media-field.jsx';
 import {
   emptyRoutineForm, routineToForm, validateRoutineForm, buildRoutineInput, routineErrorCount,
   newRowAfter, moveRow, sortRowsByTime, toggleWorkday, weekdayLabel, previewDay, dayFocus, ROUTINE_LIMITS,
+  applyHiddenFromDetail, hiddenRowCount,
 } from './routine-form.js';
 import { libraryError } from './errors.js';
 import { pickLang, fmtNum } from './text.js';
@@ -59,9 +60,12 @@ function QuickAddExercise({ theme, lang, onCreate, onCancel }) {
 
 // The routine builder: name, workdays, optional day focus, timed rows,
 // original table, and a phone preview of any day.
+// onSetItemHidden(itemId, hidden) → routine detail (optional, HR only): shows
+// "Hide" / "Show" on saved rows. A hidden row stays in the routine and in
+// the history; employees stop getting it. Without the prop there is no button.
 export function RoutineBuilder({
   theme, lang, density = 'comfortable', detail, exercises = [], isPublic = false, media,
-  onSave, onCancel, onCreateExercise, todayWeekday = 0,
+  onSave, onCancel, onCreateExercise, onSetItemHidden, todayWeekday = 0,
 }) {
   const T = theme;
   const s = (en, ar) => (lang === 'ar' ? ar : en);
@@ -77,6 +81,8 @@ export function RoutineBuilder({
   const [uploading, setUploading] = React.useState(false);
   const [quickFor, setQuickFor] = React.useState(null);
   const [created, setCreated] = React.useState([]);
+  const [hidingKey, setHidingKey] = React.useState(null);
+  const [hideError, setHideError] = React.useState(null); // { key, text }
   const [showFocus, setShowFocus] = React.useState(() => Object.keys(detail?.routine?.day_titles || {}).length > 0);
   const [previewDayId, setPreviewDayId] = React.useState(() => (form.workdays.includes(todayWeekday) ? todayWeekday : form.workdays[0] ?? 0));
   const pending = usePendingUploads(media?.discard);
@@ -126,6 +132,23 @@ export function RoutineBuilder({
     setQuickFor(null);
   }
 
+  // Hide / show one saved row right away (not part of "Save routine").
+  // Only that row's hidden_at changes here: unsaved edits in any row stay.
+  async function setHidden(row, hidden) {
+    if (!row.id || !onSetItemHidden) return;
+    setHidingKey(row.key); setHideError(null);
+    try {
+      const next = await onSetItemHidden(row.id, hidden);
+      setRows((rows) => (next?.items
+        ? applyHiddenFromDetail(rows, next)
+        : rows.map((r) => (r.key === row.key ? { ...r, hidden_at: hidden ? new Date().toISOString() : null } : r))));
+    } catch (err) {
+      setHideError({ key: row.key, text: libraryError(err, lang) });
+    } finally {
+      setHidingKey(null);
+    }
+  }
+
   async function submit(e) {
     e?.preventDefault?.();
     const errs = validateRoutineForm(form);
@@ -145,7 +168,11 @@ export function RoutineBuilder({
 
   const errCount = routineErrorCount(errors);
   const sel = { ...inputStyle(T), padding: '7px 8px' };
-  const rowGrid = { display: 'grid', gridTemplateColumns: '92px minmax(170px, 2.2fr) minmax(90px, 1fr) minmax(120px, 1.2fr) auto', gap: 8, alignItems: 'start' };
+  // With "Hide" / "Show" the last column is fixed, so rows with and without
+  // the button (new rows have none) stay lined up.
+  const rowGrid = { display: 'grid', gridTemplateColumns: `92px minmax(170px, 2.2fr) minmax(90px, 1fr) minmax(120px, 1.2fr) ${onSetItemHidden ? '172px' : 'auto'}`, gap: 8, alignItems: 'start' };
+  const hiddenCount = hiddenRowCount(form.rows);
+  const dim = (row) => (row.hidden_at ? { opacity: 0.5 } : null);
   const preview = previewDay(form, previewDayId, byId, lang);
   const focus = dayFocus(form, previewDayId, lang);
 
@@ -208,7 +235,7 @@ export function RoutineBuilder({
             hint={s('Leave sets × reps empty to use the exercise’s own. Leave the time empty for "any time today".',
                     'سيب العدد فاضي علشان ياخد عدد التمرين نفسه. سيب الوقت فاضي لو «أي وقت النهارده».')}>
             <div style={{ overflowX: 'auto' }}>
-              <div style={{ minWidth: 640 }}>
+              <div style={{ minWidth: onSetItemHidden ? 730 : 640 }}>
                 <div style={{ ...rowGrid, fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase', color: T.textMuted, fontWeight: 700, padding: '0 0 6px' }}>
                   <span>{s('Time', 'الوقت')}</span><span>{s('Exercise', 'التمرين')}</span><span>{s('Sets × reps', 'العدد')}</span><span>{s('Day', 'اليوم')}</span><span/>
                 </div>
@@ -220,12 +247,12 @@ export function RoutineBuilder({
                   return (
                     <div key={row.key} role="group" aria-label={`${s('Row', 'صف')} ${n}`}
                       style={{ ...rowGrid, padding: '6px 0', borderTop: `1px solid ${T.divider}` }}>
-                      <div>
+                      <div style={dim(row)}>
                         <input type="time" value={row.at_time} onChange={(e) => setRow(row.key, { at_time: e.target.value })}
                           aria-label={`${s('Time', 'الوقت')} ${n}`} style={{ ...inputStyle(T, !!re.at_time), padding: '7px 6px' }}/>
                         <ErrorText theme={T} lang={lang} error={re.at_time}/>
                       </div>
-                      <div>
+                      <div style={dim(row)}>
                         <select value={row.mode === 'text' ? TEXT : row.exercise_id || ''} aria-label={`${s('Exercise', 'التمرين')} ${n}`}
                           onChange={(e) => onPickExercise(row, e.target.value)} style={{ ...sel, borderColor: re.exercise_id ? T.danger : T.border }}>
                           <option value="">{s('Pick an exercise…', 'اختار تمرين…')}</option>
@@ -250,13 +277,13 @@ export function RoutineBuilder({
                         )}
                         <ErrorText theme={T} lang={lang} error={re.exercise_id || re.title_en}/>
                       </div>
-                      <div>
+                      <div style={dim(row)}>
                         <input value={row.sets_reps} onChange={(e) => setRow(row.key, { sets_reps: e.target.value })} maxLength={ROUTINE_LIMITS.setsReps}
                           placeholder={pickLang(lang, ex?.default_sets_reps, ex?.default_sets_reps_ar) || '2 × 10'}
                           aria-label={`${s('Sets × reps', 'العدد')} ${n}`} style={inputStyle(T, !!re.sets_reps)}/>
                         <ErrorText theme={T} lang={lang} error={re.sets_reps}/>
                       </div>
-                      <div>
+                      <div style={dim(row)}>
                         <select value={row.weekday == null ? '' : String(row.weekday)} aria-label={`${s('Day', 'اليوم')} ${n}`}
                           onChange={(e) => setRow(row.key, { weekday: e.target.value === '' ? null : Number(e.target.value) })}
                           style={{ ...sel, borderColor: re.weekday ? T.danger : T.border }}>
@@ -267,7 +294,14 @@ export function RoutineBuilder({
                         </select>
                         <ErrorText theme={T} lang={lang} error={re.weekday}/>
                       </div>
-                      <div style={{ display: 'flex', gap: 2 }}>
+                      <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                        {row.id && onSetItemHidden && (
+                          <HRButton theme={T} variant="ghost" size="sm" icon="eye" disabled={hidingKey === row.key}
+                            title={row.hidden_at ? s(`Show row ${n} to employees again`, `أظهر الصف ${fmtNum(n, 'ar')} للموظفين تاني`) : s(`Hide row ${n} from employees`, `اخفي الصف ${fmtNum(n, 'ar')} من الموظفين`)}
+                            onClick={() => setHidden(row, !row.hidden_at)} style={{ padding: '0 6px' }}>
+                            {row.hidden_at ? s('Show', 'أظهره') : s('Hide', 'اخفيه')}
+                          </HRButton>
+                        )}
                         <HRButton theme={T} variant="ghost" size="sm" icon="chevUp" title={s('Move up', 'لفوق')} disabled={i === 0}
                           onClick={() => setRows((rows) => moveRow(rows, i, -1))} style={{ padding: '0 6px' }}/>
                         <HRButton theme={T} variant="ghost" size="sm" icon="chevDown" title={s('Move down', 'لتحت')} disabled={i === form.rows.length - 1}
@@ -275,6 +309,15 @@ export function RoutineBuilder({
                         <HRButton theme={T} variant="ghost" size="sm" icon="close" title={s('Delete row', 'امسح الصف')}
                           onClick={() => setRows((rows) => rows.filter((r) => r.key !== row.key))} style={{ padding: '0 6px' }}/>
                       </div>
+                      {row.hidden_at && (
+                        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <Badge theme={T} tone="neutral">{s('Hidden', 'مخفي')}</Badge>
+                          <span style={{ fontSize: 11, color: T.textMuted }}>{s('Employees don’t see it. History stays.', 'الموظفين مش بيشوفوه. اللي اتسجّل قبل كده بيفضل.')}</span>
+                        </div>
+                      )}
+                      {hideError?.key === row.key && (
+                        <div role="alert" style={{ gridColumn: '1 / -1', fontSize: 11, color: T.danger }}>{hideError.text}</div>
+                      )}
                       {quickFor === row.key && (
                         <QuickAddExercise theme={T} lang={lang} onCancel={() => setQuickFor(null)}
                           onCreate={(input) => createExercise(row.key, input)}/>
@@ -291,7 +334,10 @@ export function RoutineBuilder({
               <HRButton theme={T} variant="ghost" size="sm" disabled={form.rows.length < 2} onClick={() => setRows(sortRowsByTime)}>
                 {s('Sort by time', 'رتّب بالوقت')}
               </HRButton>
-              <span style={{ fontSize: 11, color: T.textMuted }}>{s(`${form.rows.length} rows`, `${fmtNum(form.rows.length, 'ar')} صف`)}</span>
+              <span style={{ fontSize: 11, color: T.textMuted }}>
+                {s(`${form.rows.length} rows`, `${fmtNum(form.rows.length, 'ar')} صف`)}
+                {hiddenCount > 0 && s(` · ${hiddenCount} hidden`, ` · ${fmtNum(hiddenCount, 'ar')} مخفي`)}
+              </span>
             </div>
             <ErrorText theme={T} lang={lang} error={errors.rowsList}/>
           </Field>

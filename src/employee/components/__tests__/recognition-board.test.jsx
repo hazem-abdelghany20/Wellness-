@@ -64,6 +64,28 @@ describe('RecognitionBoard (Score tab)', () => {
     expect(screen.getByText(/Your name can show on the board/)).toBeInTheDocument();
   });
 
+  it('company shows everyone: no invitation and no "people who chose" (even if the server said not opted in)', async () => {
+    getRecognitionBoard.mockResolvedValue(makeBoard('named'));
+    render(<RecognitionBoard theme={T} lang="en" everyoneVisible/>);
+    expect(await screen.findByText('Did everything today')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Show your name on the company board?' })).toBeNull();
+    expect(screen.getByText('Your name shows on the board, like everyone’s.')).toBeInTheDocument();
+    expect(screen.queryByText('Your name is not on the board.')).toBeNull();
+    expect(screen.getByText(/Your company shows everyone’s name/)).toBeInTheDocument();
+    expect(screen.queryByText(/chose to show theirs/)).toBeNull();
+    expect(screen.getByText(/Never points or anything about health/)).toBeInTheDocument();
+    expect(setMyPrefs).not.toHaveBeenCalled();
+  });
+
+  it('company shows everyone, in Arabic', async () => {
+    getRecognitionBoard.mockResolvedValue(makeBoard('named', { me: { opted_in: true, items_done: 4, streak: 2 } }));
+    render(<RecognitionBoard theme={T} lang="ar" everyoneVisible/>);
+    expect(await screen.findByText('اسمك بيظهر على اللوحة زي كل الناس.')).toBeInTheDocument();
+    expect(screen.getByText(/شركتك بتعرض أسامي الكل/)).toBeInTheDocument();
+    expect(screen.queryByText(/للي اختاروا يظهروها/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'أيوه، اظهر اسمي' })).toBeNull();
+  });
+
   it('"Not now" hides the invitation without saving anything', async () => {
     getRecognitionBoard.mockResolvedValue(makeBoard('named'));
     render(<RecognitionBoard theme={T} lang="en"/>);
