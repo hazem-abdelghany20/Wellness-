@@ -176,10 +176,14 @@ export function importReasonLabel(reason, lang) {
 }
 
 // Template: the data sheet's header row and the "How to fill" sheet.
+// Every column the import reads, in a natural order (EN name, AR name, …).
+// Only "exercise" is required; the rest may stay empty.
 export function routineTemplateHeaders(lang) {
   return lang === 'ar'
-    ? ['الوقت', 'التمرين', 'المجموعات × التكرار', 'اليوم', 'منطقة الجسم', 'يوتيوب']
-    : ['time', 'exercise', 'sets_reps', 'weekday', 'body_areas', 'youtube'];
+    ? ['الوقت', 'التمرين', 'التمرين بالعربي', 'المجموعات × التكرار', 'العدد بالعربي', 'اليوم', 'منطقة الجسم',
+       'يوتيوب', 'how', 'إزاي', 'note', 'ملاحظة']
+    : ['time', 'exercise', 'exercise_ar', 'sets_reps', 'sets_reps_ar', 'weekday', 'body_areas',
+       'youtube', 'how_en', 'how_ar', 'note_en', 'note_ar'];
 }
 
 export function routineTemplateHelpRows(lang) {
@@ -188,24 +192,40 @@ export function routineTemplateHelpRows(lang) {
     return [
       ['العمود', 'تكتب فيه إيه', 'مثال'],
       ['الوقت', 'ميعاد التمرين. سيبه فاضي لو أي وقت في اليوم.', '09:30'],
-      ['التمرين', 'اسم التمرين بالإنجليزي. لو موجود في المكتبة هيتربط بيه، ولو مش موجود هيتعمل جديد.', 'Neck release'],
+      ['التمرين', 'مطلوب. اسم التمرين بالإنجليزي. لو موجود في المكتبة هيتربط بيه، ولو مش موجود هيتعمل جديد.', 'Neck release'],
+      ['التمرين بالعربي', 'اختياري. الاسم اللي الموظفين هيشوفوه لو التطبيق بالعربي.', 'إطالة الرقبة'],
       ['المجموعات × التكرار', 'زي ما المدرب كاتبها. اكتبها كنص.', '2 x 10'],
+      ['العدد بالعربي', 'اختياري. نفس العدد بالعربي.', '٢ × ١٠'],
       ['اليوم', 'سيبه فاضي لكل أيام الشغل، أو اكتب يوم واحد.', 'الأحد'],
       ['منطقة الجسم', `اختياري. أكتر من واحدة بفاصلة: ${areas}`, 'الرقبة، الكتف'],
       ['يوتيوب', 'اختياري. لينك فيديو الشرح.', 'https://youtu.be/…'],
+      ['how', 'اختياري. سطر واحد بالإنجليزي: إزاي تعمل التمرين.', 'Tilt your head to one side, hold, switch.'],
+      ['إزاي', 'اختياري. نفس السطر بالعربي.', 'ميّل راسك لجنب، اثبت، وبدّل.'],
+      ['note', 'اختياري. ملاحظة قصيرة للتمرين ده في الروتين ده.', 'Slowly'],
+      ['ملاحظة', 'اختياري. نفس الملاحظة بالعربي.', 'براحة'],
       [],
+      ['ملف لكل روتين', 'مثلاً ملف لإطالات يوم الشغل (اليوم فاضي = كل يوم)، وملف تاني لتمارين القوة (اليوم مكتوب في كل صف).', ''],
+      ['بعد الاستيراد', 'تركيز كل يوم (مثلاً «الجزء السفلي») وصورة الجدول الأصلي بيتضافوا من الروتينات ← تعديل.', ''],
       ['ملاحظة', 'لحد ١٠٠ صف. الصفوف اللي فيها مشكلة بتظهر في المعاينة قبل ما يتحفظ أي حاجة.', ''],
     ];
   }
   return [
     ['Column', 'What to write', 'Example'],
     ['time', 'When to do it. Leave empty for any time of the day.', '09:30'],
-    ['exercise', 'The exercise name in English. If it is in your library it is linked; if not, a new exercise is created.', 'Neck release'],
+    ['exercise', 'Required. The exercise name in English. If it is in your library it is linked; if not, a new exercise is created.', 'Neck release'],
+    ['exercise_ar', 'Optional. The name employees see when the app is in Arabic.', 'إطالة الرقبة'],
     ['sets_reps', 'As the coach wrote it. Type it as text.', '2 x 10'],
+    ['sets_reps_ar', 'Optional. The same in Arabic.', '٢ × ١٠'],
     ['weekday', 'Leave empty for every workday, or write one day.', 'Sunday'],
     ['body_areas', `Optional. Several, separated by commas: ${areas}`, 'neck, shoulders'],
     ['youtube', 'Optional. A link to the demo video.', 'https://youtu.be/…'],
+    ['how_en', 'Optional. One line: how to do it.', 'Tilt your head to one side, hold, switch.'],
+    ['how_ar', 'Optional. The same line in Arabic.', 'ميّل راسك لجنب، اثبت، وبدّل.'],
+    ['note_en', 'Optional. A short note for this exercise in this routine.', 'Slowly'],
+    ['note_ar', 'Optional. The same note in Arabic.', 'براحة'],
     [],
+    ['One file per routine', 'For example one file for the workday stretches (weekday empty = every day) and one for office strength (a weekday on every row).', ''],
+    ['After the import', 'The focus of each day (e.g. "Lower body") and the picture of the original table are added in Routines → Edit.', ''],
     ['Note', 'Up to 100 rows. Rows with a problem show in the preview before anything is saved.', ''],
   ];
 }
