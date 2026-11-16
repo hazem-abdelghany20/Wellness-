@@ -196,8 +196,12 @@ describe('routine sheet', () => {
     expect(importReasonLabel('bad_time', 'en')).toMatch(/09:30/);
     expect(importReasonLabel('weekday_not_workday', 'ar')).toBe('اليوم ده مش يوم شغل');
     expect(importReasonLabel('something_new', 'en')).toBe('something_new');
-    expect(routineTemplateHeaders('en')).toEqual(['time', 'exercise', 'sets_reps', 'weekday', 'body_areas', 'youtube']);
-    expect(routineTemplateHeaders('ar').map(routineHeaderField)).toEqual(['time', 'exercise', 'sets_reps', 'weekday', 'body_areas', 'youtube']);
+    const all = ['time', 'exercise', 'exercise_ar', 'sets_reps', 'sets_reps_ar', 'weekday', 'body_areas',
+      'youtube', 'how_en', 'how_ar', 'note_en', 'note_ar'];
+    expect(routineTemplateHeaders('en')).toEqual(all);
+    // Every template header, in both languages, is read back as its own column.
+    expect(routineTemplateHeaders('en').map(routineHeaderField)).toEqual(all);
+    expect(routineTemplateHeaders('ar').map(routineHeaderField)).toEqual(all);
     expect(routineTemplateHelpRows('ar')[0][0]).toBe('العمود');
   });
 });
