@@ -34,7 +34,7 @@ export async function routineTemplateBlob(lang) {
     {
       sheet: ar ? 'الروتين' : 'Routine',
       data: [routineTemplateHeaders(lang).map((h) => bold(h))],
-      columns: [{ width: 12 }, { width: 30 }, { width: 18 }, { width: 16 }, { width: 26 }, { width: 40 }],
+      columns: [{ width: 10 }, { width: 28 }, { width: 28 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 24 }, { width: 34 }, { width: 40 }, { width: 40 }, { width: 22 }, { width: 22 }],
       rightToLeft: ar,
       stickyRowsCount: 1,
     },
