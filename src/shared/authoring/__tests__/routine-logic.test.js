@@ -164,7 +164,25 @@ describe('routine sheet', () => {
     expect(timeCell(0.5)).toBe('12:00');
     expect(timeCell('2:15 pm')).toBe('2:15 pm');
     expect(bodyAreasCell('Neck, upper back; الكتف')).toEqual(['neck', 'upper_back', 'shoulders']);
-    expect(bodyAreasCell('Knees')).toEqual(['knees']); // unknown: the server warns
+    expect(bodyAreasCell('Scalp')).toEqual(['scalp']); // unknown: the server warns
+  });
+
+  it('reads the anatomy words coaches write as the app’s body areas', () => {
+    expect(bodyAreasCell('Hips, Knees, Ankles, Shoulders')).toEqual(['hips', 'legs', 'shoulders']);
+    expect(bodyAreasCell('Thoracic Spine, Scapula, Spine, Lats')).toEqual(['upper_back']);
+    expect(bodyAreasCell('Wrists, Fingers, Forearms')).toEqual(['wrists', 'arms']);
+    expect(bodyAreasCell('Hamstrings, Glutes, Calves, Back')).toEqual(['legs', 'hips', 'upper_back']);
+    expect(bodyAreasCell('Pelvis, Lower Back')).toEqual(['hips', 'lower_back']);
+    expect(bodyAreasCell('Adductors, Inner Thighs, Quads')).toEqual(['legs']);
+    expect(bodyAreasCell('Hip Abductors, Hip Flexors')).toEqual(['hips']);
+    expect(bodyAreasCell('Biceps, Triceps, Rear Deltoids')).toEqual(['arms', 'shoulders']);
+  });
+
+  it('reads a "section - muscles" cell, as in the strength sheet', () => {
+    expect(bodyAreasCell('Lower Body - Quads, Glutes, Hips')).toEqual(['legs', 'hips']);
+    expect(bodyAreasCell('Upper Body + Core - Biceps, Shoulders')).toEqual(['arms', 'core', 'shoulders']);
+    expect(bodyAreasCell('Full Body – Chest')).toEqual(['full_body', 'chest']);
+    expect(bodyAreasCell('Full-body')).not.toContain('full'); // only a spaced dash separates
   });
 
   it('reads rows under the header, skipping empty lines, with Excel row numbers', () => {

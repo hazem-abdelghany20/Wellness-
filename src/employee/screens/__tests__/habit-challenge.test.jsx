@@ -91,6 +91,13 @@ describe('Challenge tab: several at once (sprint 4)', () => {
     expect(screen.getByText('Why this helps')).toBeInTheDocument();
   });
 
+  it('one challenge with no why, tip or article has no empty "Why this helps" card', () => {
+    hook.mockReturnValue(one(fromRoutine()));
+    show();
+    expect(screen.getByText('Your team')).toBeInTheDocument();
+    expect(screen.queryByText('Why this helps')).toBeNull();
+  });
+
   it('a 3-day challenge shows exactly its 3 dots, from the days', () => {
     hook.mockReturnValue(one(walk()));
     const { container } = show();
