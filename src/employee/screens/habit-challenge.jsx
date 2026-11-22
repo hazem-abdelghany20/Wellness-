@@ -278,8 +278,12 @@ function ChallengeView({ theme: T, lang, state, stacked = false, open = true, on
         <SectionLabel theme={T} style={{ padding: '0 6px', margin: '6px 0 0' }}>{s('Your team', 'فريقك')}</SectionLabel>
         <Card theme={T} pad={18} radius={20}>{team}</Card>
 
-        <SectionLabel theme={T} style={{ padding: '0 6px', margin: '6px 0 0' }}>{s('Why this helps', 'ليه ده مفيد')}</SectionLabel>
-        <Card theme={T} pad={18} radius={20}>{why}</Card>
+        {hasWhy && (
+          <>
+            <SectionLabel theme={T} style={{ padding: '0 6px', margin: '6px 0 0' }}>{s('Why this helps', 'ليه ده مفيد')}</SectionLabel>
+            <Card theme={T} pad={18} radius={20}>{why}</Card>
+          </>
+        )}
       </>
     );
   }

@@ -94,12 +94,24 @@ for (const [alias, id] of [['back', 'upper_back'], ['lower back', 'lower_back'],
   ['الرقبه', 'neck'], ['الكتف', 'shoulders'], ['الكتفين', 'shoulders'], ['الايد', 'arms'], ['الرجل', 'legs'], ['البطن', 'core']]) {
   AREA_BY_KEY.set(key(alias), id);
 }
+// The anatomy words coaches write. The app keeps 13 areas, so each lands on the nearest.
+for (const [id, names] of Object.entries({
+  shoulders: ['deltoids', 'rear deltoids'],
+  upper_back: ['thoracic spine', 'spine', 'scapula', 'lats'],
+  arms: ['upper body', 'forearms', 'biceps', 'triceps'],
+  wrists: ['fingers'],
+  hips: ['pelvis', 'glutes', 'hip abductors', 'hip flexors'],
+  legs: ['lower body', 'knees', 'ankles', 'calves', 'quads', 'hamstrings', 'adductors', 'inner thighs'],
+})) {
+  for (const name of names) AREA_BY_KEY.set(key(name), id);
+}
 
-// "Neck, upper back" / "الرقبة، الكتف" → ['neck', 'upper_back']. Unknown
+// "Neck, upper back" / "الرقبة، الكتف" → ['neck', 'upper_back'].
+// "Lower body - Quads" → both sides of the spaced dash. Unknown
 // names stay as typed so the server can warn about them.
 export function bodyAreasCell(v) {
   const out = [];
-  for (const part of cellString(v).split(/[,;،/+]| و /)) {
+  for (const part of cellString(v).split(/[,;،/+]| [-–—] | و /)) {
     const raw = part.trim();
     if (!raw) continue;
     const id = AREA_BY_KEY.get(key(raw)) || raw.toLowerCase().replace(/\s+/g, '_');
